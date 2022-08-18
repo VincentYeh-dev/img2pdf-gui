@@ -1,4 +1,4 @@
-package org.vincentyeh.img2pdfgui;
+package org.vincentyeh.img2pdf.gui;
 
 import junit.framework.Test;
 import junit.framework.TestCase;

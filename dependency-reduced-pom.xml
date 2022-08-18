@@ -132,7 +132,7 @@
   </dependencies>
   <properties>
     <exe-name>img2pdf-gui</exe-name>
-    <main-class>org.vincentyeh.img2pdfgui.App</main-class>
+    <main-class>org.vincentyeh.img2pdf.gui.App</main-class>
     <maven.compiler.source>8</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.target>8</maven.compiler.target>

@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.example</groupId>
-    <artifactId>img2pdf-gui</artifactId>
+    <artifactId>img2pdf.gui</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
@@ -13,12 +13,12 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
+        <maven.compiler.source>16</maven.compiler.source>
+        <maven.compiler.target>16</maven.compiler.target>
         <exe-name>img2pdf-gui</exe-name>
         <jar-name>${project.name}-${project.version}</jar-name>
 
-        <main-class>org.vincentyeh.img2pdfgui.App</main-class>
+        <main-class>org.vincentyeh.img2pdf.gui.App</main-class>
     </properties>
 
     <dependencies>
@@ -35,8 +35,8 @@
         </dependency>
         <dependency>
             <groupId>org.vincentyeh</groupId>
-            <artifactId>IMG2PDF</artifactId>
-            <version>1.1.2</version>
+            <artifactId>img2pdf-lib</artifactId>
+            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.intellij</groupId>

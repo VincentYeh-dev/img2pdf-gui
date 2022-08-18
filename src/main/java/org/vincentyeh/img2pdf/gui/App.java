@@ -1,7 +1,7 @@
-package org.vincentyeh.img2pdfgui;
+package org.vincentyeh.img2pdf.gui;
 
 import com.formdev.flatlaf.FlatDarkLaf;
-import org.vincentyeh.img2pdfgui.ui.MainFrame;
+import org.vincentyeh.img2pdf.gui.ui.MainFrame;
 
 import javax.swing.*;
 
