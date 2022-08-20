@@ -143,38 +143,35 @@
             </plugin>
 
             <!-- LAUNCH4J -->
-            <plugin>
-                <groupId>com.akathist.maven.plugins.launch4j</groupId>
-                <artifactId>launch4j-maven-plugin</artifactId>
-                <version>2.1.1</version>
-                <executions>
-                    <execution>
-                        <id>l4j-clui</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>launch4j</goal>
-                        </goals>
-                        <configuration>
-                            <headerType>console</headerType>
-                            <jar>target/${jar-name}.jar</jar>
-                            <outfile>target/bin/${exe-name}.exe</outfile>
-                            <downloadUrl>http://www.java.com</downloadUrl>
-                            <classPath>
-                                <mainClass>${main-class}</mainClass>
-                            </classPath>
-                            <jre>
-                                <opts>
-                                    <opt>-Dfile.encoding=UTF-8</opt>
-                                </opts>
-                                <bundledJre64Bit>false</bundledJre64Bit>
-                                <bundledJreAsFallback>false</bundledJreAsFallback>
-                                <minVersion>${maven.compiler.source}</minVersion>
-                                <jdkPreference>preferJre</jdkPreference>
-                            </jre>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>com.akathist.maven.plugins.launch4j</groupId>-->
+<!--                <artifactId>launch4j-maven-plugin</artifactId>-->
+<!--                <version>2.1.1</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>l4j-clui</id>-->
+<!--                        <phase>package</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>launch4j</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <headerType>gui</headerType>-->
+<!--                            <jar>target/${jar-name}.jar</jar>-->
+<!--                            <outfile>target/bin/${exe-name}.exe</outfile>-->
+<!--                            <downloadUrl>https://jdk.java.net/java-se-ri/16</downloadUrl>-->
+<!--                            <classPath>-->
+<!--                                <mainClass>${main-class}</mainClass>-->
+<!--                            </classPath>-->
+<!--                            <jre>-->
+<!--                                <bundledJre64Bit>false</bundledJre64Bit>-->
+<!--                                <bundledJreAsFallback>false</bundledJreAsFallback>-->
+<!--                                <jdkPreference>preferJdk</jdkPreference>-->
+<!--                                <minVersion>16</minVersion>-->
+<!--                            </jre>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
         </plugins>
     </build>
 </project>
