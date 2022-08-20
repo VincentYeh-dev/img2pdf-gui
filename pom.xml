@@ -25,7 +25,7 @@
         <dependency>
             <groupId>com.formdev</groupId>
             <artifactId>flatlaf</artifactId>
-            <version>2.4</version>
+            <version>1.6.1</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -35,8 +35,8 @@
         </dependency>
         <dependency>
             <groupId>org.vincentyeh</groupId>
-            <artifactId>img2pdf-lib</artifactId>
-            <version>1.0.0</version>
+            <artifactId>img2pdf.lib</artifactId>
+            <version>3.1.0</version>
         </dependency>
         <dependency>
             <groupId>com.intellij</groupId>
