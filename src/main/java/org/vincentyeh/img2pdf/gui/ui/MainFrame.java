@@ -4,11 +4,15 @@ package org.vincentyeh.img2pdf.gui.ui;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
+import org.apache.pdfbox.io.MemoryUsageSetting;
 import org.vincentyeh.img2pdf.gui.util.file.FileNameFormatter;
 import org.vincentyeh.img2pdf.gui.util.file.GlobbingFileFilter;
 import org.vincentyeh.img2pdf.gui.util.interfaces.NameFormatter;
-import org.vincentyeh.img2pdf.lib.PDFacade;
-import org.vincentyeh.img2pdf.lib.pdf.framework.converter.PDFCreator;
+import org.vincentyeh.img2pdf.lib.image.reader.concrete.ColorSpaceImageReader;
+import org.vincentyeh.img2pdf.lib.image.reader.concrete.DirectionImageReader;
+import org.vincentyeh.img2pdf.lib.pdf.concrete.builder.PDFBoxBuilder;
+import org.vincentyeh.img2pdf.lib.pdf.concrete.factory.ImagePDFFactory;
+import org.vincentyeh.img2pdf.lib.pdf.concrete.factory.StandardImagePageCalculationStrategy;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.*;
 
 import javax.swing.*;
@@ -98,6 +102,7 @@ public class MainFrame {
             var verticalAlign = (PageAlign.VerticalAlign) combo_vertical.getSelectedItem();
             var horizontalAlign = (PageAlign.HorizontalAlign) combo_horizontal.getSelectedItem();
             var dest = field_destination.getText();
+            var formatter = new FileNameFormatter(dest);
             var filter = field_filter.getText();
             var owner_password =
                     pwd_owner_password.getPassword().length > 0 ? Arrays.toString(pwd_owner_password.getPassword()) : null;
@@ -106,11 +111,18 @@ public class MainFrame {
             try {
                 var tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
                 tempFolder.deleteOnExit();
-                var creator = PDFacade.createImagePDFConverter(
+
+                var setting = MemoryUsageSetting.setupMixed(200 * 1024 * 1024).setTempDir(tempFolder);
+
+                var factory = new ImagePDFFactory(
                         new PageArgument(verticalAlign, horizontalAlign, size, direction, auto_rotate),
-                        new DocumentArgument(owner_password, user_password)
-                        , 1024 * 1024 * 100, tempFolder, true
-                        , ColorSpace.getInstance(cs.getColorSpace()), 10);
+                        new DocumentArgument(owner_password, user_password),
+                        new PDFBoxBuilder(setting),
+                        new DirectionImageReader(
+                                new ColorSpaceImageReader(ColorSpace.getInstance(cs.getColorSpace()))),
+                        new StandardImagePageCalculationStrategy(),
+                        true
+                );
 
                 progressBar_total.setMaximum(directories.length);
                 new Thread(() -> {
@@ -118,10 +130,9 @@ public class MainFrame {
                         var directory = directories[i];
                         var image_files = directory.listFiles(new GlobbingFileFilter(filter));
                         Arrays.sort(image_files);
-                        creator.setImages(image_files);
-                        var formatter = new FileNameFormatter(dest);
                         try {
-                            creator.start(i, new File(formatter.format(directory)).getAbsoluteFile(), getListener());
+                            factory.start(i, image_files,
+                                    new File(formatter.format(directory)).getAbsoluteFile(), getListener());
                         } catch (NameFormatter.FormatException ex) {
                             throw new RuntimeException(ex);
                         }
@@ -137,9 +148,9 @@ public class MainFrame {
 
     }
 
-    private PDFCreator.Listener getListener() {
+    private ImagePDFFactory.Listener getListener() {
 
-        return new PDFCreator.Listener() {
+        return new ImagePDFFactory.Listener() {
             @Override
             public void initializing(long l) {
 
