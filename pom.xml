@@ -4,12 +4,9 @@
 
     <groupId>org.example</groupId>
     <artifactId>img2pdf.gui</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.0-alpha</version>
     <packaging>jar</packaging>
-
     <name>img2pdf-gui</name>
-    <url>http://maven.apache.org</url>
-
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -28,12 +25,6 @@
             <version>1.6.1</version>
         </dependency>
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>3.8.1</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.vincentyeh</groupId>
             <artifactId>img2pdf.lib</artifactId>
             <version>4.0.0</version>
@@ -47,24 +38,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0-M5</version>
-                <configuration>
-                    <excludes>
-                        <include>**/Test*.java</include>
-                        <include>**/*Tests.java</include>
-                    </excludes>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.0.0-M5</version>
-            </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -86,18 +59,6 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <!-- annotationProcessorPaths requires maven-compiler-plugin version 3.5 or higher -->
                 <version>3.8.1</version>
-                <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>info.picocli</groupId>
-                            <artifactId>picocli-codegen</artifactId>
-                            <version>4.6.1</version>
-                        </path>
-                    </annotationProcessorPaths>
-                    <compilerArgs>
-                        <arg>-Aproject=${project.groupId}/${project.artifactId}</arg>
-                    </compilerArgs>
-                </configuration>
             </plugin>
 
             <plugin>
@@ -143,36 +104,6 @@
                 </executions>
             </plugin>
 
-            <!-- LAUNCH4J -->
-<!--            <plugin>-->
-<!--                <groupId>com.akathist.maven.plugins.launch4j</groupId>-->
-<!--                <artifactId>launch4j-maven-plugin</artifactId>-->
-<!--                <version>2.1.1</version>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>l4j-clui</id>-->
-<!--                        <phase>package</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>launch4j</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <headerType>gui</headerType>-->
-<!--                            <jar>target/${jar-name}.jar</jar>-->
-<!--                            <outfile>target/bin/${exe-name}.exe</outfile>-->
-<!--                            <downloadUrl>https://jdk.java.net/java-se-ri/16</downloadUrl>-->
-<!--                            <classPath>-->
-<!--                                <mainClass>${main-class}</mainClass>-->
-<!--                            </classPath>-->
-<!--                            <jre>-->
-<!--                                <bundledJre64Bit>false</bundledJre64Bit>-->
-<!--                                <bundledJreAsFallback>false</bundledJreAsFallback>-->
-<!--                                <jdkPreference>preferJdk</jdkPreference>-->
-<!--                                <minVersion>16</minVersion>-->
-<!--                            </jre>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
         </plugins>
     </build>
 </project>

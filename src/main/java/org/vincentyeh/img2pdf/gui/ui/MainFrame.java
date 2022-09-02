@@ -8,8 +8,8 @@ import org.apache.pdfbox.io.MemoryUsageSetting;
 import org.vincentyeh.img2pdf.gui.util.file.FileNameFormatter;
 import org.vincentyeh.img2pdf.gui.util.file.GlobbingFileFilter;
 import org.vincentyeh.img2pdf.gui.util.interfaces.NameFormatter;
-import org.vincentyeh.img2pdf.lib.image.reader.concrete.ColorSpaceImageReader;
-import org.vincentyeh.img2pdf.lib.image.reader.concrete.DirectionImageReader;
+import org.vincentyeh.img2pdf.lib.image.ImageReaderFacade;
+import org.vincentyeh.img2pdf.lib.image.reader.framework.ColorType;
 import org.vincentyeh.img2pdf.lib.pdf.concrete.builder.PDFBoxBuilder;
 import org.vincentyeh.img2pdf.lib.pdf.concrete.factory.ImagePDFFactory;
 import org.vincentyeh.img2pdf.lib.pdf.concrete.factory.StandardImagePageCalculationStrategy;
@@ -43,23 +43,10 @@ public class MainFrame {
     private JCheckBox check_auto;
     private JProgressBar progressBar_page_append;
     private JProgressBar progressBar_total;
-    private JComboBox<Color> comboBox_color;
+    private JComboBox<ColorType> comboBox_color;
     private JTree tree_sources;
     private File[] directories;
 
-    private enum Color {
-        COLOR(ColorSpace.CS_sRGB), GRAY(ColorSpace.CS_GRAY);
-
-        private final int cs;
-
-        Color(int cs) {
-            this.cs = cs;
-        }
-
-        public int getColorSpace() {
-            return cs;
-        }
-    }
 
     public MainFrame() {
         $$$setupUI$$$();
@@ -97,7 +84,6 @@ public class MainFrame {
         button_convert.addActionListener(e -> {
             var size = (PageSize) combo_size.getSelectedItem();
             var direction = (PageDirection) combo_direction.getSelectedItem();
-            var cs = (Color) comboBox_color.getSelectedItem();
             var auto_rotate = check_auto.isSelected();
             var verticalAlign = (PageAlign.VerticalAlign) combo_vertical.getSelectedItem();
             var horizontalAlign = (PageAlign.HorizontalAlign) combo_horizontal.getSelectedItem();
@@ -114,12 +100,12 @@ public class MainFrame {
 
                 var setting = MemoryUsageSetting.setupMixed(200 * 1024 * 1024).setTempDir(tempFolder);
 
+                var argument = new PageArgument(verticalAlign, horizontalAlign, size, direction, auto_rotate);
                 var factory = new ImagePDFFactory(
-                        new PageArgument(verticalAlign, horizontalAlign, size, direction, auto_rotate),
+                        argument,
                         new DocumentArgument(owner_password, user_password),
                         new PDFBoxBuilder(setting),
-                        new DirectionImageReader(
-                                new ColorSpaceImageReader(ColorSpace.getInstance(cs.getColorSpace()))),
+                        ImageReaderFacade.getImageReader(ColorType.sRGB),
                         new StandardImagePageCalculationStrategy(),
                         true
                 );
@@ -187,7 +173,7 @@ public class MainFrame {
         for (PageSize size : PageSize.values()) {
             combo_size.addItem(size);
         }
-        for (var color : Color.values()) {
+        for (var color : ColorType.values()) {
             comboBox_color.addItem(color);
         }
         var model = (DefaultTreeModel) tree_sources.getModel();
