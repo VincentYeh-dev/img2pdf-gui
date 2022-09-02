@@ -18,9 +18,7 @@ import org.vincentyeh.img2pdf.lib.pdf.parameter.*;
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.awt.color.ColorSpace;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -50,91 +48,77 @@ public class MainFrame {
 
     public MainFrame() {
         $$$setupUI$$$();
-        createUIComponents();
-        initializeListener();
+        initializeUIComponents();
+        button_browse.addActionListener(e -> browseSaveFilePath());
+        button_convert.addActionListener(e -> startConversion());
     }
 
-    private void initializeListener() {
-        button_browse.addActionListener(e -> {
-            JFileChooser chooser = new JFileChooser();
-            chooser.setMultiSelectionEnabled(true);
+    private void startConversion() {
+        var size = (PageSize) combo_size.getSelectedItem();
+        var direction = (PageDirection) combo_direction.getSelectedItem();
+        var auto_rotate = check_auto.isSelected();
+        var verticalAlign = (PageAlign.VerticalAlign) combo_vertical.getSelectedItem();
+        var horizontalAlign = (PageAlign.HorizontalAlign) combo_horizontal.getSelectedItem();
+        var dest = field_destination.getText();
+        var formatter = new FileNameFormatter(dest);
+        var filter = field_filter.getText();
+        var owner_password = pwd_owner_password.getPassword().length > 0 ? Arrays.toString(pwd_owner_password.getPassword()) : null;
+        var user_password = pwd_user_password.getPassword().length > 0 ? Arrays.toString(pwd_user_password.getPassword()) : null;
+        try {
+            var tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
+            tempFolder.deleteOnExit();
 
-            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-            chooser.setCurrentDirectory(new File("").getAbsoluteFile());
-            int option = chooser.showOpenDialog(null);
-            if (option == JFileChooser.APPROVE_OPTION) {
-                directories = chooser.getSelectedFiles();
-                var model = (DefaultTreeModel) tree_sources.getModel();
-                var root = (DefaultMutableTreeNode) model.getRoot();
-                root.removeAllChildren();
+            var setting = MemoryUsageSetting.setupMixed(200 * 1024 * 1024).setTempDir(tempFolder);
+
+            var argument = new PageArgument(verticalAlign, horizontalAlign, size, direction, auto_rotate);
+            var factory = new ImagePDFFactory(argument, new DocumentArgument(owner_password, user_password), new PDFBoxBuilder(setting), ImageReaderFacade.getImageReader(ColorType.sRGB), new StandardImagePageCalculationStrategy(), true);
+
+            progressBar_total.setMaximum(directories.length);
+            new Thread(() -> {
                 for (int i = 0; i < directories.length; i++) {
-                    var image_files = directories[i].listFiles(new GlobbingFileFilter(field_filter.getText()));
+                    var directory = directories[i];
+                    var image_files = directory.listFiles(new GlobbingFileFilter(filter));
                     Arrays.sort(image_files);
-                    var node = new DefaultMutableTreeNode(directories[i].getName());
-                    for (var image : image_files)
-                        node.add(new DefaultMutableTreeNode(image.getName()));
-                    root.add(node);
+                    try {
+                        factory.start(i, image_files, new File(formatter.format(directory)).getAbsoluteFile(), getListener());
+                    } catch (NameFormatter.FormatException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                    progressBar_total.setValue(i + 1);
                 }
 
-                model.reload();
+            }).start();
+
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    private void browseSaveFilePath() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setMultiSelectionEnabled(true);
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        chooser.setCurrentDirectory(new File("").getAbsoluteFile());
+        int option = chooser.showOpenDialog(null);
+        if (option == JFileChooser.APPROVE_OPTION) {
+            directories = chooser.getSelectedFiles();
+            var model = (DefaultTreeModel) tree_sources.getModel();
+            var root = (DefaultMutableTreeNode) model.getRoot();
+            root.removeAllChildren();
+            for (int i = 0; i < directories.length; i++) {
+                var image_files = directories[i].listFiles(new GlobbingFileFilter(field_filter.getText()));
+                Arrays.sort(image_files);
+                var node = new DefaultMutableTreeNode(directories[i].getName());
+                for (var image : image_files)
+                    node.add(new DefaultMutableTreeNode(image.getName()));
+                root.add(node);
             }
-
-        });
-
-        button_convert.addActionListener(e -> {
-            var size = (PageSize) combo_size.getSelectedItem();
-            var direction = (PageDirection) combo_direction.getSelectedItem();
-            var auto_rotate = check_auto.isSelected();
-            var verticalAlign = (PageAlign.VerticalAlign) combo_vertical.getSelectedItem();
-            var horizontalAlign = (PageAlign.HorizontalAlign) combo_horizontal.getSelectedItem();
-            var dest = field_destination.getText();
-            var formatter = new FileNameFormatter(dest);
-            var filter = field_filter.getText();
-            var owner_password =
-                    pwd_owner_password.getPassword().length > 0 ? Arrays.toString(pwd_owner_password.getPassword()) : null;
-            var user_password =
-                    pwd_user_password.getPassword().length > 0 ? Arrays.toString(pwd_user_password.getPassword()) : null;
-            try {
-                var tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
-                tempFolder.deleteOnExit();
-
-                var setting = MemoryUsageSetting.setupMixed(200 * 1024 * 1024).setTempDir(tempFolder);
-
-                var argument = new PageArgument(verticalAlign, horizontalAlign, size, direction, auto_rotate);
-                var factory = new ImagePDFFactory(
-                        argument,
-                        new DocumentArgument(owner_password, user_password),
-                        new PDFBoxBuilder(setting),
-                        ImageReaderFacade.getImageReader(ColorType.sRGB),
-                        new StandardImagePageCalculationStrategy(),
-                        true
-                );
-
-                progressBar_total.setMaximum(directories.length);
-                new Thread(() -> {
-                    for (int i = 0; i < directories.length; i++) {
-                        var directory = directories[i];
-                        var image_files = directory.listFiles(new GlobbingFileFilter(filter));
-                        Arrays.sort(image_files);
-                        try {
-                            factory.start(i, image_files,
-                                    new File(formatter.format(directory)).getAbsoluteFile(), getListener());
-                        } catch (NameFormatter.FormatException ex) {
-                            throw new RuntimeException(ex);
-                        }
-                        progressBar_total.setValue(i + 1);
-                    }
-
-                }).start();
-
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
-            }
-        });
+            model.reload();
+        }
 
     }
 
-    private ImagePDFFactory.Listener getListener() {
+    private final ImagePDFFactory.Listener getListener() {
 
         return new ImagePDFFactory.Listener() {
             @Override
@@ -160,7 +144,7 @@ public class MainFrame {
         };
     }
 
-    private void createUIComponents() {
+    private void initializeUIComponents() {
         for (PageDirection direction : PageDirection.values()) {
             combo_direction.addItem(direction);
         }
@@ -180,7 +164,6 @@ public class MainFrame {
         var root = (DefaultMutableTreeNode) model.getRoot();
         root.removeAllChildren();
         model.reload();
-
     }
 
 
