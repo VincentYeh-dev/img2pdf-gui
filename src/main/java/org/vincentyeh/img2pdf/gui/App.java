@@ -14,7 +14,7 @@ public class App
     public static void main( String[] args )
     {
         FlatDarkLaf.setup();
-        JFrame frame= new JFrame("");
+        JFrame frame= new JFrame(Constants.APP_TITLE);
         frame.setContentPane(new MainFrame().getRootPanel());
         frame.pack();
         frame.setVisible(true);
