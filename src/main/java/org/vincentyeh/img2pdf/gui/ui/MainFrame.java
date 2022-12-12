@@ -45,7 +45,6 @@ public class MainFrame {
     private JTextField field_filter;
     private JComboBox<PageDirection> combo_direction;
     private JCheckBox check_auto;
-    private JProgressBar progressBar_page_append;
     private JProgressBar progressBar_total;
     private JComboBox<ColorType> comboBox_color;
     private JTree tree_sources;
@@ -91,7 +90,6 @@ public class MainFrame {
                 for (int i = 0; i < directories.size(); i++) {
                     var directory = directories.get(i);
                     var image_files = directory.listFiles(filter);
-
                     Arrays.sort(image_files);
                     try {
                         factory.start(i, image_files, new File(formatter.format(directory)).getAbsoluteFile(), null);
