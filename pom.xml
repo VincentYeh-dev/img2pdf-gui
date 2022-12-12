@@ -4,16 +4,16 @@
 
     <groupId>org.example</groupId>
     <artifactId>img2pdf.gui</artifactId>
-    <version>1.0.0-alpha</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
     <name>img2pdf-gui</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>16</maven.compiler.source>
-        <maven.compiler.target>16</maven.compiler.target>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
         <exe-name>img2pdf-gui</exe-name>
-        <jar-name>${project.name}-${project.version}</jar-name>
+        <jar-name>${project.name}-executable</jar-name>
 
         <main-class>org.vincentyeh.img2pdf.gui.App</main-class>
     </properties>
@@ -27,7 +27,7 @@
         <dependency>
             <groupId>org.vincentyeh</groupId>
             <artifactId>img2pdf.lib</artifactId>
-            <version>4.0.0</version>
+            <version>5.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.intellij</groupId>
@@ -104,6 +104,35 @@
                 </executions>
             </plugin>
 
+            <plugin>
+                <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                <artifactId>launch4j-maven-plugin</artifactId>
+                <version>2.1.1</version>
+                <executions>
+                    <execution>
+                        <id>l4j-clui</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>launch4j</goal>
+                        </goals>
+                        <configuration>
+                            <headerType>gui</headerType>
+                            <jar>target/${jar-name}.jar</jar>
+                            <outfile>target/bin/${exe-name}.exe</outfile>
+                            <downloadUrl>http://www.java.com</downloadUrl>
+                            <classPath>
+                                <mainClass>${main-class}</mainClass>
+                            </classPath>
+                            <jre>
+                                <bundledJre64Bit>false</bundledJre64Bit>
+                                <bundledJreAsFallback>false</bundledJreAsFallback>
+                                <minVersion>${maven.compiler.source}</minVersion>
+                                <jdkPreference>preferJre</jdkPreference>
+                            </jre>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>
