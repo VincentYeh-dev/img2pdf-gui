@@ -86,6 +86,7 @@ public class MainFrame {
             var filter = getFilter();
 
             setMaxProgress(directories.size());
+            setProgress(0);
             new Thread(() -> {
                 for (int i = 0; i < directories.size(); i++) {
                     var directory = directories.get(i);
