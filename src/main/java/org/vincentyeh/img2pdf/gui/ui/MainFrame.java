@@ -6,6 +6,7 @@ import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
 import org.apache.pdfbox.io.MemoryUsageSetting;
 import org.vincentyeh.img2pdf.gui.util.file.FileNameFormatter;
+import org.vincentyeh.img2pdf.gui.util.file.FileSorter;
 import org.vincentyeh.img2pdf.gui.util.file.GlobbingFileFilter;
 import org.vincentyeh.img2pdf.gui.util.interfaces.NameFormatter;
 import org.vincentyeh.img2pdf.lib.image.ImageReaderFacade;
@@ -91,7 +92,8 @@ public class MainFrame {
                 for (int i = 0; i < directories.size(); i++) {
                     File directory = directories.get(i);
                     File[] image_files = directory.listFiles(filter);
-                    Arrays.sort(image_files);
+                    FileSorter sorter=new FileSorter(FileSorter.Sortby.NUMERIC, FileSorter.Sequence.INCREASE);
+                    Arrays.sort(image_files,sorter);
                     try {
                         factory.start(i, image_files, new File(formatter.format(directory)).getAbsoluteFile(), null);
                     } catch (NameFormatter.FormatException ex) {
