@@ -8,11 +8,9 @@ import org.apache.pdfbox.io.MemoryUsageSetting;
 import org.vincentyeh.img2pdf.gui.util.file.FileNameFormatter;
 import org.vincentyeh.img2pdf.gui.util.file.GlobbingFileFilter;
 import org.vincentyeh.img2pdf.gui.util.interfaces.NameFormatter;
-import org.vincentyeh.img2pdf.lib.image.ImageReaderFacade;
+import org.vincentyeh.img2pdf.lib.Img2Pdf;
 import org.vincentyeh.img2pdf.lib.image.reader.framework.ColorType;
-import org.vincentyeh.img2pdf.lib.pdf.concrete.builder.PDFBoxBuilder;
 import org.vincentyeh.img2pdf.lib.pdf.concrete.factory.ImagePDFFactory;
-import org.vincentyeh.img2pdf.lib.pdf.concrete.factory.StandardImagePageCalculationStrategy;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.*;
 
 import javax.swing.*;
@@ -29,6 +27,7 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 public class MainFrame {
 
@@ -74,22 +73,20 @@ public class MainFrame {
 
     private void startConversion() {
         try {
-            var tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
+            File tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
             tempFolder.deleteOnExit();
 
-            var setting = MemoryUsageSetting.setupMixed(200 * 1024 * 1024).setTempDir(tempFolder);
+            ImagePDFFactory factory = Img2Pdf.createFactory(getPageArgument(), getDocumentArgument(), getColorType(), true);
 
-            var factory = new ImagePDFFactory(getPageArgument(), getDocumentArgument(), new PDFBoxBuilder(setting), ImageReaderFacade.getImageReader(getColorType()), new StandardImagePageCalculationStrategy(), true);
-
-            var formatter = getFormatter();
-            var filter = getFilter();
+            NameFormatter<File> formatter = getFormatter();
+            FileFilter filter = getFilter();
 
             setMaxProgress(directories.size());
             setProgress(0);
             new Thread(() -> {
                 for (int i = 0; i < directories.size(); i++) {
-                    var directory = directories.get(i);
-                    var image_files = directory.listFiles(filter);
+                    File directory = directories.get(i);
+                    File[] image_files = directory.listFiles(filter);
                     Arrays.sort(image_files);
                     try {
                         factory.start(i, image_files, new File(formatter.format(directory)).getAbsoluteFile(), null);
@@ -122,15 +119,15 @@ public class MainFrame {
         chooser.setCurrentDirectory(new File("").getAbsoluteFile());
         int option = chooser.showOpenDialog(null);
         if (option == JFileChooser.APPROVE_OPTION) {
-            directories.addAll(Arrays.stream(chooser.getSelectedFiles()).toList());
+            directories.addAll(Arrays.stream(chooser.getSelectedFiles()).collect(Collectors.toList()));
             updateSources();
         }
 
     }
 
     private void updateSources() {
-        var model = (DefaultTreeModel) tree_sources.getModel();
-        var root = (DefaultMutableTreeNode) model.getRoot();
+        DefaultTreeModel model = (DefaultTreeModel) tree_sources.getModel();
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
         root.removeAllChildren();
         for (File directory : directories) {
             root.add(new DefaultMutableTreeNode(directory.getName()));
@@ -154,24 +151,24 @@ public class MainFrame {
         for (PageSize size : PageSize.values()) {
             combo_size.addItem(size);
         }
-        for (var color : ColorType.values()) {
+        for (ColorType color : ColorType.values()) {
             comboBox_color.addItem(color);
         }
     }
 
 
     public PageArgument getPageArgument() {
-        var size = (PageSize) combo_size.getSelectedItem();
-        var direction = (PageDirection) combo_direction.getSelectedItem();
-        var auto_rotate = check_auto.isSelected();
-        var verticalAlign = (PageAlign.VerticalAlign) combo_vertical.getSelectedItem();
-        var horizontalAlign = (PageAlign.HorizontalAlign) combo_horizontal.getSelectedItem();
+        PageSize size = (PageSize) combo_size.getSelectedItem();
+        PageDirection direction = (PageDirection) combo_direction.getSelectedItem();
+        boolean auto_rotate = check_auto.isSelected();
+        PageAlign.VerticalAlign verticalAlign = (PageAlign.VerticalAlign) combo_vertical.getSelectedItem();
+        PageAlign.HorizontalAlign horizontalAlign = (PageAlign.HorizontalAlign) combo_horizontal.getSelectedItem();
         return new PageArgument(verticalAlign, horizontalAlign, size, direction, auto_rotate);
     }
 
     public DocumentArgument getDocumentArgument() {
-        var owner_password = pwd_owner_password.getPassword().length > 0 ? Arrays.toString(pwd_owner_password.getPassword()) : null;
-        var user_password = pwd_user_password.getPassword().length > 0 ? Arrays.toString(pwd_user_password.getPassword()) : null;
+        String owner_password = pwd_owner_password.getPassword().length > 0 ? Arrays.toString(pwd_owner_password.getPassword()) : null;
+        String user_password = pwd_user_password.getPassword().length > 0 ? Arrays.toString(pwd_user_password.getPassword()) : null;
         return new DocumentArgument(owner_password, user_password);
     }
 
@@ -184,7 +181,7 @@ public class MainFrame {
     }
 
     public NameFormatter<File> getFormatter() {
-        var dest = field_destination.getText();
+        String dest = field_destination.getText();
         return new FileNameFormatter(dest);
     }
 
