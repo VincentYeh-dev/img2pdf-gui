@@ -4,6 +4,7 @@ package org.vincentyeh.img2pdf.gui.ui;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
+import org.vincentyeh.img2pdf.gui.ui.components.Task;
 import org.vincentyeh.img2pdf.gui.util.file.FileNameFormatter;
 import org.vincentyeh.img2pdf.gui.util.file.FileSorter;
 import org.vincentyeh.img2pdf.gui.util.file.GlobbingFileFilter;
@@ -26,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class MainFrame {
 
@@ -50,17 +50,36 @@ public class MainFrame {
     private JButton clearAllButton;
     private JProgressBar progressBar_sub;
     private JLabel label_sub_progress;
-    private final List<File> directories = new LinkedList<>();
+    private JButton stopButton;
+
+    private JFileChooser sourceFilesChooser;
+
+    //    private final List<File> directories = new LinkedList<>();
+    private final List<Task> tasks = new LinkedList<>();
+    private File previous_browsed = null;
+
+    private static final Comparator<File> sorter = new FileSorter(FileSorter.Sortby.NUMERIC, FileSorter.Sequence.INCREASE);
+    private Thread conversion_thread;
+    private volatile boolean interrupt_flag = false;
 
 
     public MainFrame() {
         $$$setupUI$$$();
         initializeUIComponents();
-        button_browse.addActionListener(e -> browseSaveFilePath());
+        button_browse.addActionListener(e -> browseSourcesPath());
         button_convert.addActionListener(e -> startConversion());
         clearAllButton.addActionListener(e -> clearAll());
         check_auto.addActionListener(e -> onAutoRotateChange(check_auto.isSelected()));
         combo_size.addItemListener(e -> onSizeChange((PageSize) combo_size.getSelectedItem()));
+        sourceFilesChooser = createSourceFilesChooser();
+        stopButton.addActionListener(e -> interruptConversion());
+    }
+
+    private JFileChooser createSourceFilesChooser() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setMultiSelectionEnabled(true);
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        return chooser;
     }
 
     private void onSizeChange(PageSize selectedItem) {
@@ -72,35 +91,33 @@ public class MainFrame {
         combo_horizontal.setEnabled(selectedItem != PageSize.DEPEND_ON_IMG);
     }
 
+    private void interruptConversion() {
+        interrupt_flag = true;
+    }
+
     private void startConversion() {
+        interrupt_flag = false;
         try {
             File tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
             tempFolder.deleteOnExit();
 
             ImagePDFFactory factory = Img2Pdf.createFactory(getPageArgument(), getDocumentArgument(), getColorType(), true);
-
-            NameFormatter<File> formatter = getFormatter();
-            FileFilter filter = getFilter();
-
-            setMaxProgress(directories.size());
+            setMaxProgress(tasks.size());
             setProgress(0);
-            final Comparator<File> sorter = new FileSorter(FileSorter.Sortby.NUMERIC, FileSorter.Sequence.INCREASE);
-            new Thread(() -> {
-                for (int i = 0; i < directories.size(); i++) {
-                    File directory = directories.get(i);
-                    try {
-                        factory.start(i,
-                                directory,
-                                filter,
-                                sorter,
-                                new File(formatter.format(directory)).getAbsoluteFile(), factoryListener);
-                    } catch (NameFormatter.FormatException ex) {
-                        throw new RuntimeException(ex);
-                    }
+
+            conversion_thread = new Thread(() -> {
+                for (int i = 0; i < tasks.size(); i++) {
+                    if (interrupt_flag)
+                        break;
+                    factory.start(i,
+                            tasks.get(i).files,
+                            tasks.get(i).destination,
+                            factoryListener);
                     setProgress(i + 1);
                 }
 
-            }).start();
+            });
+            conversion_thread.start();
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
@@ -134,37 +151,59 @@ public class MainFrame {
     }
 
     private void clearAll() {
-        directories.clear();
-        updateSources();
+        tasks.clear();
+        updateUISources();
     }
 
-    private void browseSaveFilePath() {
-        JFileChooser chooser = new JFileChooser();
-        chooser.setMultiSelectionEnabled(true);
-        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        chooser.setCurrentDirectory(new File("").getAbsoluteFile());
-        int option = chooser.showOpenDialog(null);
+
+    private void browseSourcesPath() {
+        int option = sourceFilesChooser.showOpenDialog(null);
+
+        NameFormatter<File> formatter = getFormatter();
+        FileFilter filter = getFilter();
+
         if (option == JFileChooser.APPROVE_OPTION) {
-            directories.addAll(Arrays.stream(chooser.getSelectedFiles()).collect(Collectors.toList()));
-            updateSources();
-        }
+            File[] directories = sourceFilesChooser.getSelectedFiles();
+            if (directories == null)
+                return;
+            Arrays.stream(directories).forEach(
+                    (directory) -> {
+                        try {
+                            File[] files = directory.listFiles(filter);
+                            if (files == null)
+                                return;
+                            Arrays.sort(files, sorter);
+                            tasks.add(new Task(new File(formatter.format(directory)), files));
+                        } catch (NameFormatter.FormatException e) {
+                            JOptionPane.showMessageDialog(null, e.getCause().getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                            e.printStackTrace();
+                        }
+                    });
 
+            updateUISources();
+        }
     }
 
-    private void updateSources() {
+    private void updateUISources() {
         DefaultTreeModel model = (DefaultTreeModel) tree_sources.getModel();
         DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
         root.removeAllChildren();
-        for (File directory : directories) {
-            root.add(new DefaultMutableTreeNode(directory.getName()));
+
+        for (Task task : tasks) {
+            DefaultMutableTreeNode node1 = new DefaultMutableTreeNode(task.destination.getName());
+            for (File file : task.files) {
+                DefaultMutableTreeNode node2 = new DefaultMutableTreeNode(file.getName());
+                node1.add(node2);
+            }
+            root.add(node1);
         }
-        button_convert.setEnabled(directories.size() != 0);
-        clearAllButton.setEnabled(directories.size() != 0);
+        button_convert.setEnabled(tasks.size() != 0);
+        clearAllButton.setEnabled(tasks.size() != 0);
         model.reload();
     }
 
     private void initializeUIComponents() {
-        updateSources();
+        updateUISources();
         for (PageDirection direction : PageDirection.values()) {
             combo_direction.addItem(direction);
         }
@@ -322,8 +361,11 @@ public class MainFrame {
         label_sub_progress = new JLabel();
         label_sub_progress.setText("");
         panel9.add(label_sub_progress, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        stopButton = new JButton();
+        stopButton.setText("Stop");
+        panel9.add(stopButton, new GridConstraints(1, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel11 = new JPanel();
-        panel11.setLayout(new GridLayoutManager(1, 6, new Insets(0, 0, 0, 0), -1, -1));
+        panel11.setLayout(new GridLayoutManager(1, 5, new Insets(0, 0, 0, 0), -1, -1));
         panel1.add(panel11, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_NORTH, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         button_browse = new JButton();
         button_browse.setText("Browse");
@@ -332,16 +374,13 @@ public class MainFrame {
         label6.setText("Sources");
         panel11.add(label6, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final Spacer spacer2 = new Spacer();
-        panel11.add(spacer2, new GridConstraints(0, 5, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
+        panel11.add(spacer2, new GridConstraints(0, 4, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
         field_filter = new JTextField();
         field_filter.setText("*.{PNG,png,JPG,jpg}");
-        panel11.add(field_filter, new GridConstraints(0, 4, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        panel11.add(field_filter, new GridConstraints(0, 3, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final JLabel label7 = new JLabel();
         label7.setText("Filter");
-        panel11.add(label7, new GridConstraints(0, 3, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        clearAllButton = new JButton();
-        clearAllButton.setText("Clear All");
-        panel11.add(clearAllButton, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        panel11.add(label7, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel12 = new JPanel();
         panel12.setLayout(new GridLayoutManager(1, 4, new Insets(0, 0, 0, 0), -1, -1));
         panel1.add(panel12, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
@@ -403,10 +442,11 @@ public class MainFrame {
         final JScrollPane scrollPane1 = new JScrollPane();
         panel17.add(scrollPane1, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(400, -1), null, 0, false));
         tree_sources = new JTree();
-        tree_sources.setEnabled(false);
+        tree_sources.setEnabled(true);
         scrollPane1.setViewportView(tree_sources);
-        final Spacer spacer5 = new Spacer();
-        root.add(spacer5, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
+        clearAllButton = new JButton();
+        clearAllButton.setText("Clear All");
+        root.add(clearAllButton, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
     }
 
     /**

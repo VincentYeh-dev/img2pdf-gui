@@ -13,7 +13,7 @@ public class App
 {
     public static void main( String[] args )
     {
-        FlatDarkLaf.setup();
+//        FlatDarkLaf.setup();
         JFrame frame= new JFrame(Constants.APP_TITLE);
         frame.setContentPane(new MainFrame().getRootPanel());
         frame.pack();
