@@ -13,6 +13,7 @@ import org.vincentyeh.img2pdf.lib.Img2Pdf;
 import org.vincentyeh.img2pdf.lib.image.ColorType;
 import org.vincentyeh.img2pdf.lib.pdf.framework.factory.ImageFactoryListener;
 import org.vincentyeh.img2pdf.lib.pdf.framework.factory.ImagePDFFactory;
+import org.vincentyeh.img2pdf.lib.pdf.framework.factory.exception.PDFFactoryException;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.*;
 
 import javax.swing.*;
@@ -21,10 +22,8 @@ import javax.swing.text.StyleContext;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import java.awt.*;
-import java.io.FileFilter;
+import java.io.*;
 import java.util.*;
-import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 
@@ -54,6 +53,7 @@ public class MainFrame {
     private JLabel imagePane;
     private JButton button_destination_browse;
     private JTextField field_destination_folder;
+    private JTextArea logArea;
 
     private JFileChooser sourceFilesChooser;
     private JFileChooser destinationFolderChooser;
@@ -110,6 +110,7 @@ public class MainFrame {
 
     private void startConversion() {
         interrupt_flag = false;
+        logArea.setText("");
         try {
             File tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
             tempFolder.deleteOnExit();
@@ -118,15 +119,31 @@ public class MainFrame {
             setMaxProgress(tasks.size());
             setProgress(0);
 
+            File destination_folder = new File(field_destination_folder.getText());
+            if (!destination_folder.exists()) {
+                boolean success = destination_folder.mkdirs();
+                if (!success)
+                    throw new IllegalStateException("Unable to create directories");
+            }
+            if (destination_folder.isFile())
+                throw new IllegalArgumentException("Uestination should be folder");
+
+
             conversion_thread = new Thread(() -> {
                 for (int i = 0; i < tasks.size(); i++) {
                     if (interrupt_flag)
                         break;
-                    factory.start(i,
-                            tasks.get(i).files,
-                            tasks.get(i).destination,
-                            factoryListener);
-                    setProgress(i + 1);
+                    try {
+                        factory.start(i,
+                                tasks.get(i).files,
+                                new File(destination_folder, tasks.get(i).destination.getName()),
+                                factoryListener);
+                        logArea.setText(logArea.getText() + "\nconversion successfully:" + tasks.get(i).destination.getName());
+                    } catch (PDFFactoryException e) {
+                        logArea.setText(logArea.getText() + "\nconversion fail:" + tasks.get(i).destination.getName() + "\n\t-" + e.getCause().getMessage());
+                    }finally {
+                        setProgress(i + 1);
+                    }
                 }
 
             });
@@ -191,16 +208,6 @@ public class MainFrame {
             File[] directories = sourceFilesChooser.getSelectedFiles();
             if (directories == null)
                 return;
-            File destination_folder = new File(field_destination_folder.getText());
-
-            if (!destination_folder.exists()) {
-                boolean success = destination_folder.mkdirs();
-                if (!success)
-                    throw new IllegalStateException("Unable to create directories");
-            }
-            if (destination_folder.isFile())
-                throw new IllegalArgumentException("Uestination should be folder");
-
 
             Arrays.stream(directories).forEach(
                     (directory) -> {
@@ -210,7 +217,7 @@ public class MainFrame {
                                 return;
                             files = Arrays.stream(files).map(File::getAbsoluteFile).toArray(File[]::new);
                             Arrays.sort(files, sorter);
-                            tasks.add(new Task(new File(destination_folder, formatter.format(directory)), files));
+                            tasks.add(new Task(new File(formatter.format(directory)), files));
                         } catch (NameFormatter.FormatException e) {
                             JOptionPane.showMessageDialog(null, e.getCause().getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                             e.printStackTrace();
@@ -321,7 +328,7 @@ public class MainFrame {
      */
     private void $$$setupUI$$$() {
         root = new JPanel();
-        root.setLayout(new GridLayoutManager(5, 2, new Insets(0, 0, 0, 0), -1, -1));
+        root.setLayout(new GridLayoutManager(7, 2, new Insets(0, 0, 0, 0), -1, -1));
         final JPanel panel1 = new JPanel();
         panel1.setLayout(new GridLayoutManager(11, 1, new Insets(5, 5, 5, 5), -1, -1));
         root.add(panel1, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_NORTH, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
@@ -474,15 +481,15 @@ public class MainFrame {
         final JLabel label12 = new JLabel();
         label12.setText("Output Folder");
         panel17.add(label12, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        field_destination_folder = new JTextField();
-        field_destination_folder.setText("");
-        panel17.add(field_destination_folder, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         button_destination_browse = new JButton();
         button_destination_browse.setText("Browse");
         panel17.add(button_destination_browse, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        field_destination_folder = new JTextField();
+        field_destination_folder.setText(".");
+        panel17.add(field_destination_folder, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final JPanel panel18 = new JPanel();
         panel18.setLayout(new GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
-        root.add(panel18, new GridConstraints(1, 0, 2, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        root.add(panel18, new GridConstraints(1, 0, 4, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         final JScrollPane scrollPane1 = new JScrollPane();
         panel18.add(scrollPane1, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(400, -1), null, 0, false));
         tree_sources = new JTree();
@@ -493,12 +500,23 @@ public class MainFrame {
         root.add(imagePane, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel19 = new JPanel();
         panel19.setLayout(new GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
-        root.add(panel19, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        root.add(panel19, new GridConstraints(5, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         clearAllButton = new JButton();
         clearAllButton.setText("Clear All");
         panel19.add(clearAllButton, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final Spacer spacer4 = new Spacer();
-        root.add(spacer4, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
+        root.add(spacer4, new GridConstraints(6, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
+        final JLabel label13 = new JLabel();
+        Font label13Font = this.$$$getFont$$$(null, -1, 16, label13.getFont());
+        if (label13Font != null) label13.setFont(label13Font);
+        label13.setText("Log");
+        root.add(label13, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        final JScrollPane scrollPane2 = new JScrollPane();
+        root.add(scrollPane2, new GridConstraints(3, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
+        logArea = new JTextArea();
+        logArea.setEnabled(false);
+        logArea.setText("");
+        scrollPane2.setViewportView(logArea);
     }
 
     /**

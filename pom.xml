@@ -27,7 +27,7 @@
         <dependency>
             <groupId>org.vincentyeh</groupId>
             <artifactId>img2pdf.lib</artifactId>
-            <version>6.0.0</version>
+            <version>6.0.1</version>
         </dependency>
         <dependency>
             <groupId>com.intellij</groupId>
