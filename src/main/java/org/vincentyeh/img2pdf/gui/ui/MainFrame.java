@@ -53,7 +53,7 @@ public class MainFrame {
     private JLabel imagePane;
     private JButton button_destination_browse;
     private JTextField field_destination_folder;
-    private JTextArea logArea;
+    private JList<String> logList;
 
     private JFileChooser sourceFilesChooser;
     private JFileChooser destinationFolderChooser;
@@ -65,6 +65,7 @@ public class MainFrame {
     private static final Comparator<File> sorter = new FileSorter(FileSorter.Sortby.NUMERIC, FileSorter.Sequence.INCREASE);
     private Thread conversion_thread;
     private volatile boolean interrupt_flag = false;
+    private final DefaultListModel<String> listModel = new DefaultListModel<>();
 
 
     public MainFrame() {
@@ -110,7 +111,7 @@ public class MainFrame {
 
     private void startConversion() {
         interrupt_flag = false;
-        logArea.setText("");
+        clearLog();
         try {
             File tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
             tempFolder.deleteOnExit();
@@ -138,10 +139,10 @@ public class MainFrame {
                                 tasks.get(i).files,
                                 new File(destination_folder, tasks.get(i).destination.getName()),
                                 factoryListener);
-                        logArea.setText(logArea.getText() + "\nconversion successfully:" + tasks.get(i).destination.getName());
+                        recordNewLog(i, String.format("[OK] %s", tasks.get(i).destination.getName()));
                     } catch (PDFFactoryException e) {
-                        logArea.setText(logArea.getText() + "\nconversion fail:" + tasks.get(i).destination.getName() + "\n\t-" + e.getCause().getMessage());
-                    }finally {
+                        recordNewLog(i, String.format("[ERROR] %s -> %s", tasks.get(i).destination.getName(), e.getCause().getMessage()));
+                    } finally {
                         setProgress(i + 1);
                     }
                 }
@@ -151,6 +152,16 @@ public class MainFrame {
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    public void recordNewLog(int index, String log) {
+        listModel.add(index, log);
+        logList.setModel(listModel);
+    }
+
+    public void clearLog() {
+        listModel.clear();
+        logList.setModel(listModel);
     }
 
     private final ImageFactoryListener factoryListener = new ImageFactoryListener() {
@@ -328,7 +339,7 @@ public class MainFrame {
      */
     private void $$$setupUI$$$() {
         root = new JPanel();
-        root.setLayout(new GridLayoutManager(7, 2, new Insets(0, 0, 0, 0), -1, -1));
+        root.setLayout(new GridLayoutManager(9, 2, new Insets(0, 0, 0, 0), -1, -1));
         final JPanel panel1 = new JPanel();
         panel1.setLayout(new GridLayoutManager(11, 1, new Insets(5, 5, 5, 5), -1, -1));
         root.add(panel1, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_NORTH, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
@@ -489,7 +500,7 @@ public class MainFrame {
         panel17.add(field_destination_folder, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final JPanel panel18 = new JPanel();
         panel18.setLayout(new GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
-        root.add(panel18, new GridConstraints(1, 0, 4, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        root.add(panel18, new GridConstraints(1, 0, 6, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         final JScrollPane scrollPane1 = new JScrollPane();
         panel18.add(scrollPane1, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(400, -1), null, 0, false));
         tree_sources = new JTree();
@@ -500,12 +511,12 @@ public class MainFrame {
         root.add(imagePane, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel19 = new JPanel();
         panel19.setLayout(new GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
-        root.add(panel19, new GridConstraints(5, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        root.add(panel19, new GridConstraints(7, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         clearAllButton = new JButton();
         clearAllButton.setText("Clear All");
         panel19.add(clearAllButton, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final Spacer spacer4 = new Spacer();
-        root.add(spacer4, new GridConstraints(6, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
+        root.add(spacer4, new GridConstraints(8, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
         final JLabel label13 = new JLabel();
         Font label13Font = this.$$$getFont$$$(null, -1, 16, label13.getFont());
         if (label13Font != null) label13.setFont(label13Font);
@@ -513,10 +524,8 @@ public class MainFrame {
         root.add(label13, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JScrollPane scrollPane2 = new JScrollPane();
         root.add(scrollPane2, new GridConstraints(3, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
-        logArea = new JTextArea();
-        logArea.setEnabled(false);
-        logArea.setText("");
-        scrollPane2.setViewportView(logArea);
+        logList = new JList();
+        scrollPane2.setViewportView(logList);
     }
 
     /**
