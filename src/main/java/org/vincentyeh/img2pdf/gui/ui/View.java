@@ -4,19 +4,14 @@ package org.vincentyeh.img2pdf.gui.ui;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
+import org.vincentyeh.img2pdf.gui.ViewListener;
 import org.vincentyeh.img2pdf.gui.ui.components.Task;
-import org.vincentyeh.img2pdf.gui.util.file.FileNameFormatter;
-import org.vincentyeh.img2pdf.gui.util.file.FileSorter;
-import org.vincentyeh.img2pdf.gui.util.file.GlobbingFileFilter;
-import org.vincentyeh.img2pdf.gui.util.interfaces.NameFormatter;
-import org.vincentyeh.img2pdf.lib.Img2Pdf;
 import org.vincentyeh.img2pdf.lib.image.ColorType;
-import org.vincentyeh.img2pdf.lib.pdf.framework.factory.ImageFactoryListener;
-import org.vincentyeh.img2pdf.lib.pdf.framework.factory.ImagePDFFactory;
-import org.vincentyeh.img2pdf.lib.pdf.framework.factory.exception.PDFFactoryException;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.*;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.plaf.FontUIResource;
 import javax.swing.text.StyleContext;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -24,10 +19,9 @@ import javax.swing.tree.DefaultTreeModel;
 import java.awt.*;
 import java.io.*;
 import java.util.*;
-import java.nio.file.Files;
 import java.util.List;
 
-public class MainFrame {
+public class View {
 
     private JButton button_source_browse;
 
@@ -58,29 +52,109 @@ public class MainFrame {
     private JFileChooser sourceFilesChooser;
     private JFileChooser destinationFolderChooser;
 
-    //    private final List<File> directories = new LinkedList<>();
-    private final List<Task> tasks = new LinkedList<>();
-    private File previous_browsed = null;
 
-    private static final Comparator<File> sorter = new FileSorter(FileSorter.Sortby.NUMERIC, FileSorter.Sequence.INCREASE);
-    private Thread conversion_thread;
-    private volatile boolean interrupt_flag = false;
     private final DefaultListModel<String> listModel = new DefaultListModel<>();
 
+    private ViewListener viewListener;
 
-    public MainFrame() {
+    public View(ViewListener viewListener) {
         $$$setupUI$$$();
-        initializeUIComponents();
-        button_source_browse.addActionListener(e -> browseSourcesPath());
-        button_convert.addActionListener(e -> startConversion());
-        clearAllButton.addActionListener(e -> clearAll());
-        check_auto.addActionListener(e -> onAutoRotateChange(check_auto.isSelected()));
-        combo_size.addItemListener(e -> onSizeChange((PageSize) combo_size.getSelectedItem()));
+        this.viewListener = viewListener;
+    }
+
+    public void initialize() {
+        for (PageDirection direction : PageDirection.values()) {
+            combo_direction.addItem(direction);
+        }
+        combo_direction.addItemListener(e -> viewListener.onComboDirectionChanged((PageDirection) combo_direction.getSelectedItem()));
+        viewListener.onComboDirectionChanged((PageDirection) combo_direction.getSelectedItem());
+
+        for (PageAlign.VerticalAlign align : PageAlign.VerticalAlign.values()) {
+            combo_vertical.addItem(align);
+        }
+        combo_vertical.addItemListener(e -> viewListener.onComboVerticalAlignChanged((PageAlign.VerticalAlign) combo_vertical.getSelectedItem()));
+        viewListener.onComboVerticalAlignChanged((PageAlign.VerticalAlign) combo_vertical.getSelectedItem());
+
+        for (PageAlign.HorizontalAlign align : PageAlign.HorizontalAlign.values()) {
+            combo_horizontal.addItem(align);
+        }
+        combo_horizontal.addItemListener(e -> viewListener.onComboHorizontalAlignChanged((PageAlign.HorizontalAlign) combo_horizontal.getSelectedItem()));
+        viewListener.onComboHorizontalAlignChanged((PageAlign.HorizontalAlign) combo_horizontal.getSelectedItem());
+
+        for (PageSize size : PageSize.values()) {
+            combo_size.addItem(size);
+        }
+        combo_size.addItemListener(e -> viewListener.onSizeComboChanged((PageSize) combo_size.getSelectedItem()));
+        viewListener.onSizeComboChanged((PageSize) combo_size.getSelectedItem());
+
+        for (ColorType color : ColorType.values()) {
+            comboBox_color.addItem(color);
+        }
+        comboBox_color.addItemListener(e -> viewListener.onComboColorChanged((ColorType) comboBox_color.getSelectedItem()));
+        viewListener.onComboColorChanged((ColorType) comboBox_color.getSelectedItem());
+
+        check_auto.addActionListener(e -> viewListener.onAutoRotateCheckBoxChanged(check_auto.isSelected()));
+        viewListener.onAutoRotateCheckBoxChanged(check_auto.isSelected());
+
+        button_convert.addActionListener(e -> viewListener.onConvertButtonClicked());
+        clearAllButton.addActionListener(e -> viewListener.onClearAllButtonClicked());
+
         sourceFilesChooser = createSourceFilesChooser();
         destinationFolderChooser = createDestinationFolderChooser();
-        stopButton.addActionListener(e -> interruptConversion());
-        button_destination_browse.addActionListener(e -> browseDestinationPath());
+
+        stopButton.addActionListener(e -> viewListener.onStopButtonClicked());
+
+        button_source_browse.addActionListener(e -> browseSources());
+        button_destination_browse.addActionListener(e -> browseOutputFolder());
+        field_filter.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                viewListener.onFileFilterFieldChange(field_filter.getText());
+            }
+        });
+
+        viewListener.onFileFilterFieldChange(field_filter.getText());
+        field_destination_format.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                viewListener.onOutputFormatFieldChange(field_destination_format.getText());
+            }
+        });
+        viewListener.onOutputFormatFieldChange(field_destination_format.getText());
+
+//        viewListener.onOutputFolderChanged(new File(field_destination_folder.getText()));
+
+
     }
+
+    public void setFileFilterField(String filter) {
+        field_filter.setText(filter);
+    }
+
+    public String getFileFilterField() {
+        return field_filter.getText();
+    }
+
 
     private JFileChooser createSourceFilesChooser() {
         JFileChooser chooser = new JFileChooser();
@@ -96,63 +170,60 @@ public class MainFrame {
         return chooser;
     }
 
-    private void onSizeChange(PageSize selectedItem) {
-        if (selectedItem == null)
-            return;
-        combo_direction.setEnabled(selectedItem != PageSize.DEPEND_ON_IMG);
-        check_auto.setEnabled(selectedItem != PageSize.DEPEND_ON_IMG);
-        combo_vertical.setEnabled(selectedItem != PageSize.DEPEND_ON_IMG);
-        combo_horizontal.setEnabled(selectedItem != PageSize.DEPEND_ON_IMG);
-    }
-
-    private void interruptConversion() {
-        interrupt_flag = true;
-    }
-
-    private void startConversion() {
-        interrupt_flag = false;
-        clearLog();
-        try {
-            File tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
-            tempFolder.deleteOnExit();
-
-            ImagePDFFactory factory = Img2Pdf.createFactory(getPageArgument(), getDocumentArgument(), getColorType(), true);
-            setMaxProgress(tasks.size());
-            setProgress(0);
-
-            File destination_folder = new File(field_destination_folder.getText());
-            if (!destination_folder.exists()) {
-                boolean success = destination_folder.mkdirs();
-                if (!success)
-                    throw new IllegalStateException("Unable to create directories");
-            }
-            if (destination_folder.isFile())
-                throw new IllegalArgumentException("Uestination should be folder");
+//    private void onSizeChange(PageSize selectedItem) {
+//        if (selectedItem == null)
+//            return;
+//        combo_direction.setEnabled(selectedItem != PageSize.DEPEND_ON_IMG);
+//        check_auto.setEnabled(selectedItem != PageSize.DEPEND_ON_IMG);
+//        combo_vertical.setEnabled(selectedItem != PageSize.DEPEND_ON_IMG);
+//        combo_horizontal.setEnabled(selectedItem != PageSize.DEPEND_ON_IMG);
+//    }
 
 
-            conversion_thread = new Thread(() -> {
-                for (int i = 0; i < tasks.size(); i++) {
-                    if (interrupt_flag)
-                        break;
-                    try {
-                        factory.start(i,
-                                tasks.get(i).files,
-                                new File(destination_folder, tasks.get(i).destination.getName()),
-                                factoryListener);
-                        recordNewLog(i, String.format("[OK] %s", tasks.get(i).destination.getName()));
-                    } catch (PDFFactoryException e) {
-                        recordNewLog(i, String.format("[ERROR] %s -> %s", tasks.get(i).destination.getName(), e.getCause().getMessage()));
-                    } finally {
-                        setProgress(i + 1);
-                    }
-                }
-
-            });
-            conversion_thread.start();
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
+//    private void startConversion() {
+//        interrupt_flag = false;
+//        clearLog();
+//        try {
+//            File tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
+//            tempFolder.deleteOnExit();
+//
+//            ImagePDFFactory factory = Img2Pdf.createFactory(getPageArgument(), getDocumentArgument(), getColorType(), true);
+//            setMaxProgress(tasks.size());
+//            setProgress(0);
+//
+//            File destination_folder = new File(field_destination_folder.getText());
+//            if (!destination_folder.exists()) {
+//                boolean success = destination_folder.mkdirs();
+//                if (!success)
+//                    throw new IllegalStateException("Unable to create directories");
+//            }
+//            if (destination_folder.isFile())
+//                throw new IllegalArgumentException("Uestination should be folder");
+//
+//
+//            conversion_thread = new Thread(() -> {
+//                for (int i = 0; i < tasks.size(); i++) {
+//                    if (interrupt_flag)
+//                        break;
+//                    try {
+//                        factory.start(i,
+//                                tasks.get(i).files,
+//                                new File(destination_folder, tasks.get(i).destination.getName()),
+//                                factoryListener);
+//                        recordNewLog(i, String.format("[OK] %s", tasks.get(i).destination.getName()));
+//                    } catch (PDFFactoryException e) {
+//                        recordNewLog(i, String.format("[ERROR] %s -> %s", tasks.get(i).destination.getName(), e.getCause().getMessage()));
+//                    } finally {
+//                        setProgress(i + 1);
+//                    }
+//                }
+//
+//            });
+//            conversion_thread.start();
+//        } catch (IOException ex) {
+//            throw new RuntimeException(ex);
+//        }
+//    }
 
     public void recordNewLog(int index, String log) {
         listModel.add(index, log);
@@ -164,82 +235,57 @@ public class MainFrame {
         logList.setModel(listModel);
     }
 
-    private final ImageFactoryListener factoryListener = new ImageFactoryListener() {
-        @Override
-        public void initializing(int procedure_id, int total) {
-            setMaxSubProgress(total);
-        }
+//    private final ImageFactoryListener factoryListener = new ImageFactoryListener() {
+//        @Override
+//        public void initializing(int procedure_id, int total) {
+//            setMaxSubProgress(total);
+//        }
+//
+//        @Override
+//        public void onSaved(int procedure_id, File file) {
+//
+//        }
+//
+//        @Override
+//        public void onConversionComplete(int procedure_id) {
+//
+//        }
+//
+//        @Override
+//        public void onAppend(int i, File file, int i1, int i2) {
+//            setSubProgress(i1 + 1);
+//        }
+//    };
 
-        @Override
-        public void onSaved(int procedure_id, File file) {
+//    private void onAutoRotateChange(boolean selected) {
+//        combo_direction.setSelectedItem(PageDirection.Portrait);
+//        combo_direction.setEnabled(!selected);
+//    }
+//
+//    private void clearAll() {
+//        tasks.clear();
+//        updateUISources();
+//    }
+//
 
-        }
+    private void browseOutputFolder() {
+        if (destinationFolderChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION)
+            viewListener.onOutputFolderChanged(destinationFolderChooser.getSelectedFile());
 
-        @Override
-        public void onConversionComplete(int procedure_id) {
-
-        }
-
-        @Override
-        public void onAppend(int i, File file, int i1, int i2) {
-            setSubProgress(i1 + 1);
-        }
-    };
-
-    private void onAutoRotateChange(boolean selected) {
-        combo_direction.setSelectedItem(PageDirection.Portrait);
-        combo_direction.setEnabled(!selected);
+//            File directories = destinationFolderChooser.getSelectedFile();
+//            if (directories == null)
+//                return;
+//            field_destination_folder.setText(directories.getAbsolutePath());
+//            updateUISources();
     }
 
-    private void clearAll() {
-        tasks.clear();
-        updateUISources();
+    private void browseSources() {
+        if (sourceFilesChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION)
+            viewListener.onSourcesFileSelected(sourceFilesChooser.getSelectedFiles());
     }
 
 
-    private void browseDestinationPath() {
-        int option = destinationFolderChooser.showSaveDialog(null);
-
-        if (option == JFileChooser.APPROVE_OPTION) {
-            File directories = destinationFolderChooser.getSelectedFile();
-            if (directories == null)
-                return;
-            field_destination_folder.setText(directories.getAbsolutePath());
-            updateUISources();
-        }
-    }
-
-    private void browseSourcesPath() {
-        int option = sourceFilesChooser.showOpenDialog(null);
-
-        NameFormatter<File> formatter = getFormatter();
-        FileFilter filter = getFilter();
-
-        if (option == JFileChooser.APPROVE_OPTION) {
-            File[] directories = sourceFilesChooser.getSelectedFiles();
-            if (directories == null)
-                return;
-
-            Arrays.stream(directories).forEach(
-                    (directory) -> {
-                        try {
-                            File[] files = directory.listFiles(filter);
-                            if (files == null)
-                                return;
-                            files = Arrays.stream(files).map(File::getAbsoluteFile).toArray(File[]::new);
-                            Arrays.sort(files, sorter);
-                            tasks.add(new Task(new File(formatter.format(directory)), files));
-                        } catch (NameFormatter.FormatException e) {
-                            JOptionPane.showMessageDialog(null, e.getCause().getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                            e.printStackTrace();
-                        }
-                    });
-
-            updateUISources();
-        }
-    }
-
-    private void updateUISources() {
+    public void updateSourceTree(List<Task> tasks) {
         DefaultTreeModel model = (DefaultTreeModel) tree_sources.getModel();
         DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
         root.removeAllChildren();
@@ -257,72 +303,45 @@ public class MainFrame {
         model.reload();
     }
 
-    private void initializeUIComponents() {
-        updateUISources();
-        for (PageDirection direction : PageDirection.values()) {
-            combo_direction.addItem(direction);
-        }
-        for (PageAlign.VerticalAlign align : PageAlign.VerticalAlign.values()) {
-            combo_vertical.addItem(align);
-        }
-        for (PageAlign.HorizontalAlign align : PageAlign.HorizontalAlign.values()) {
-            combo_horizontal.addItem(align);
-        }
-        for (PageSize size : PageSize.values()) {
-            combo_size.addItem(size);
-        }
-        for (ColorType color : ColorType.values()) {
-            comboBox_color.addItem(color);
-        }
-    }
 
+//    public PageArgument getPageArgument() {
+//        PageSize size = (PageSize) combo_size.getSelectedItem();
+//        PageDirection direction = (PageDirection) combo_direction.getSelectedItem();
+//        boolean auto_rotate = check_auto.isSelected();
+//        PageAlign.VerticalAlign verticalAlign = (PageAlign.VerticalAlign) combo_vertical.getSelectedItem();
+//        PageAlign.HorizontalAlign horizontalAlign = (PageAlign.HorizontalAlign) combo_horizontal.getSelectedItem();
+//        return new PageArgument(verticalAlign, horizontalAlign, size, direction, auto_rotate);
+//    }
+//
+//    public DocumentArgument getDocumentArgument() {
+//        String owner_password = pwd_owner_password.getPassword().length > 0 ? Arrays.toString(pwd_owner_password.getPassword()) : null;
+//        String user_password = pwd_user_password.getPassword().length > 0 ? Arrays.toString(pwd_user_password.getPassword()) : null;
+//        return new DocumentArgument(owner_password, user_password);
+//    }
+//
+//    public ColorType getColorType() {
+//        return (ColorType) comboBox_color.getSelectedItem();
+//    }
+//
+//    public FileFilter getFilter() {
+//        return new GlobbingFileFilter(field_filter.getText());
+//    }
+//
+//    public NameFormatter<File> getFormatter() {
+//        String dest = field_destination_format.getText();
+//        return new FileNameFormatter(dest);
+//    }
 
-    public PageArgument getPageArgument() {
-        PageSize size = (PageSize) combo_size.getSelectedItem();
-        PageDirection direction = (PageDirection) combo_direction.getSelectedItem();
-        boolean auto_rotate = check_auto.isSelected();
-        PageAlign.VerticalAlign verticalAlign = (PageAlign.VerticalAlign) combo_vertical.getSelectedItem();
-        PageAlign.HorizontalAlign horizontalAlign = (PageAlign.HorizontalAlign) combo_horizontal.getSelectedItem();
-        return new PageArgument(verticalAlign, horizontalAlign, size, direction, auto_rotate);
-    }
-
-    public DocumentArgument getDocumentArgument() {
-        String owner_password = pwd_owner_password.getPassword().length > 0 ? Arrays.toString(pwd_owner_password.getPassword()) : null;
-        String user_password = pwd_user_password.getPassword().length > 0 ? Arrays.toString(pwd_user_password.getPassword()) : null;
-        return new DocumentArgument(owner_password, user_password);
-    }
-
-    public ColorType getColorType() {
-        return (ColorType) comboBox_color.getSelectedItem();
-    }
-
-    public FileFilter getFilter() {
-        return new GlobbingFileFilter(field_filter.getText());
-    }
-
-    public NameFormatter<File> getFormatter() {
-        String dest = field_destination_format.getText();
-        return new FileNameFormatter(dest);
-    }
-
-    public void setProgress(int value) {
-        progressBar_total.setValue(value);
-        label_progress.setText(value + "/" + progressBar_total.getMaximum());
-    }
-
-    public void setMaxProgress(int max) {
+    public void setProgress(int value, int max) {
         progressBar_total.setMaximum(max);
-        label_progress.setText("0/" + max);
+        progressBar_total.setValue(value);
+        label_progress.setText(value + "/" + max);
     }
 
-    public void setSubProgress(int value) {
-        progressBar_sub.setValue(value);
-        label_sub_progress.setText(value + "/" + progressBar_sub.getMaximum());
-    }
-
-    public void setMaxSubProgress(int max) {
+    public void setPageProgress(int value, int max) {
         progressBar_sub.setMaximum(max);
-        label_sub_progress.setText("0/" + max);
+        progressBar_sub.setValue(value);
+        label_sub_progress.setText(value + "/" + max);
     }
 
 
@@ -557,4 +576,11 @@ public class MainFrame {
         return root;
     }
 
+    public void setViewListener(ViewListener viewListener) {
+        this.viewListener = viewListener;
+    }
+
+    public void setOutputFolderField(String text) {
+        field_destination_folder.setText(text);
+    }
 }
