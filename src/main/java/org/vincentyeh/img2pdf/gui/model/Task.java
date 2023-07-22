@@ -1,4 +1,4 @@
-package org.vincentyeh.img2pdf.gui.ui.components;
+package org.vincentyeh.img2pdf.gui.model;
 
 import java.io.File;
 

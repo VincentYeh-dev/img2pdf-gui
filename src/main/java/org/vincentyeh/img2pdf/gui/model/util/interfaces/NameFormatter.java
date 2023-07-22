@@ -1,4 +1,4 @@
-package org.vincentyeh.img2pdf.gui.util.interfaces;
+package org.vincentyeh.img2pdf.gui.model.util.interfaces;
 
 /**
  * @param <D> Data type

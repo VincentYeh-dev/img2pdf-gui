@@ -1,7 +1,9 @@
 package org.vincentyeh.img2pdf.gui;
 
 import com.formdev.flatlaf.FlatDarkLaf;
-import org.vincentyeh.img2pdf.gui.ui.View;
+import org.vincentyeh.img2pdf.gui.controller.Controller;
+import org.vincentyeh.img2pdf.gui.model.Model;
+import org.vincentyeh.img2pdf.gui.view.View;
 
 import javax.swing.*;
 import java.awt.event.WindowAdapter;

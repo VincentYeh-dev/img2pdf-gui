@@ -1,7 +1,7 @@
-package org.vincentyeh.img2pdf.gui.util.file;
+package org.vincentyeh.img2pdf.gui.model.util.file;
 
 
-import org.vincentyeh.img2pdf.gui.util.interfaces.NameFormatter;
+import org.vincentyeh.img2pdf.gui.model.util.interfaces.NameFormatter;
 
 import java.io.File;
 import java.nio.file.Path;

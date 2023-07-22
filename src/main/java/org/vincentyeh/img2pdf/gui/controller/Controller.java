@@ -1,7 +1,9 @@
-package org.vincentyeh.img2pdf.gui;
+package org.vincentyeh.img2pdf.gui.controller;
 
-import org.vincentyeh.img2pdf.gui.ui.View;
-import org.vincentyeh.img2pdf.gui.ui.components.Task;
+import org.vincentyeh.img2pdf.gui.model.Model;
+import org.vincentyeh.img2pdf.gui.model.ModelListener;
+import org.vincentyeh.img2pdf.gui.view.View;
+import org.vincentyeh.img2pdf.gui.model.Task;
 import org.vincentyeh.img2pdf.lib.image.ColorType;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.*;
 

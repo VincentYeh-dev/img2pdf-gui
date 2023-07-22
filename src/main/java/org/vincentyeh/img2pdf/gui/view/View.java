@@ -1,4 +1,4 @@
-package org.vincentyeh.img2pdf.gui.ui;
+package org.vincentyeh.img2pdf.gui.view;
 
 
 import com.intellij.uiDesigner.core.GridConstraints;

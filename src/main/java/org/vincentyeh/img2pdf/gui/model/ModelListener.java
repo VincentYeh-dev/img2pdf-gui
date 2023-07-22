@@ -1,6 +1,4 @@
-package org.vincentyeh.img2pdf.gui;
-
-import org.vincentyeh.img2pdf.gui.ui.components.Task;
+package org.vincentyeh.img2pdf.gui.model;
 
 import java.util.List;
 

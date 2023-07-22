@@ -1,10 +1,9 @@
-package org.vincentyeh.img2pdf.gui;
+package org.vincentyeh.img2pdf.gui.model;
 
-import org.vincentyeh.img2pdf.gui.ui.components.Task;
-import org.vincentyeh.img2pdf.gui.util.file.FileNameFormatter;
-import org.vincentyeh.img2pdf.gui.util.file.FileSorter;
-import org.vincentyeh.img2pdf.gui.util.file.GlobbingFileFilter;
-import org.vincentyeh.img2pdf.gui.util.interfaces.NameFormatter;
+import org.vincentyeh.img2pdf.gui.model.util.file.FileNameFormatter;
+import org.vincentyeh.img2pdf.gui.model.util.file.FileSorter;
+import org.vincentyeh.img2pdf.gui.model.util.file.GlobbingFileFilter;
+import org.vincentyeh.img2pdf.gui.model.util.interfaces.NameFormatter;
 import org.vincentyeh.img2pdf.lib.Img2Pdf;
 import org.vincentyeh.img2pdf.lib.image.ColorType;
 import org.vincentyeh.img2pdf.lib.pdf.framework.factory.ImageFactoryListener;
@@ -184,7 +183,7 @@ public class Model {
         return horizontalAlign;
     }
 
-    void setVerticalAlign(PageAlign.VerticalAlign verticalAlign) {
+    public void setVerticalAlign(PageAlign.VerticalAlign verticalAlign) {
         this.verticalAlign = verticalAlign;
     }
 
