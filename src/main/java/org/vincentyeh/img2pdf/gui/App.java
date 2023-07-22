@@ -1,5 +1,6 @@
 package org.vincentyeh.img2pdf.gui;
 
+import com.formdev.flatlaf.FlatDarkLaf;
 import org.vincentyeh.img2pdf.gui.ui.View;
 import org.vincentyeh.img2pdf.lib.image.ColorType;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.PageAlign;
@@ -23,10 +24,9 @@ public class App {
     private static View view;
 
     public static void main(String[] args) {
-//        FlatDarkLaf.setup();
+        FlatDarkLaf.setup();
 
         JFrame frame = new JFrame(Constants.APP_TITLE);
-//        frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
         frame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
