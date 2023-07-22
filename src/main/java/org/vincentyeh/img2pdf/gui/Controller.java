@@ -24,7 +24,7 @@ public class Controller {
 
             @Override
             public void onTotalConversionProgressUpdate(int progress, int total) {
-                setConversionProgress(progress,total);
+                setConversionProgress(progress, total);
             }
 
             @Override
@@ -115,8 +115,34 @@ public class Controller {
         updateSourceTree(model.getSources());
     }
 
+    private void onSizeChange(PageSize selectedItem) {
+        if (selectedItem == null)
+            return;
+        model.setPageSize(selectedItem);
+
+        if (model.getPageSize() == PageSize.DEPEND_ON_IMG) {
+            model.setPageDirection(PageDirection.Portrait);
+            model.setAutoRotate(false);
+            model.setVerticalAlign(PageAlign.VerticalAlign.CENTER);
+            model.setHorizontalAlign(PageAlign.HorizontalAlign.CENTER);
+
+        }
+        view.getDirectionComboBox().setEnabled(!model.isAutoRotate() && model.getPageSize() != PageSize.DEPEND_ON_IMG);
+
+        view.getAutoRotateCheckBox().setEnabled(model.getPageSize() != PageSize.DEPEND_ON_IMG);
+        view.getVerticalAlignComboBox().setEnabled(model.getPageSize() != PageSize.DEPEND_ON_IMG);
+        view.getHorizontalComboBox().setEnabled(model.getPageSize() != PageSize.DEPEND_ON_IMG);
+        view.getDirectionComboBox().setSelectedItem(model.getPageDirection());
+        view.getAutoRotateCheckBox().setSelected(model.isAutoRotate());
+        view.getVerticalAlignComboBox().setSelectedItem(model.getVerticalAlign());
+        view.getHorizontalComboBox().setSelectedItem(model.getHorizontalAlign());
+
+    }
+
     private void onAutoRotateChange() {
         model.setAutoRotate(view.getAutoRotateCheckBox().isSelected());
+        model.setPageDirection(PageDirection.Portrait);
+
         view.getDirectionComboBox().setEnabled(!view.getAutoRotateCheckBox().isSelected());
         view.getDirectionComboBox().setSelectedItem(model.getPageDirection());
     }
@@ -129,45 +155,12 @@ public class Controller {
         model.convert(owner_password, user_password);
     }
 
-    private void onSizeChange(PageSize selectedItem) {
-        if (selectedItem == null)
-            return;
-
-        if (selectedItem == PageSize.DEPEND_ON_IMG) {
-            model.setPageDirection(PageDirection.Portrait);
-            model.setAutoRotate(false);
-            model.setVerticalAlign(PageAlign.VerticalAlign.CENTER);
-            model.setHorizontalAlign(PageAlign.HorizontalAlign.CENTER);
-        }
-        view.getDirectionComboBox().setEnabled(selectedItem != PageSize.DEPEND_ON_IMG);
-        view.getAutoRotateCheckBox().setEnabled(selectedItem != PageSize.DEPEND_ON_IMG);
-        view.getVerticalAlignComboBox().setEnabled(selectedItem != PageSize.DEPEND_ON_IMG);
-        view.getHorizontalComboBox().setEnabled(selectedItem != PageSize.DEPEND_ON_IMG);
-        view.getDirectionComboBox().setSelectedItem(model.getPageDirection());
-        view.getAutoRotateCheckBox().setSelected(model.isAutoRotate());
-        view.getVerticalAlignComboBox().setSelectedItem(model.getVerticalAlign());
-        view.getHorizontalComboBox().setSelectedItem(model.getHorizontalAlign());
-
-        model.setPageSize(selectedItem);
-    }
-
-
-    public void recordNewLog(int index, String log) {
-
-        listModel.add(index, log);
-        view.getLogList().setModel(listModel);
-    }
-
-    public void clearLog() {
-        listModel.clear();
-        view.getLogList().setModel(listModel);
-    }
 
     private void browseOutputFolder() {
         JFileChooser outputFolderChooser = view.getOutputFolderChooser();
         if (outputFolderChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
             model.setOutputFolder(outputFolderChooser.getSelectedFile());
-            view.setOutputFolderField(model.getOutputFolder().getPath());
+            view.getOutputFolderField().setText(model.getOutputFolder().getPath());
             outputFolderChooser.setCurrentDirectory(model.getOutputFolder());
         }
     }

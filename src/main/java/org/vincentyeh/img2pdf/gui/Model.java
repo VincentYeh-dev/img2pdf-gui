@@ -168,7 +168,6 @@ public class Model {
 
     public void setAutoRotate(boolean autoRotate) {
         this.autoRotate = autoRotate;
-        setPageDirection(PageDirection.Portrait);
     }
 
     public boolean isAutoRotate() {
@@ -212,5 +211,9 @@ public class Model {
 
     private DocumentArgument createDocumentArgument(String owner_password, String user_password) {
         return new DocumentArgument(owner_password, user_password);
+    }
+
+    public PageSize getPageSize() {
+        return pageSize;
     }
 }

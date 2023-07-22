@@ -32,7 +32,7 @@
                 <properties/>
                 <border type="none"/>
                 <children>
-                  <component id="f9288" class="javax.swing.JComboBox" binding="combo_size">
+                  <component id="f9288" class="javax.swing.JComboBox" binding="pageSizeComboBox">
                     <constraints>
                       <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                     </constraints>
@@ -66,7 +66,7 @@
                       <text value="Color"/>
                     </properties>
                   </component>
-                  <component id="e70b2" class="javax.swing.JComboBox" binding="comboBox_color">
+                  <component id="e70b2" class="javax.swing.JComboBox" binding="colorTypeComboBox">
                     <constraints>
                       <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
                     </constraints>
@@ -92,7 +92,7 @@
                       <text value="Alignment"/>
                     </properties>
                   </component>
-                  <component id="473ec" class="javax.swing.JComboBox" binding="combo_horizontal">
+                  <component id="473ec" class="javax.swing.JComboBox" binding="horizontalAlignComboBox">
                     <constraints>
                       <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                     </constraints>
@@ -100,7 +100,7 @@
                       <model/>
                     </properties>
                   </component>
-                  <component id="b5e6" class="javax.swing.JComboBox" binding="combo_vertical">
+                  <component id="b5e6" class="javax.swing.JComboBox" binding="verticalAlignComboBox">
                     <constraints>
                       <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                     </constraints>
@@ -134,7 +134,7 @@
                       <text value="User Password"/>
                     </properties>
                   </component>
-                  <component id="7aaf8" class="javax.swing.JPasswordField" binding="pwd_user_password">
+                  <component id="7aaf8" class="javax.swing.JPasswordField" binding="userPasswordField">
                     <constraints>
                       <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="0" indent="0" use-parent-layout="false">
                         <preferred-size width="150" height="-1"/>
@@ -152,7 +152,7 @@
                 <properties/>
                 <border type="none"/>
                 <children>
-                  <component id="59849" class="javax.swing.JPasswordField" binding="pwd_owner_password">
+                  <component id="59849" class="javax.swing.JPasswordField" binding="ownerPasswordField">
                     <constraints>
                       <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="0" indent="0" use-parent-layout="false">
                         <preferred-size width="150" height="-1"/>
@@ -185,7 +185,7 @@
             <properties/>
             <border type="none"/>
             <children>
-              <component id="6b7f8" class="javax.swing.JButton" binding="button_convert">
+              <component id="6b7f8" class="javax.swing.JButton" binding="convertButton">
                 <constraints>
                   <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                 </constraints>
@@ -249,7 +249,7 @@
             <properties/>
             <border type="none"/>
             <children>
-              <component id="8d44e" class="javax.swing.JTextField" binding="field_filter">
+              <component id="8d44e" class="javax.swing.JTextField" binding="fileFilterField">
                 <constraints>
                   <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
                     <preferred-size width="150" height="-1"/>
@@ -267,7 +267,7 @@
                   <text value="Filter"/>
                 </properties>
               </component>
-              <component id="19594" class="javax.swing.JButton" binding="button_source_browse">
+              <component id="19594" class="javax.swing.JButton" binding="sourceBrowseButton">
                 <constraints>
                   <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                 </constraints>
@@ -298,13 +298,13 @@
                   <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                 </constraints>
               </hspacer>
-              <component id="c2ce9" class="javax.swing.JComboBox" binding="combo_direction">
+              <component id="c2ce9" class="javax.swing.JComboBox" binding="DirectionComboBox">
                 <constraints>
                   <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties/>
               </component>
-              <component id="6d773" class="javax.swing.JCheckBox" binding="check_auto">
+              <component id="6d773" class="javax.swing.JCheckBox" binding="autoRotateCheckBox">
                 <constraints>
                   <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                 </constraints>
@@ -406,7 +406,7 @@
                   <text value="Output Format"/>
                 </properties>
               </component>
-              <component id="ab23" class="javax.swing.JTextField" binding="field_output_format">
+              <component id="ab23" class="javax.swing.JTextField" binding="outputFormatField">
                 <constraints>
                   <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
                     <preferred-size width="150" height="-1"/>
@@ -439,7 +439,7 @@
                   <text value="Output Folder"/>
                 </properties>
               </component>
-              <component id="90724" class="javax.swing.JButton" binding="button_output_folder_browse">
+              <component id="90724" class="javax.swing.JButton" binding="outputFolderBrowseButton">
                 <constraints>
                   <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                 </constraints>
@@ -447,7 +447,7 @@
                   <text value="Browse"/>
                 </properties>
               </component>
-              <component id="26cdb" class="javax.swing.JTextField" binding="field_output_folder">
+              <component id="26cdb" class="javax.swing.JTextField" binding="outputFolderField">
                 <constraints>
                   <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
                     <preferred-size width="150" height="-1"/>
@@ -478,7 +478,7 @@
             <properties/>
             <border type="none"/>
             <children>
-              <component id="ffc8" class="javax.swing.JTree" binding="tree_sources">
+              <component id="ffc8" class="javax.swing.JTree" binding="sourceTree">
                 <constraints/>
                 <properties>
                   <enabled value="true"/>
