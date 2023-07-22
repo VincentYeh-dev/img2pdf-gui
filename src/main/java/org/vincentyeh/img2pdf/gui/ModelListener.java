@@ -6,5 +6,11 @@ import java.util.List;
 
 public interface ModelListener{
 
-    void onUIUpdate(Model model);
+    void onTotalConversionProgressUpdate(int progress,int total);
+    void onPageConversionProgressUpdate(int progress,int total);
+
+    void onSourcesUpdate(List<Task> source);
+
+    void onLogUpdate(List<String> log);
+
 }

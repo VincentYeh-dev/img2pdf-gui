@@ -37,87 +37,9 @@ public class App {
         });
 
         model = new Model();
-        controller = new Controller(model);
-        view = new View(new ViewListener() {
-            @Override
-            public void onConvertButtonClicked() {
-                controller.convert();
-            }
-
-            @Override
-            public void onClearAllButtonClicked() {
-                controller.clearSource();
-
-            }
-
-            @Override
-            public void onAutoRotateCheckBoxChanged(boolean checked) {
-                controller.setAutoRotate(checked);
-            }
-
-            @Override
-            public void onSizeComboChanged(PageSize pageSize) {
-                controller.setPageSize(pageSize);
-            }
-
-            @Override
-            public void onStopButtonClicked() {
-
-            }
-
-            @Override
-            public void onFileFilterFieldChange(String text) {
-                controller.setFileFilter(text);
-            }
-
-            @Override
-            public void onOutputFormatFieldChange(String text) {
-                controller.setOutputFormat(text);
-            }
-
-            @Override
-            public void onSourcesFileSelected(File[] selectedFiles) {
-                controller.addSource(selectedFiles);
-            }
-
-            @Override
-            public void onOutputFolderChanged(File selectedFile) {
-                controller.setOutputFolder(selectedFile);
-            }
-
-            @Override
-            public void onComboColorChanged(ColorType selectedItem) {
-                controller.setColorType(selectedItem);
-            }
-
-            @Override
-            public void onComboHorizontalAlignChanged(PageAlign.HorizontalAlign selectedItem) {
-                controller.setHorizontalAlign(selectedItem);
-            }
-
-            @Override
-            public void onComboVerticalAlignChanged(PageAlign.VerticalAlign selectedItem) {
-                controller.setVerticalAlign(selectedItem);
-            }
-
-            @Override
-            public void onComboDirectionChanged(PageDirection selectedItem) {
-                controller.setPageDirection(selectedItem);
-            }
-
-        });
-        model.setModelListener(new ModelListener() {
-            @Override
-            public void onUIUpdate(Model model) {
-                view.updateSourceTree(model.getSources());
-                view.setProgress(model.getConversionProgress(),model.getConversionProgressMax());
-                view.setPageProgress(model.getPageConversionProgress(),model.getPageConversionProgressMax());
-                view.setOutputFolderField(model.getOutputFolder().getAbsolutePath());
-
-            }
-        });
-
-        view.initialize();
+        view = new View();
+        controller = new Controller(model,view);
+        controller.initialize();
 
         frame.setContentPane(view.getRootPanel());
         frame.pack();

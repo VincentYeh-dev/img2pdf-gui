@@ -23,52 +23,24 @@ import java.util.List;
 
 public class Model {
     private ModelListener listener;
-    private String file_filter_pattern;
-    private String output_format;
-    private File output_folder=new File("").getAbsoluteFile();
+    private File output_folder = new File("").getAbsoluteFile();
     private final List<Task> sources = new LinkedList<>();
-
     private ColorType colorType;
 
-    private PageArgument pageArgument;
-    private DocumentArgument documentArgument;
+    private PageAlign.HorizontalAlign horizontalAlign;
+    private PageAlign.VerticalAlign verticalAlign;
 
-    private int conversionProgress,conversionProgressMax;
-    private int pageConversionProgress,pageConversionProgressMax;
+    private PageDirection pageDirection;
+    private boolean autoRotate;
+    private PageSize pageSize;
+    private final List<String> logList=new LinkedList<>();
 
-
-    public String getFileFilter() {
-        return file_filter_pattern;
-    }
-
-    public void setFileFilter(String file_filter_pattern) {
-        this.file_filter_pattern = file_filter_pattern;
-        listener.onUIUpdate(this);
-    }
-
-    public String getOutputFormat() {
-        return output_format;
-    }
-
-    public void setOutputFormat(String output_format) {
-        this.output_format = output_format;
-        listener.onUIUpdate(this);
-    }
-
-    public File getOutputFolder() {
-        return output_folder;
-    }
 
     public void setOutputFolder(File output_folder) {
         this.output_folder = output_folder;
-        listener.onUIUpdate(this);
     }
 
-//    public void addSource(Task task){
-//        sources.add(task);
-//    }
-
-    public void addSource(File[] directories) {
+    public void addSource(File[] directories, String output_format, String file_filter_pattern) {
         NameFormatter<File> formatter = new FileNameFormatter(output_format);
         FileFilter filter = new GlobbingFileFilter(file_filter_pattern);
         Comparator<File> sorter = new FileSorter(FileSorter.Sortby.NUMERIC, FileSorter.Sequence.INCREASE);
@@ -86,10 +58,10 @@ public class Model {
                         sources.add(new Task(new File(formatter.format(directory)), files));
                     } catch (NameFormatter.FormatException e) {
 //                            JOptionPane.showMessageDialog(null, e.getCause().getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-//                            e.printStackTrace();
+                        e.printStackTrace();
                     }
                 });
-        listener.onUIUpdate(Model.this);
+        listener.onSourcesUpdate(sources);
     }
 
     public List<Task> getSources() {
@@ -98,29 +70,20 @@ public class Model {
 
     public void clearSource() {
         sources.clear();
-        listener.onUIUpdate(Model.this);
+        listener.onSourcesUpdate(sources);
     }
 
 
-    public ColorType getColorType() {
-        return colorType;
-    }
-
-    public void setColorType(ColorType colorType) {
-        this.colorType = colorType;
-        listener.onUIUpdate(this);
-    }
-
-    public void convert() {
+    public void convert(String owner_password, String user_password) {
         try {
             File tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
             tempFolder.deleteOnExit();
 
-            ImagePDFFactory factory = Img2Pdf.createFactory(pageArgument,documentArgument, colorType, true);
+            ImagePDFFactory factory = Img2Pdf.createFactory(createPageArgument(),
+                    createDocumentArgument(owner_password, user_password)
+                    , colorType, true);
 
-            conversionProgressMax=sources.size();
-            conversionProgress=0;
-            listener.onUIUpdate(Model.this);
+            listener.onTotalConversionProgressUpdate(0,sources.size());
 
             if (!output_folder.exists()) {
                 boolean success = output_folder.mkdirs();
@@ -133,19 +96,16 @@ public class Model {
 
             Thread conversion_thread = new Thread(() -> {
                 for (int i = 0; i < sources.size(); i++) {
-//                    if (interrupt_flag)
-//                        break;
                     try {
                         factory.start(i,
                                 sources.get(i).files,
                                 new File(output_folder, sources.get(i).destination.getName()),
                                 factoryListener);
-//                        recordNewLog(i, String.format("[OK] %s", sources.get(i).destination.getName()));
+                        addLog(String.format("[OK] %s", sources.get(i).destination.getName()));
                     } catch (PDFFactoryException e) {
-//                        recordNewLog(i, String.format("[ERROR] %s -> %s", sources.get(i).destination.getName(), e.getCause().getMessage()));
+                        addLog(String.format("[ERROR] %s -> %s", sources.get(i).destination.getName(), e.getCause().getMessage()));
                     } finally {
-                        conversionProgress=i+1;
-                        listener.onUIUpdate(Model.this);
+                        listener.onTotalConversionProgressUpdate(i + 1,sources.size());
                     }
                 }
 
@@ -156,12 +116,21 @@ public class Model {
         }
     }
 
+    private void addLog(String text) {
+        logList.add(text);
+        listener.onLogUpdate(logList);
+    }
+
+    public List<String> getLogList() {
+        return logList;
+    }
+
     private final ImageFactoryListener factoryListener = new ImageFactoryListener() {
+        private int total;
         @Override
         public void initializing(int procedure_id, int total) {
-            pageConversionProgressMax=total;
-            pageConversionProgress=0;
-            listener.onUIUpdate(Model.this);
+            this.total=total;
+            listener.onPageConversionProgressUpdate(0,total);
         }
 
         @Override
@@ -175,37 +144,73 @@ public class Model {
         }
 
         @Override
-        public void onAppend(int procedure_id, File file, int i, int length){
-            pageConversionProgress=i+1;
-            listener.onUIUpdate(Model.this);
+        public void onAppend(int procedure_id, File file, int i, int length) {
+            listener.onPageConversionProgressUpdate(i+1,total);
         }
     };
+
+
+    public ColorType getColorType() {
+        return colorType;
+    }
+
+    public void setColorType(ColorType colorType) {
+        this.colorType = colorType;
+    }
+
+    public void setPageDirection(PageDirection pageDirection) {
+        this.pageDirection = pageDirection;
+    }
+
+    public PageDirection getPageDirection() {
+        return pageDirection;
+    }
+
+    public void setAutoRotate(boolean autoRotate) {
+        this.autoRotate = autoRotate;
+        setPageDirection(PageDirection.Portrait);
+    }
+
+    public boolean isAutoRotate() {
+        return autoRotate;
+    }
+
+    public void setPageSize(PageSize pageSize) {
+        this.pageSize = pageSize;
+    }
+
+
+    public void setHorizontalAlign(PageAlign.HorizontalAlign horizontalAlign) {
+        this.horizontalAlign = horizontalAlign;
+    }
+
+    public PageAlign.HorizontalAlign getHorizontalAlign() {
+        return horizontalAlign;
+    }
+
+    void setVerticalAlign(PageAlign.VerticalAlign verticalAlign) {
+        this.verticalAlign = verticalAlign;
+    }
+
+    public PageAlign.VerticalAlign getVerticalAlign() {
+        return verticalAlign;
+    }
 
     public void setModelListener(ModelListener listener) {
         this.listener = listener;
     }
 
-    public void setPageArgument(PageArgument pageArgument) {
-        this.pageArgument = pageArgument;
+
+
+    public File getOutputFolder() {
+        return output_folder;
     }
 
-    public void setDocumentArgument(DocumentArgument documentArgument) {
-        this.documentArgument = documentArgument;
+    private PageArgument createPageArgument() {
+        return new PageArgument(new PageAlign(verticalAlign, horizontalAlign), pageSize, pageDirection, autoRotate);
     }
 
-    public int getConversionProgress() {
-        return conversionProgress;
-    }
-
-    public int getConversionProgressMax() {
-        return conversionProgressMax;
-    }
-
-    public int getPageConversionProgress() {
-        return pageConversionProgress;
-    }
-
-    public int getPageConversionProgressMax() {
-        return pageConversionProgressMax;
+    private DocumentArgument createDocumentArgument(String owner_password, String user_password) {
+        return new DocumentArgument(owner_password, user_password);
     }
 }

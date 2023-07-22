@@ -4,22 +4,14 @@ package org.vincentyeh.img2pdf.gui.ui;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
-import org.vincentyeh.img2pdf.gui.ViewListener;
-import org.vincentyeh.img2pdf.gui.ui.components.Task;
 import org.vincentyeh.img2pdf.lib.image.ColorType;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.*;
 
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.plaf.FontUIResource;
 import javax.swing.text.StyleContext;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
 import java.awt.*;
-import java.io.*;
 import java.util.*;
-import java.util.List;
 
 public class View {
 
@@ -29,130 +21,112 @@ public class View {
     private JComboBox<PageSize> combo_size;
     private JComboBox<PageAlign.HorizontalAlign> combo_horizontal;
     private JComboBox<PageAlign.VerticalAlign> combo_vertical;
-    private JTextField field_destination_format;
+    private JTextField field_output_format;
     private JPasswordField pwd_owner_password;
     private JPasswordField pwd_user_password;
     private JButton button_convert;
     private JTextField field_filter;
     private JComboBox<PageDirection> combo_direction;
     private JCheckBox check_auto;
-    private JProgressBar progressBar_total;
+    private JProgressBar totalConversionProgressBar;
     private JComboBox<ColorType> comboBox_color;
     private JTree tree_sources;
-    private JLabel label_progress;
+    private JLabel totalConversionLabel;
     private JButton clearAllButton;
-    private JProgressBar progressBar_sub;
-    private JLabel label_sub_progress;
+    private JProgressBar pageConversionProgressBar;
+    private JLabel pageConversionLabel;
     private JButton stopButton;
     private JLabel imagePane;
-    private JButton button_destination_browse;
-    private JTextField field_destination_folder;
+    private JButton button_output_folder_browse;
+    private JTextField field_output_folder;
     private JList<String> logList;
 
-    private JFileChooser sourceFilesChooser;
-    private JFileChooser destinationFolderChooser;
+    private final JFileChooser sourceFilesChooser;
+    private final JFileChooser outputFolderChooser;
 
 
-    private final DefaultListModel<String> listModel = new DefaultListModel<>();
-
-    private ViewListener viewListener;
-
-    public View(ViewListener viewListener) {
+    public View() {
         $$$setupUI$$$();
-        this.viewListener = viewListener;
-    }
 
-    public void initialize() {
-        for (PageDirection direction : PageDirection.values()) {
-            combo_direction.addItem(direction);
-        }
-        combo_direction.addItemListener(e -> viewListener.onComboDirectionChanged((PageDirection) combo_direction.getSelectedItem()));
-        viewListener.onComboDirectionChanged((PageDirection) combo_direction.getSelectedItem());
-
-        for (PageAlign.VerticalAlign align : PageAlign.VerticalAlign.values()) {
-            combo_vertical.addItem(align);
-        }
-        combo_vertical.addItemListener(e -> viewListener.onComboVerticalAlignChanged((PageAlign.VerticalAlign) combo_vertical.getSelectedItem()));
-        viewListener.onComboVerticalAlignChanged((PageAlign.VerticalAlign) combo_vertical.getSelectedItem());
-
-        for (PageAlign.HorizontalAlign align : PageAlign.HorizontalAlign.values()) {
-            combo_horizontal.addItem(align);
-        }
-        combo_horizontal.addItemListener(e -> viewListener.onComboHorizontalAlignChanged((PageAlign.HorizontalAlign) combo_horizontal.getSelectedItem()));
-        viewListener.onComboHorizontalAlignChanged((PageAlign.HorizontalAlign) combo_horizontal.getSelectedItem());
-
-        for (PageSize size : PageSize.values()) {
-            combo_size.addItem(size);
-        }
-        combo_size.addItemListener(e -> viewListener.onSizeComboChanged((PageSize) combo_size.getSelectedItem()));
-        viewListener.onSizeComboChanged((PageSize) combo_size.getSelectedItem());
-
-        for (ColorType color : ColorType.values()) {
-            comboBox_color.addItem(color);
-        }
-        comboBox_color.addItemListener(e -> viewListener.onComboColorChanged((ColorType) comboBox_color.getSelectedItem()));
-        viewListener.onComboColorChanged((ColorType) comboBox_color.getSelectedItem());
-
-        check_auto.addActionListener(e -> viewListener.onAutoRotateCheckBoxChanged(check_auto.isSelected()));
-        viewListener.onAutoRotateCheckBoxChanged(check_auto.isSelected());
-
-        button_convert.addActionListener(e -> viewListener.onConvertButtonClicked());
-        clearAllButton.addActionListener(e -> viewListener.onClearAllButtonClicked());
-
+        outputFolderChooser = createOutputFolderChooser();
         sourceFilesChooser = createSourceFilesChooser();
-        destinationFolderChooser = createDestinationFolderChooser();
-
-        stopButton.addActionListener(e -> viewListener.onStopButtonClicked());
-
-        button_source_browse.addActionListener(e -> browseSources());
-        button_destination_browse.addActionListener(e -> browseOutputFolder());
-        field_filter.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                viewListener.onFileFilterFieldChange(field_filter.getText());
-            }
-        });
-
-        viewListener.onFileFilterFieldChange(field_filter.getText());
-        field_destination_format.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                viewListener.onOutputFormatFieldChange(field_destination_format.getText());
-            }
-        });
-        viewListener.onOutputFormatFieldChange(field_destination_format.getText());
-
-//        viewListener.onOutputFolderChanged(new File(field_destination_folder.getText()));
-
-
     }
 
-    public void setFileFilterField(String filter) {
-        field_filter.setText(filter);
+    public JFileChooser getSourceFilesChooser() {
+        return sourceFilesChooser;
     }
 
-    public String getFileFilterField() {
-        return field_filter.getText();
+    public JFileChooser getOutputFolderChooser() {
+        return outputFolderChooser;
+    }
+
+    public JButton getConvertButton() {
+        return button_convert;
+    }
+
+    public JComboBox<PageSize> getPageSizeComboBox() {
+        return combo_size;
+    }
+
+    public JComboBox<PageDirection> getDirectionComboBox() {
+        return combo_direction;
+    }
+
+    public JButton getOutputFolderBrowseButton() {
+        return button_output_folder_browse;
+    }
+
+    public JButton getSourceBrowseButton() {
+        return button_source_browse;
+    }
+
+    public JButton getClearAllButton() {
+        return clearAllButton;
+    }
+
+
+    public JComboBox<PageAlign.HorizontalAlign> getHorizontalComboBox() {
+        return combo_horizontal;
+    }
+
+    public JComboBox<PageAlign.VerticalAlign> getVerticalAlignComboBox() {
+        return combo_vertical;
+    }
+
+    public JComboBox<PageSize> getSizeComboBox() {
+        return combo_size;
+    }
+
+    public JComboBox<ColorType> getColorComboBox() {
+        return comboBox_color;
+    }
+
+    public JCheckBox getAutoRotateCheckBox() {
+        return check_auto;
+    }
+
+    public JTextField getFileFilterField() {
+        return field_filter;
+    }
+
+    public JTextField getOutputFormatField() {
+        return field_output_format;
+    }
+
+    public JPasswordField getOwnerPasswordField() {
+        return pwd_owner_password;
+    }
+
+    public JPasswordField getUserPasswordField() {
+        return pwd_user_password;
+    }
+
+    public JTextField getOutputFolderField() {
+        return field_output_folder;
+    }
+
+    public JTree getSourcesTree() {
+        return tree_sources;
     }
 
 
@@ -163,185 +137,31 @@ public class View {
         return chooser;
     }
 
-    private JFileChooser createDestinationFolderChooser() {
+    private JFileChooser createOutputFolderChooser() {
         JFileChooser chooser = new JFileChooser();
         chooser.setMultiSelectionEnabled(false);
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         return chooser;
     }
 
-//    private void onSizeChange(PageSize selectedItem) {
-//        if (selectedItem == null)
-//            return;
-//        combo_direction.setEnabled(selectedItem != PageSize.DEPEND_ON_IMG);
-//        check_auto.setEnabled(selectedItem != PageSize.DEPEND_ON_IMG);
-//        combo_vertical.setEnabled(selectedItem != PageSize.DEPEND_ON_IMG);
-//        combo_horizontal.setEnabled(selectedItem != PageSize.DEPEND_ON_IMG);
-//    }
-
-
-//    private void startConversion() {
-//        interrupt_flag = false;
-//        clearLog();
-//        try {
-//            File tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
-//            tempFolder.deleteOnExit();
-//
-//            ImagePDFFactory factory = Img2Pdf.createFactory(getPageArgument(), getDocumentArgument(), getColorType(), true);
-//            setMaxProgress(tasks.size());
-//            setProgress(0);
-//
-//            File destination_folder = new File(field_destination_folder.getText());
-//            if (!destination_folder.exists()) {
-//                boolean success = destination_folder.mkdirs();
-//                if (!success)
-//                    throw new IllegalStateException("Unable to create directories");
-//            }
-//            if (destination_folder.isFile())
-//                throw new IllegalArgumentException("Uestination should be folder");
-//
-//
-//            conversion_thread = new Thread(() -> {
-//                for (int i = 0; i < tasks.size(); i++) {
-//                    if (interrupt_flag)
-//                        break;
-//                    try {
-//                        factory.start(i,
-//                                tasks.get(i).files,
-//                                new File(destination_folder, tasks.get(i).destination.getName()),
-//                                factoryListener);
-//                        recordNewLog(i, String.format("[OK] %s", tasks.get(i).destination.getName()));
-//                    } catch (PDFFactoryException e) {
-//                        recordNewLog(i, String.format("[ERROR] %s -> %s", tasks.get(i).destination.getName(), e.getCause().getMessage()));
-//                    } finally {
-//                        setProgress(i + 1);
-//                    }
-//                }
-//
-//            });
-//            conversion_thread.start();
-//        } catch (IOException ex) {
-//            throw new RuntimeException(ex);
-//        }
-//    }
-
-    public void recordNewLog(int index, String log) {
-        listModel.add(index, log);
-        logList.setModel(listModel);
+    public JLabel getTotalConversionLabel() {
+        return totalConversionLabel;
     }
 
-    public void clearLog() {
-        listModel.clear();
-        logList.setModel(listModel);
+    public JProgressBar getTotalConversionProgressBar() {
+        return totalConversionProgressBar;
     }
 
-//    private final ImageFactoryListener factoryListener = new ImageFactoryListener() {
-//        @Override
-//        public void initializing(int procedure_id, int total) {
-//            setMaxSubProgress(total);
-//        }
-//
-//        @Override
-//        public void onSaved(int procedure_id, File file) {
-//
-//        }
-//
-//        @Override
-//        public void onConversionComplete(int procedure_id) {
-//
-//        }
-//
-//        @Override
-//        public void onAppend(int i, File file, int i1, int i2) {
-//            setSubProgress(i1 + 1);
-//        }
-//    };
-
-//    private void onAutoRotateChange(boolean selected) {
-//        combo_direction.setSelectedItem(PageDirection.Portrait);
-//        combo_direction.setEnabled(!selected);
-//    }
-//
-//    private void clearAll() {
-//        tasks.clear();
-//        updateUISources();
-//    }
-//
-
-    private void browseOutputFolder() {
-        if (destinationFolderChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION)
-            viewListener.onOutputFolderChanged(destinationFolderChooser.getSelectedFile());
-
-//            File directories = destinationFolderChooser.getSelectedFile();
-//            if (directories == null)
-//                return;
-//            field_destination_folder.setText(directories.getAbsolutePath());
-//            updateUISources();
+    public JLabel getPageConversionLabel() {
+        return pageConversionLabel;
     }
 
-    private void browseSources() {
-        if (sourceFilesChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION)
-            viewListener.onSourcesFileSelected(sourceFilesChooser.getSelectedFiles());
+    public JProgressBar getPageConversionProgressBar() {
+        return pageConversionProgressBar;
     }
 
-
-    public void updateSourceTree(List<Task> tasks) {
-        DefaultTreeModel model = (DefaultTreeModel) tree_sources.getModel();
-        DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
-        root.removeAllChildren();
-
-        for (Task task : tasks) {
-            DefaultMutableTreeNode node1 = new DefaultMutableTreeNode(task.destination.getName());
-            for (File file : task.files) {
-                DefaultMutableTreeNode node2 = new DefaultMutableTreeNode(file.getName());
-                node1.add(node2);
-            }
-            root.add(node1);
-        }
-        button_convert.setEnabled(tasks.size() != 0);
-        clearAllButton.setEnabled(tasks.size() != 0);
-        model.reload();
-    }
-
-
-//    public PageArgument getPageArgument() {
-//        PageSize size = (PageSize) combo_size.getSelectedItem();
-//        PageDirection direction = (PageDirection) combo_direction.getSelectedItem();
-//        boolean auto_rotate = check_auto.isSelected();
-//        PageAlign.VerticalAlign verticalAlign = (PageAlign.VerticalAlign) combo_vertical.getSelectedItem();
-//        PageAlign.HorizontalAlign horizontalAlign = (PageAlign.HorizontalAlign) combo_horizontal.getSelectedItem();
-//        return new PageArgument(verticalAlign, horizontalAlign, size, direction, auto_rotate);
-//    }
-//
-//    public DocumentArgument getDocumentArgument() {
-//        String owner_password = pwd_owner_password.getPassword().length > 0 ? Arrays.toString(pwd_owner_password.getPassword()) : null;
-//        String user_password = pwd_user_password.getPassword().length > 0 ? Arrays.toString(pwd_user_password.getPassword()) : null;
-//        return new DocumentArgument(owner_password, user_password);
-//    }
-//
-//    public ColorType getColorType() {
-//        return (ColorType) comboBox_color.getSelectedItem();
-//    }
-//
-//    public FileFilter getFilter() {
-//        return new GlobbingFileFilter(field_filter.getText());
-//    }
-//
-//    public NameFormatter<File> getFormatter() {
-//        String dest = field_destination_format.getText();
-//        return new FileNameFormatter(dest);
-//    }
-
-    public void setProgress(int value, int max) {
-        progressBar_total.setMaximum(max);
-        progressBar_total.setValue(value);
-        label_progress.setText(value + "/" + max);
-    }
-
-    public void setPageProgress(int value, int max) {
-        progressBar_sub.setMaximum(max);
-        progressBar_sub.setValue(value);
-        label_sub_progress.setText(value + "/" + max);
+    public JList<String> getLogList() {
+        return logList;
     }
 
 
@@ -422,19 +242,19 @@ public class View {
         button_convert = new JButton();
         button_convert.setText("Convert");
         panel9.add(button_convert, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        progressBar_total = new JProgressBar();
-        panel9.add(progressBar_total, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        label_progress = new JLabel();
-        label_progress.setText("");
-        panel9.add(label_progress, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        totalConversionProgressBar = new JProgressBar();
+        panel9.add(totalConversionProgressBar, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        totalConversionLabel = new JLabel();
+        totalConversionLabel.setText("");
+        panel9.add(totalConversionLabel, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel10 = new JPanel();
         panel10.setLayout(new GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
         panel9.add(panel10, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
-        progressBar_sub = new JProgressBar();
-        panel10.add(progressBar_sub, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        label_sub_progress = new JLabel();
-        label_sub_progress.setText("");
-        panel9.add(label_sub_progress, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pageConversionProgressBar = new JProgressBar();
+        panel10.add(pageConversionProgressBar, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pageConversionLabel = new JLabel();
+        pageConversionLabel.setText("");
+        panel9.add(pageConversionLabel, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         stopButton = new JButton();
         stopButton.setText("Stop");
         panel9.add(stopButton, new GridConstraints(1, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
@@ -500,9 +320,9 @@ public class View {
         final JLabel label11 = new JLabel();
         label11.setText("Output Format");
         panel16.add(label11, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        field_destination_format = new JTextField();
-        field_destination_format.setText("<NAME>.pdf");
-        panel16.add(field_destination_format, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        field_output_format = new JTextField();
+        field_output_format.setText("<NAME>.pdf");
+        panel16.add(field_output_format, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final Spacer spacer3 = new Spacer();
         panel16.add(spacer3, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
         final JPanel panel17 = new JPanel();
@@ -511,12 +331,12 @@ public class View {
         final JLabel label12 = new JLabel();
         label12.setText("Output Folder");
         panel17.add(label12, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        button_destination_browse = new JButton();
-        button_destination_browse.setText("Browse");
-        panel17.add(button_destination_browse, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        field_destination_folder = new JTextField();
-        field_destination_folder.setText(".");
-        panel17.add(field_destination_folder, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        button_output_folder_browse = new JButton();
+        button_output_folder_browse.setText("Browse");
+        panel17.add(button_output_folder_browse, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        field_output_folder = new JTextField();
+        field_output_folder.setText(".");
+        panel17.add(field_output_folder, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final JPanel panel18 = new JPanel();
         panel18.setLayout(new GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
         root.add(panel18, new GridConstraints(1, 0, 6, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
@@ -576,11 +396,7 @@ public class View {
         return root;
     }
 
-    public void setViewListener(ViewListener viewListener) {
-        this.viewListener = viewListener;
-    }
-
     public void setOutputFolderField(String text) {
-        field_destination_folder.setText(text);
+        field_output_folder.setText(text);
     }
 }
