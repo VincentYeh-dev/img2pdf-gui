@@ -34,12 +34,12 @@ public class Controller {
 
             @Override
             public void onSourcesUpdate(List<Task> source) {
-                updateSourceTree(model.getSources());
+                updateSourceTree(source);
             }
 
             @Override
             public void onLogUpdate(List<String> log) {
-                view.getLogList().setModel(convertToModel(model.getLogList()));
+                view.getLogList().setModel(convertToModel(log));
             }
         });
     }
@@ -81,9 +81,7 @@ public class Controller {
         for (PageSize size : PageSize.values()) {
             combo_size.addItem(size);
         }
-        combo_size.addItemListener(e -> {
-                    onSizeChange((PageSize) combo_size.getSelectedItem());
-                }
+        combo_size.addItemListener(e -> onSizeChange((PageSize) combo_size.getSelectedItem())
         );
         model.setPageSize((PageSize) combo_size.getSelectedItem());
 
