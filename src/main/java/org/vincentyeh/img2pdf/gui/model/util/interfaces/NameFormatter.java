@@ -1,4 +1,4 @@
-package org.vincentyeh.img2pdf.gui.util.interfaces;
+package org.vincentyeh.img2pdf.gui.model.util.interfaces;
 
 /**
  * @param <D> Data type
@@ -14,7 +14,7 @@ public abstract class NameFormatter<D> {
 
     public abstract String format(D data) throws FormatException;
 
-    public static abstract class FormatException extends Exception{
+    public static class FormatException extends Exception{
         public FormatException() {
         }
 

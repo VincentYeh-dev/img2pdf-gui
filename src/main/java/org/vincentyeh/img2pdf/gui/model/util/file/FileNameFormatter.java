@@ -1,7 +1,7 @@
-package org.vincentyeh.img2pdf.gui.util.file;
+package org.vincentyeh.img2pdf.gui.model.util.file;
 
 
-import org.vincentyeh.img2pdf.gui.util.interfaces.NameFormatter;
+import org.vincentyeh.img2pdf.gui.model.util.interfaces.NameFormatter;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -17,31 +17,33 @@ import java.util.regex.Pattern;
  * @author VincentYeh
  */
 public class FileNameFormatter extends NameFormatter<File> {
-    private final Date currentDate;
 
     public FileNameFormatter(String pattern) {
         super(pattern);
-        currentDate = new Date();
     }
 
     @Override
     public String format(File data) throws FormatException{
-        HashMap<String, String> map = new HashMap<>();
-        getFileMap(data, map);
-        getCurrentTimeMap(map);
-        getModifyTimeMap(data, map);
-        verify(map);
-        String buf=pattern;
-        for (String key : map.keySet()) {
-            buf = buf.replace(key, map.get(key));
-        }
+        try{
+            HashMap<String, String> map = new HashMap<>();
+            getFileMap(data, map);
+            getCurrentTimeMap(map);
+            getModifyTimeMap(data, map);
+            verify(map);
+            String buf=pattern;
+            for (String key : map.keySet()) {
+                buf = buf.replace(key, map.get(key));
+            }
 
-        return buf;
+            return buf;
+        }catch (IllegalArgumentException e){
+            throw new FormatException(e);
+        }
     }
 
     private void getCurrentTimeMap(HashMap<String, String> map) {
         Calendar cal = Calendar.getInstance();
-        cal.setTime(currentDate);
+        cal.setTime(new Date());
         map.put(CurrentTime.year.getSymbol(), String.format("%d", cal.get(Calendar.YEAR)));
         map.put(CurrentTime.month.getSymbol(), String.format("%02d", cal.get(Calendar.MONTH) + 1));
         map.put(CurrentTime.day.getSymbol(), String.format("%02d", cal.get(Calendar.DAY_OF_MONTH)));
@@ -62,12 +64,16 @@ public class FileNameFormatter extends NameFormatter<File> {
     }
 
     private void getFileMap(File file, HashMap<String, String> map)
-            throws NumberFormatException {
+            throws IllegalArgumentException {
         Path p = file.toPath();
+        int folderLevel=p.getNameCount();
+        if(folderLevel<1)
+            throw new IllegalArgumentException("root folder can not be selected: "+file.getAbsolutePath());
+
         map.put("<NAME>", p.getFileName().toString().split("\\.")[0]);
 
-        for (int i = 1; i < p.getNameCount(); i++) {
-            map.put("<PARENT{" + (i - 1) + "}>", p.getName(p.getNameCount() - 1 - i).getFileName().toString());
+        for (int i = 1; i < folderLevel; i++) {
+            map.put("<PARENT{" + (i - 1) + "}>", p.getName(folderLevel - 1 - i).getFileName().toString());
         }
 
         if (p.isAbsolute())
@@ -84,7 +90,7 @@ public class FileNameFormatter extends NameFormatter<File> {
 
     }
 
-    public static class NotMappedPattern extends FormatException{
+    public static class NotMappedPattern extends IllegalArgumentException{
         private final String pattern;
 
         public NotMappedPattern(String pattern) {

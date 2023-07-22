@@ -2,7 +2,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.example</groupId>
+    <groupId>org.vincentyeh</groupId>
     <artifactId>img2pdf.gui</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
@@ -12,8 +12,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
-        <exe-name>img2pdf-gui</exe-name>
-        <jar-name>${project.name}-executable</jar-name>
+        <exe-name>img2pdf-gui ${project.version}</exe-name>
+        <jar-name>target-${project.name}-${project.version}</jar-name>
 
         <main-class>org.vincentyeh.img2pdf.gui.App</main-class>
     </properties>
@@ -27,7 +27,7 @@
         <dependency>
             <groupId>org.vincentyeh</groupId>
             <artifactId>img2pdf.lib</artifactId>
-            <version>5.0.0</version>
+            <version>6.0.1</version>
         </dependency>
         <dependency>
             <groupId>com.intellij</groupId>
@@ -104,6 +104,7 @@
                 </executions>
             </plugin>
 
+            <!-- LAUNCH4J -->
             <plugin>
                 <groupId>com.akathist.maven.plugins.launch4j</groupId>
                 <artifactId>launch4j-maven-plugin</artifactId>
@@ -124,6 +125,9 @@
                                 <mainClass>${main-class}</mainClass>
                             </classPath>
                             <jre>
+                                <opts>
+                                    <opt>-Dfile.encoding=UTF-8</opt>
+                                </opts>
                                 <bundledJre64Bit>false</bundledJre64Bit>
                                 <bundledJreAsFallback>false</bundledJreAsFallback>
                                 <minVersion>${maven.compiler.source}</minVersion>
@@ -133,6 +137,7 @@
                     </execution>
                 </executions>
             </plugin>
+
         </plugins>
     </build>
 </project>
