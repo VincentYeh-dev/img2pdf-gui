@@ -6,8 +6,8 @@ import org.vincentyeh.img2pdf.gui.model.util.file.GlobbingFileFilter;
 import org.vincentyeh.img2pdf.gui.model.util.interfaces.NameFormatter;
 import org.vincentyeh.img2pdf.lib.Img2Pdf;
 import org.vincentyeh.img2pdf.lib.image.ColorType;
-import org.vincentyeh.img2pdf.lib.pdf.framework.factory.ImageFactoryListener;
 import org.vincentyeh.img2pdf.lib.pdf.framework.factory.ImagePDFFactory;
+import org.vincentyeh.img2pdf.lib.pdf.framework.factory.ImagePDFFactoryListener;
 import org.vincentyeh.img2pdf.lib.pdf.framework.factory.exception.PDFFactoryException;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.*;
 
@@ -32,7 +32,7 @@ public class Model {
     private PageDirection pageDirection;
     private boolean autoRotate;
     private PageSize pageSize;
-    private final List<String> logList=new LinkedList<>();
+    private final List<String> logList = new LinkedList<>();
 
 
     public void setOutputFolder(File output_folder) {
@@ -82,7 +82,7 @@ public class Model {
                     createDocumentArgument(owner_password, user_password)
                     , colorType, true);
 
-            listener.onTotalConversionProgressUpdate(0,sources.size());
+            listener.onTotalConversionProgressUpdate(0, sources.size());
 
             if (!output_folder.exists()) {
                 boolean success = output_folder.mkdirs();
@@ -104,7 +104,7 @@ public class Model {
                     } catch (PDFFactoryException e) {
                         addLog(String.format("[ERROR] %s -> %s", sources.get(i).destination.getName(), e.getCause().getMessage()));
                     } finally {
-                        listener.onTotalConversionProgressUpdate(i + 1,sources.size());
+                        listener.onTotalConversionProgressUpdate(i + 1, sources.size());
                     }
                 }
 
@@ -120,12 +120,13 @@ public class Model {
         listener.onLogUpdate(logList);
     }
 
-    private final ImageFactoryListener factoryListener = new ImageFactoryListener() {
+    private final ImagePDFFactoryListener factoryListener = new ImagePDFFactoryListener() {
         private int total;
+
         @Override
         public void initializing(int procedure_id, int total) {
-            this.total=total;
-            listener.onPageConversionProgressUpdate(0,total);
+            this.total = total;
+            listener.onPageConversionProgressUpdate(0, total);
         }
 
         @Override
@@ -140,10 +141,9 @@ public class Model {
 
         @Override
         public void onAppend(int procedure_id, File file, int i, int length) {
-            listener.onPageConversionProgressUpdate(i+1,total);
+            listener.onPageConversionProgressUpdate(i + 1, total);
         }
     };
-
 
 
     public void setColorType(ColorType colorType) {
@@ -194,7 +194,6 @@ public class Model {
     public void setModelListener(ModelListener listener) {
         this.listener = listener;
     }
-
 
 
     public File getOutputFolder() {
