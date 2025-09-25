@@ -4,7 +4,7 @@
 
     <groupId>org.vincentyeh</groupId>
     <artifactId>img2pdf.gui</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.2</version>
     <packaging>jar</packaging>
     <name>img2pdf-gui</name>
 
@@ -28,8 +28,9 @@
         <dependency>
             <groupId>org.vincentyeh</groupId>
             <artifactId>img2pdf.lib</artifactId>
-            <version>7.0.0</version>
+            <version>8.0.0</version>
         </dependency>
+
         <dependency>
             <groupId>com.intellij</groupId>
             <artifactId>forms_rt</artifactId>

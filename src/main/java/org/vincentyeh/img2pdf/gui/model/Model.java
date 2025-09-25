@@ -6,6 +6,7 @@ import org.vincentyeh.img2pdf.gui.model.util.file.GlobbingFileFilter;
 import org.vincentyeh.img2pdf.gui.model.util.interfaces.NameFormatter;
 import org.vincentyeh.img2pdf.lib.Img2Pdf;
 import org.vincentyeh.img2pdf.lib.image.ColorType;
+import org.vincentyeh.img2pdf.lib.pdf.framework.factory.IDocument;
 import org.vincentyeh.img2pdf.lib.pdf.framework.factory.ImagePDFFactory;
 import org.vincentyeh.img2pdf.lib.pdf.framework.factory.ImagePDFFactoryListener;
 import org.vincentyeh.img2pdf.lib.pdf.framework.factory.exception.PDFFactoryException;
@@ -77,11 +78,6 @@ public class Model {
         try {
             File tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
             tempFolder.deleteOnExit();
-
-            ImagePDFFactory factory = Img2Pdf.createFactory(createPageArgument(),
-                    createDocumentArgument(owner_password, user_password)
-                    , colorType, true);
-
             listener.onTotalConversionProgressUpdate(0, sources.size());
 
             if (!output_folder.exists()) {
@@ -94,22 +90,36 @@ public class Model {
 
 
             Thread conversion_thread = new Thread(() -> {
+
+                ImagePDFFactory factory = Img2Pdf.createPDFBoxMaxPerformanceFactory();
+
+                DocumentArgument documentArgument = createDocumentArgument(owner_password, user_password);
+                PageArgument pageArgument = createPageArgument();
+
                 for (int i = 0; i < sources.size(); i++) {
                     try {
-                        factory.start(i,
+                        IDocument document = factory.start(
                                 sources.get(i).files,
-                                new File(output_folder, sources.get(i).destination.getName()),
+                                colorType,
+                                documentArgument,
+                                pageArgument,
                                 factoryListener);
+                        document.save(new File(output_folder, sources.get(i).destination.getName()));
+                        document.close();
+
                         addLog(String.format("[OK] %s", sources.get(i).destination.getName()));
                     } catch (PDFFactoryException e) {
+                        addLog(String.format("[ERROR] %s -> %s", sources.get(i).destination.getName(), e.getCause().getMessage()));
+                    } catch (IOException e) {
                         addLog(String.format("[ERROR] %s -> %s", sources.get(i).destination.getName(), e.getCause().getMessage()));
                     } finally {
                         listener.onTotalConversionProgressUpdate(i + 1, sources.size());
                     }
                 }
-
+                factory.shutdown();
             });
             conversion_thread.start();
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -124,24 +134,20 @@ public class Model {
         private int total;
 
         @Override
-        public void initializing(int procedure_id, int total) {
+        public void initializing(int total) {
             this.total = total;
-            listener.onPageConversionProgressUpdate(0, total);
-        }
-
-        @Override
-        public void onSaved(int procedure_id, File file) {
+            listener.onPageConversionProgressUpdate(0, this.total);
 
         }
 
         @Override
-        public void onConversionComplete(int procedure_id) {
+        public void onConversionComplete() {
 
         }
 
         @Override
-        public void onAppend(int procedure_id, File file, int i, int length) {
-            listener.onPageConversionProgressUpdate(i + 1, total);
+        public void onAppend(File file, int appended, int total) {
+            listener.onPageConversionProgressUpdate(appended, this.total);
         }
     };
 
@@ -168,6 +174,7 @@ public class Model {
 
     public boolean isAutoRotate() {
         return autoRotate;
+
     }
 
     public void setPageSize(PageSize pageSize) {
@@ -205,7 +212,11 @@ public class Model {
     }
 
     private DocumentArgument createDocumentArgument(String owner_password, String user_password) {
-        return new DocumentArgument(owner_password, user_password);
+        DocumentArgument documentArgument = new DocumentArgument();
+        if (owner_password != null && user_password != null) {
+            documentArgument.setEncryption(owner_password, user_password, new Permission());
+        }
+        return documentArgument;
     }
 
     public PageSize getPageSize() {
