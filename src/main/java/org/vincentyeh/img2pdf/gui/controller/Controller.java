@@ -1,6 +1,7 @@
 package org.vincentyeh.img2pdf.gui.controller;
 
 import org.vincentyeh.img2pdf.gui.model.Model;
+import org.vincentyeh.img2pdf.gui.model.ModelListener;
 import org.vincentyeh.img2pdf.gui.model.Task;
 import org.vincentyeh.img2pdf.gui.view.MediatorListener;
 import org.vincentyeh.img2pdf.gui.view.UIMediator;
@@ -8,18 +9,19 @@ import org.vincentyeh.img2pdf.gui.view.UIState;
 
 import javax.swing.*;
 import java.io.File;
-import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 
-public class Controller implements MediatorListener {
+public class Controller implements MediatorListener, ModelListener {
     private final DefaultListModel<String> listModel = new DefaultListModel<>();
     private final Model model;
+    private final UIMediator mediator;
 
     public Controller(Model model, UIMediator mediator) {
         this.model = model;
+        this.mediator = mediator;
         mediator.setListener(this);
         mediator.initialize();
+        model.setModelListener(this);
     }
 
     private ListModel<String> convertToModel(List<String> list) {
@@ -40,17 +42,44 @@ public class Controller implements MediatorListener {
         File[] sources = state.getSourceFiles();
         if (sources == null || sources.length == 0)
             return;
-        List<Task> tasks = model.parseSourceFiles(sources, outputFormat, fileFilter );
-        mediator.setTasks(tasks);
+        List<Task> tasks = Model.parseSourceFiles(sources, outputFormat, fileFilter);
+        mediator.updateTasks(tasks);
+        model.setTask(tasks);
     }
 
     @Override
-    public void onConversionStart(UIMediator mediator, UIState state) {
+    public void onConvertButtonClick(UIMediator mediator, UIState state) {
+        model.convert(state);
 
     }
 
     @Override
-    public void onConversionStop(UIMediator mediator) {
+    public void onStopButtonClick(UIMediator mediator) {
 
+    }
+
+    @Override
+    public void onBatchProgressUpdate(int progress, int total) {
+        mediator.setBatchProgress(progress, total);
+    }
+
+    @Override
+    public void onConversionProgressUpdate(int progress, int total) {
+        mediator.setConversionProgress(progress, total);
+    }
+
+    @Override
+    public void onSourcesUpdate(List<Task> source) {
+
+    }
+
+    @Override
+    public void onLogUpdate(List<String> log) {
+
+    }
+
+    @Override
+    public void onLogAppend(String log) {
+        mediator.addLog(log);
     }
 }

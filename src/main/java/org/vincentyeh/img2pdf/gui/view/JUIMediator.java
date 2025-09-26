@@ -407,9 +407,13 @@ public class JUIMediator implements UIMediator {
         }
         if (event.equals("convert_button_click")) {
             System.out.printf("Convert Button clicked\n");
+            if (listener != null)
+                listener.onConvertButtonClick(this, state);
         }
         if (event.equals("clear_all_button_click")) {
             System.out.printf("Clear All Button clicked\n");
+            state.setSourceFiles(new File[]{});
+            updateSourceTree(new LinkedList<>());
         }
         if (event.equals("stop_button_click")) {
             System.out.printf("Stop Button clicked\n");
@@ -418,7 +422,7 @@ public class JUIMediator implements UIMediator {
     }
 
     @Override
-    public void setTasks(List<Task> tasks) {
+    public void updateTasks(List<Task> tasks) {
         updateSourceTree(tasks);
     }
 

@@ -4,11 +4,14 @@ import java.util.List;
 
 public interface ModelListener{
 
-    void onTotalConversionProgressUpdate(int progress,int total);
-    void onPageConversionProgressUpdate(int progress,int total);
+    void onBatchProgressUpdate(int progress, int total);
+    void onConversionProgressUpdate(int progress, int total);
 
     void onSourcesUpdate(List<Task> source);
-
     void onLogUpdate(List<String> log);
+    void onLogAppend(String log);
+
+
+
 
 }
