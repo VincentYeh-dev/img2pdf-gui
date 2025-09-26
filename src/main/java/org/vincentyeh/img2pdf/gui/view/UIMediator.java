@@ -7,6 +7,7 @@ import java.util.List;
 public interface UIMediator {
     void notifyUI(String event, Object... data);
     void updateTasks(List<Task> tasks);
+    void setRunningState(boolean running);
     void setBatchProgress(int progress, int total);
     void setConversionProgress(int progress, int total);
     void addLog(String log);

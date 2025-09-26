@@ -40,8 +40,9 @@ public class Controller implements MediatorListener, ModelListener {
         if (outputFormat == null || fileFilter == null)
             return;
         File[] sources = state.getSourceFiles();
-        if (sources == null || sources.length == 0)
+        if (sources == null)
             return;
+
         List<Task> tasks = Model.parseSourceFiles(sources, outputFormat, fileFilter);
         mediator.updateTasks(tasks);
         model.setTask(tasks);
@@ -69,8 +70,19 @@ public class Controller implements MediatorListener, ModelListener {
     }
 
     @Override
-    public void onSourcesUpdate(List<Task> source) {
+    public void onBatchStart() {
+        mediator.setRunningState(true);
+        mediator.clearLog();
+    }
 
+    @Override
+    public void onBatchComplete() {
+        mediator.setRunningState(false);
+    }
+
+    @Override
+    public void onSourcesUpdate(List<Task> source) {
+        model.setTask(source);
     }
 
     @Override

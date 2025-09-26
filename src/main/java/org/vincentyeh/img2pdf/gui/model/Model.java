@@ -91,7 +91,7 @@ public class Model {
 
 
             Thread conversion_thread = new Thread(() -> {
-
+                listener.onBatchStart();
                 ImagePDFFactory factory = Img2Pdf.createPDFBoxMaxPerformanceFactory();
 
                 DocumentArgument documentArgument = createDocumentArgument(owner_password, user_password);
@@ -114,7 +114,6 @@ public class Model {
                                 factoryListener);
                         document.save(new File(output_folder, sources.get(i).destination.getName()));
                         document.close();
-
                         listener.onLogAppend(String.format("[OK] %s", sources.get(i).destination.getName()));
                     } catch (PDFFactoryException | IOException e) {
                         listener.onLogAppend(String.format("[ERROR] %s -> %s", sources.get(i).destination.getName(), e.getCause().getMessage()));
@@ -123,6 +122,7 @@ public class Model {
                     }
                 }
                 factory.shutdown();
+                listener.onBatchComplete();
             });
             conversion_thread.start();
 

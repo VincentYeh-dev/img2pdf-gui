@@ -337,7 +337,6 @@ public class JUIMediator implements UIMediator {
 
     @Override
     public void notifyUI(String event, Object... data) {
-//        System.out.println("Event:" + event);
         if (event.equals("output_format_change")) {
             String format = (String) data[0];
             System.out.printf("Output Format changed: %s\n", format);
@@ -413,7 +412,8 @@ public class JUIMediator implements UIMediator {
         if (event.equals("clear_all_button_click")) {
             System.out.printf("Clear All Button clicked\n");
             state.setSourceFiles(new File[]{});
-            updateSourceTree(new LinkedList<>());
+            if (listener != null)
+                listener.onSourcesUpdate(this, state);
         }
         if (event.equals("stop_button_click")) {
             System.out.printf("Stop Button clicked\n");
@@ -425,6 +425,25 @@ public class JUIMediator implements UIMediator {
     public void updateTasks(List<Task> tasks) {
         updateSourceTree(tasks);
     }
+
+    @Override
+    public void setRunningState(boolean running) {
+        if(running){
+            convertButton.setEnabled(false);
+            stopButton.setEnabled(true);
+            clearAllButton.setEnabled(false);
+            sourceBrowseButton.setEnabled(false);
+            outputFolderBrowseButton.setEnabled(false);
+        }else{
+            convertButton.setEnabled(true);
+            stopButton.setEnabled(false);
+            clearAllButton.setEnabled(true);
+            sourceBrowseButton.setEnabled(true);
+            outputFolderBrowseButton.setEnabled(true);
+
+        }
+    }
+
 
     public void updateSourceTree(List<Task> tasks) {
         DefaultTreeModel model = (DefaultTreeModel) sourceTree.getModel();
