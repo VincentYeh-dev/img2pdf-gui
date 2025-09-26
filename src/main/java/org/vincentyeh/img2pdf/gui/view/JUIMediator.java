@@ -1,5 +1,6 @@
 package org.vincentyeh.img2pdf.gui.view;
 
+import org.vincentyeh.img2pdf.gui.model.Task;
 import org.vincentyeh.img2pdf.lib.image.ColorType;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.PageAlign;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.PageDirection;
@@ -8,7 +9,12 @@ import org.vincentyeh.img2pdf.lib.pdf.parameter.PageSize;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
 import java.awt.event.ActionEvent;
+import java.io.File;
+import java.util.LinkedList;
+import java.util.List;
 
 public class JUIMediator implements UIMediator {
 
@@ -40,6 +46,8 @@ public class JUIMediator implements UIMediator {
 
     private JFileChooser sourceFilesChooser;
     private JFileChooser outputFolderChooser;
+
+    private UIState state = UIState.getInstance();
 
     public static class Builder {
         private final JUIMediator mediator = new JUIMediator();
@@ -333,54 +341,69 @@ public class JUIMediator implements UIMediator {
         if (event.equals("output_format_change")) {
             String format = (String) data[0];
             System.out.printf("Output Format changed: %s\n", format);
+            state.setOutputFormat(format);
             convertButton.setEnabled(!format.isEmpty());
         }
         if (event.equals("output_folder_change")) {
             String folder = (String) data[0];
             System.out.printf("Output Folder changed: %s\n", folder);
+            state.setDestinationFolder(new File(folder));
         }
         if (event.equals("file_filter_change")) {
             String filter = (String) data[0];
             System.out.printf("File Filter changed: %s\n", filter);
+            state.setFileFilterPattern(filter);
         }
         if (event.equals("owner_password_change")) {
             String password = (String) data[0];
             System.out.printf("Owner Password changed: %s\n", password.isEmpty() ? "<empty>" : password);
+            state.setEncrypted(true);
+            state.setOwnerPassword(password);
         }
         if (event.equals("user_password_change")) {
             String password = (String) data[0];
             System.out.printf("User Password changed: %s\n", password.isEmpty() ? "<empty>" : password);
+            state.setEncrypted(true);
+            state.setUserPassword(password);
         }
         if (event.equals("auto_rotate_change")) {
             boolean selected = (boolean) data[0];
             System.out.printf("Auto Rotate changed: %s\n", selected);
+            state.setAutoRotate(selected);
         }
         if (event.equals("page_size_change")) {
             PageSize size = (PageSize) data[0];
             System.out.printf("Page Size changed: %s\n", size);
+            state.setPageSize(size);
         }
         if (event.equals("horizontal_align_change")) {
             PageAlign.HorizontalAlign align = (PageAlign.HorizontalAlign) data[0];
             System.out.printf("Horizontal Align changed: %s\n", align);
+            state.setHorizontalAlign(align);
         }
         if (event.equals("vertical_align_change")) {
             PageAlign.VerticalAlign align = (PageAlign.VerticalAlign) data[0];
             System.out.printf("Vertical Align changed: %s\n", align);
+            state.setVerticalAlign(align);
         }
         if (event.equals("page_direction_change")) {
             PageDirection direction = (PageDirection) data[0];
             System.out.printf("Page Direction changed: %s\n", direction);
+            state.setPageDirection(direction);
         }
         if (event.equals("color_type_change")) {
             ColorType color = (ColorType) data[0];
             System.out.printf("Color Type changed: %s\n", color);
+            state.setColorType(color);
         }
 
         if (event.equals("source_browse_button_click")) {
             System.out.printf("Source Browse Button clicked\n");
+            browseSources();
         }
         if (event.equals("output_folder_browse_button_click")) {
             System.out.printf("Output Folder Browse Button clicked\n");
+            browseOutputFolder();
         }
         if (event.equals("convert_button_click")) {
             System.out.printf("Convert Button clicked\n");
@@ -392,6 +415,27 @@ public class JUIMediator implements UIMediator {
             System.out.printf("Stop Button clicked\n");
         }
 
+    }
+
+    @Override
+    public void setTasks(List<Task> tasks) {
+        updateSourceTree(tasks);
+    }
+
+    public void updateSourceTree(List<Task> tasks) {
+        DefaultTreeModel model = (DefaultTreeModel) sourceTree.getModel();
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
+        root.removeAllChildren();
+
+        for (Task task : tasks) {
+            DefaultMutableTreeNode node1 = new DefaultMutableTreeNode(task.destination.getName());
+            for (File file : task.files) {
+                DefaultMutableTreeNode node2 = new DefaultMutableTreeNode(file.getName());
+                node1.add(node2);
+            }
+            root.add(node1);
+        }
+        model.reload();
     }
 
     public void setBatchProgress(int progress, int total) {
@@ -433,26 +477,68 @@ public class JUIMediator implements UIMediator {
         for (PageDirection direction : PageDirection.values()) {
             directionComboBox.addItem(direction);
         }
+        directionComboBox.setSelectedItem(PageDirection.Portrait);
 
         for (PageAlign.VerticalAlign align : PageAlign.VerticalAlign.values()) {
             verticalAlignComboBox.addItem(align);
         }
+        verticalAlignComboBox.setSelectedItem(PageAlign.VerticalAlign.CENTER);
+
         for (PageAlign.HorizontalAlign align : PageAlign.HorizontalAlign.values()) {
             horizontalAlignComboBox.addItem(align);
         }
+        horizontalAlignComboBox.setSelectedItem(PageAlign.HorizontalAlign.CENTER);
+
         for (PageSize size : PageSize.values()) {
             pageSizeComboBox.addItem(size);
         }
+        pageSizeComboBox.setSelectedItem(PageSize.A4);
+
         for (ColorType color : ColorType.values()) {
             colorTypeComboBox.addItem(color);
         }
         colorTypeComboBox.setSelectedItem(ColorType.sRGB);
+
         autoRotateCheckBox.setSelected(true);
+        state.setAutoRotate(true);
+        outputFormatField.setText("<NAME>.pdf");
+        fileFilterField.setText("*.{PNG,png,JPG,jpg}");
 
-
-//        view.getOutputFolderField().setText(model.getOutputFolder().getAbsolutePath());
-//        view.getOutputFolderChooser().setCurrentDirectory(model.getOutputFolder());
-
-//        updateSourceTree(model.getSources());
+        updateSourceTree(new LinkedList<>());
     }
+
+    private void browseOutputFolder() {
+        JFileChooser outputFolderChooser = createOutputFolderChooser();
+        if (outputFolderChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+            outputFolderChooser.setCurrentDirectory(outputFolderChooser.getSelectedFile());
+            String selectedPath = outputFolderChooser.getSelectedFile().getAbsolutePath();
+            outputFolderField.setText(selectedPath);
+            state.setDestinationFolder(new File(selectedPath));
+        }
+    }
+
+    private void browseSources() {
+        JFileChooser sourceFilesChooser = createSourceFilesChooser();
+        if (sourceFilesChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+            if (listener != null) {
+                state.setSourceFiles(sourceFilesChooser.getSelectedFiles());
+                listener.onSourcesUpdate(this, state);
+            }
+        }
+    }
+
+    private JFileChooser createSourceFilesChooser() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setMultiSelectionEnabled(true);
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        return chooser;
+    }
+
+    private JFileChooser createOutputFolderChooser() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setMultiSelectionEnabled(false);
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        return chooser;
+    }
+
 }

@@ -1,9 +1,10 @@
 package org.vincentyeh.img2pdf.gui.view;
 
+import org.vincentyeh.img2pdf.lib.image.ColorType;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.PageAlign;
+import org.vincentyeh.img2pdf.lib.pdf.parameter.PageDirection;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.PageSize;
 
-import javax.swing.plaf.synth.ColorType;
 import java.io.File;
 
 public class UIState {
@@ -22,11 +23,15 @@ public class UIState {
     private String userPassword = null;
 
     private File[] sourceFiles = null;
-    private File destination = null;
+    private String outputFormat = null;
+    private File destinationFolder = null;
     private ColorType colorType = null;
     private PageSize pageSize = null;
     boolean autoRotate = false;
-    PageAlign pageAlign = null;
+
+    private PageAlign.HorizontalAlign horizontalAlign;
+    private PageAlign.VerticalAlign verticalAlign;
+    private PageDirection pageDirection;
     private String fileFilterPattern = null;
 
 
@@ -36,6 +41,19 @@ public class UIState {
 
     public void setRunning(boolean running) {
         this.running = running;
+    }
+
+
+    public void setPageDirection(PageDirection pageDirection) {
+        this.pageDirection = pageDirection;
+    }
+
+    public void setHorizontalAlign(PageAlign.HorizontalAlign horizontalAlign) {
+        this.horizontalAlign = horizontalAlign;
+    }
+
+    public void setVerticalAlign(PageAlign.VerticalAlign verticalAlign) {
+        this.verticalAlign = verticalAlign;
     }
 
     public void setEncrypted(boolean encrypted) {
@@ -54,8 +72,8 @@ public class UIState {
         this.sourceFiles = sourceFiles;
     }
 
-    public void setDestination(File destination) {
-        this.destination = destination;
+    public void setDestinationFolder(File destinationFolder) {
+        this.destinationFolder = destinationFolder;
     }
 
     public void setColorType(ColorType colorType) {
@@ -70,9 +88,6 @@ public class UIState {
         this.autoRotate = autoRotate;
     }
 
-    public void setPageAlign(PageAlign pageAlign) {
-        this.pageAlign = pageAlign;
-    }
 
     public void setFileFilterPattern(String fileFilterPattern) {
         this.fileFilterPattern = fileFilterPattern;
@@ -98,8 +113,8 @@ public class UIState {
         return sourceFiles;
     }
 
-    public File getDestination() {
-        return destination;
+    public File getDestinationFolder() {
+        return destinationFolder;
     }
 
     public ColorType getColorType() {
@@ -114,11 +129,28 @@ public class UIState {
         return autoRotate;
     }
 
-    public PageAlign getPageAlign() {
-        return pageAlign;
-    }
 
     public String getFileFilterPattern() {
         return fileFilterPattern;
+    }
+
+    public PageAlign.HorizontalAlign getHorizontalAlign() {
+        return horizontalAlign;
+    }
+
+    public PageAlign.VerticalAlign getVerticalAlign() {
+        return verticalAlign;
+    }
+
+    public PageDirection getPageDirection() {
+        return pageDirection;
+    }
+
+    public String getOutputFormat() {
+        return outputFormat;
+    }
+
+    public void setOutputFormat(String outputFormat) {
+        this.outputFormat = outputFormat;
     }
 }

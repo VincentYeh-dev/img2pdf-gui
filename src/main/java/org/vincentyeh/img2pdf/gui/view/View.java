@@ -16,26 +16,11 @@ import java.util.*;
 public class View {
 
     private JPanel root;
+    private UIMediator uiMediator;
 
     public View() {
         $$$setupUI$$$();
 
-        JFileChooser outputFolderChooser = createOutputFolderChooser();
-        JFileChooser sourceFilesChooser = createSourceFilesChooser();
-    }
-
-    private JFileChooser createSourceFilesChooser() {
-        JFileChooser chooser = new JFileChooser();
-        chooser.setMultiSelectionEnabled(true);
-        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        return chooser;
-    }
-
-    private JFileChooser createOutputFolderChooser() {
-        JFileChooser chooser = new JFileChooser();
-        chooser.setMultiSelectionEnabled(false);
-        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        return chooser;
     }
 
 
@@ -150,7 +135,6 @@ public class View {
         panel11.setLayout(new GridLayoutManager(1, 3, new Insets(0, 0, 0, 0), -1, -1));
         panel1.add(panel11, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_NORTH, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         JTextField fileFilterField = new JTextField();
-        fileFilterField.setText("*.{PNG,png,JPG,jpg}");
         mediatorBuilder.linkFileFilterField(fileFilterField);
         panel11.add(fileFilterField, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final JLabel label6 = new JLabel();
@@ -213,7 +197,6 @@ public class View {
         label11.setText("Output Format");
         panel16.add(label11, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         JTextField outputFormatField = new JTextField();
-        outputFormatField.setText("<NAME>.pdf");
         mediatorBuilder.linkOutputFormatField(outputFormatField);
         panel16.add(outputFormatField, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final Spacer spacer3 = new Spacer();
@@ -263,16 +246,7 @@ public class View {
         JList<String> logList = new JList(new DefaultListModel());
         mediatorBuilder.linkLogList(logList);
         scrollPane2.setViewportView(logList);
-
-        UIMediator mediator = mediatorBuilder.build();
-        mediator.initialize();
-        mediator.setBatchProgress(20, 50);
-        mediator.setConversionProgress(10,100);
-        mediator.addLog("Test log message");
-        mediator.addLog("Another log message");
-        mediator.clearLog();
-        mediator.addLog("Yet another log message");
-
+        uiMediator = mediatorBuilder.build();
     }
 
     /**
@@ -302,6 +276,10 @@ public class View {
      */
     public JComponent $$$getRootComponent$$$() {
         return root;
+    }
+
+    public UIMediator getUIMediator() {
+        return uiMediator;
     }
 
 }
