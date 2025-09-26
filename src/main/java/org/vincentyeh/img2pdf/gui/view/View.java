@@ -260,7 +260,7 @@ public class View {
         root.add(label13, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JScrollPane scrollPane2 = new JScrollPane();
         root.add(scrollPane2, new GridConstraints(3, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
-        JList<String> logList = new JList();
+        JList<String> logList = new JList(new DefaultListModel());
         mediatorBuilder.linkLogList(logList);
         scrollPane2.setViewportView(logList);
 
@@ -268,6 +268,11 @@ public class View {
         mediator.initialize();
         mediator.setBatchProgress(20, 50);
         mediator.setConversionProgress(10,100);
+        mediator.addLog("Test log message");
+        mediator.addLog("Another log message");
+        mediator.clearLog();
+        mediator.addLog("Yet another log message");
+
     }
 
     /**

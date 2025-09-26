@@ -11,6 +11,8 @@ import javax.swing.event.DocumentListener;
 import java.awt.event.ActionEvent;
 
 public class JUIMediator implements UIMediator {
+
+
     private MediatorListener listener;
     private JButton sourceBrowseButton;
     private JComboBox<PageSize> pageSizeComboBox;
@@ -35,6 +37,7 @@ public class JUIMediator implements UIMediator {
     private JButton outputFolderBrowseButton;
     private JTextField outputFolderField;
     private JList<String> logList;
+
     private JFileChooser sourceFilesChooser;
     private JFileChooser outputFolderChooser;
 
@@ -402,6 +405,22 @@ public class JUIMediator implements UIMediator {
         pageConversionProgressBar.setMaximum(total);
         pageConversionProgressBar.setValue(progress);
         pageConversionLabel.setText(progress + "/" + total);
+    }
+
+    @Override
+    public void addLog(String log) {
+        DefaultListModel<String> listModel = (DefaultListModel<String>) logList.getModel();
+        listModel.addElement(log);
+        int lastIndex = listModel.getSize() - 1;
+        if (lastIndex >= 0) {
+            logList.ensureIndexIsVisible(lastIndex);
+        }
+    }
+
+    @Override
+    public void clearLog() {
+        DefaultListModel<String> listModel = (DefaultListModel<String>) logList.getModel();
+        listModel.clear();
     }
 
     public void setListener(MediatorListener listener) {
