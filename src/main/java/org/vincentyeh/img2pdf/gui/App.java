@@ -1,8 +1,6 @@
 package org.vincentyeh.img2pdf.gui;
 
 import com.formdev.flatlaf.FlatDarkLaf;
-import org.vincentyeh.img2pdf.gui.controller.Controller;
-import org.vincentyeh.img2pdf.gui.model.Model;
 import org.vincentyeh.img2pdf.gui.view.View;
 
 import javax.swing.*;
@@ -28,10 +26,10 @@ public class App {
             }
         });
 
-        Model model = new Model();
+//        Model model = new Model();
         View view = new View();
-        Controller controller = new Controller(model, view);
-        controller.initialize();
+//        Controller controller = new Controller(model, view);
+//        controller.initialize();
 
         frame.setContentPane(view.getRootPanel());
         frame.pack();

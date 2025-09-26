@@ -15,120 +15,14 @@ import java.util.*;
 
 public class View {
 
-    private JButton sourceBrowseButton;
-
     private JPanel root;
-    private JComboBox<PageSize> pageSizeComboBox;
-    private JComboBox<PageAlign.HorizontalAlign> horizontalAlignComboBox;
-    private JComboBox<PageAlign.VerticalAlign> verticalAlignComboBox;
-    private JTextField outputFormatField;
-    private JPasswordField ownerPasswordField;
-    private JPasswordField userPasswordField;
-    private JButton convertButton;
-    private JTextField fileFilterField;
-    private JComboBox<PageDirection> DirectionComboBox;
-    private JCheckBox autoRotateCheckBox;
-    private JProgressBar totalConversionProgressBar;
-    private JComboBox<ColorType> colorTypeComboBox;
-    private JTree sourceTree;
-    private JLabel totalConversionLabel;
-    private JButton clearAllButton;
-    private JProgressBar pageConversionProgressBar;
-    private JLabel pageConversionLabel;
-    private JButton stopButton;
-    private JLabel imagePane;
-    private JButton outputFolderBrowseButton;
-    private JTextField outputFolderField;
-    private JList<String> logList;
-
-    private final JFileChooser sourceFilesChooser;
-    private final JFileChooser outputFolderChooser;
-
 
     public View() {
         $$$setupUI$$$();
 
-        outputFolderChooser = createOutputFolderChooser();
-        sourceFilesChooser = createSourceFilesChooser();
+        JFileChooser outputFolderChooser = createOutputFolderChooser();
+        JFileChooser sourceFilesChooser = createSourceFilesChooser();
     }
-
-    public JFileChooser getSourceFilesChooser() {
-        return sourceFilesChooser;
-    }
-
-    public JFileChooser getOutputFolderChooser() {
-        return outputFolderChooser;
-    }
-
-    public JButton getConvertButton() {
-        return convertButton;
-    }
-
-    public JComboBox<PageSize> getPageSizeComboBox() {
-        return pageSizeComboBox;
-    }
-
-    public JComboBox<PageDirection> getDirectionComboBox() {
-        return DirectionComboBox;
-    }
-
-    public JButton getOutputFolderBrowseButton() {
-        return outputFolderBrowseButton;
-    }
-
-    public JButton getSourceBrowseButton() {
-        return sourceBrowseButton;
-    }
-
-    public JButton getClearAllButton() {
-        return clearAllButton;
-    }
-
-
-    public JComboBox<PageAlign.HorizontalAlign> getHorizontalComboBox() {
-        return horizontalAlignComboBox;
-    }
-
-    public JComboBox<PageAlign.VerticalAlign> getVerticalAlignComboBox() {
-        return verticalAlignComboBox;
-    }
-
-    public JComboBox<PageSize> getSizeComboBox() {
-        return pageSizeComboBox;
-    }
-
-    public JComboBox<ColorType> getColorComboBox() {
-        return colorTypeComboBox;
-    }
-
-    public JCheckBox getAutoRotateCheckBox() {
-        return autoRotateCheckBox;
-    }
-
-    public JTextField getFileFilterField() {
-        return fileFilterField;
-    }
-
-    public JTextField getOutputFormatField() {
-        return outputFormatField;
-    }
-
-    public JPasswordField getOwnerPasswordField() {
-        return ownerPasswordField;
-    }
-
-    public JPasswordField getUserPasswordField() {
-        return userPasswordField;
-    }
-
-    public JTextField getOutputFolderField() {
-        return outputFolderField;
-    }
-
-    public JTree getSourcesTree() {
-        return sourceTree;
-    }
-
 
     private JFileChooser createSourceFilesChooser() {
         JFileChooser chooser = new JFileChooser();
@@ -144,26 +38,6 @@ public class View {
         return chooser;
     }
 
-    public JLabel getTotalConversionLabel() {
-        return totalConversionLabel;
-    }
-
-    public JProgressBar getTotalConversionProgressBar() {
-        return totalConversionProgressBar;
-    }
-
-    public JLabel getPageConversionLabel() {
-        return pageConversionLabel;
-    }
-
-    public JProgressBar getPageConversionProgressBar() {
-        return pageConversionProgressBar;
-    }
-
-    public JList<String> getLogList() {
-        return logList;
-    }
-
 
     public JPanel getRootPanel() {
         return root;
@@ -177,6 +51,8 @@ public class View {
      * @noinspection ALL
      */
     private void $$$setupUI$$$() {
+        JUIMediator.Builder mediatorBuilder = new JUIMediator.Builder();
+
         root = new JPanel();
         root.setLayout(new GridLayoutManager(9, 2, new Insets(0, 0, 0, 0), -1, -1));
         final JPanel panel1 = new JPanel();
@@ -188,9 +64,10 @@ public class View {
         final JPanel panel3 = new JPanel();
         panel3.setLayout(new GridLayoutManager(1, 2, new Insets(0, 0, 0, 0), -1, -1));
         panel2.add(panel3, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
-        pageSizeComboBox = new JComboBox();
+        JComboBox<PageSize> pageSizeComboBox = new JComboBox();
         final DefaultComboBoxModel defaultComboBoxModel1 = new DefaultComboBoxModel();
         pageSizeComboBox.setModel(defaultComboBoxModel1);
+        mediatorBuilder.linkPageSizeComboBox(pageSizeComboBox);
         panel3.add(pageSizeComboBox, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JLabel label1 = new JLabel();
         label1.setText("Size");
@@ -201,7 +78,8 @@ public class View {
         final JLabel label2 = new JLabel();
         label2.setText("Color");
         panel4.add(label2, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        colorTypeComboBox = new JComboBox();
+        JComboBox<ColorType> colorTypeComboBox = new JComboBox();
+        mediatorBuilder.linkColorTypeComboBox(colorTypeComboBox);
         panel4.add(colorTypeComboBox, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel5 = new JPanel();
         panel5.setLayout(new GridLayoutManager(1, 3, new Insets(0, 0, 0, 0), -1, -1));
@@ -209,11 +87,13 @@ public class View {
         final JLabel label3 = new JLabel();
         label3.setText("Alignment");
         panel5.add(label3, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        horizontalAlignComboBox = new JComboBox();
+        JComboBox<PageAlign.HorizontalAlign> horizontalAlignComboBox = new JComboBox();
+        mediatorBuilder.linkHorizontalAlignComboBox(horizontalAlignComboBox);
         final DefaultComboBoxModel defaultComboBoxModel2 = new DefaultComboBoxModel();
         horizontalAlignComboBox.setModel(defaultComboBoxModel2);
         panel5.add(horizontalAlignComboBox, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        verticalAlignComboBox = new JComboBox();
+        JComboBox<PageAlign.VerticalAlign> verticalAlignComboBox = new JComboBox();
+        mediatorBuilder.linkVerticalAlignComboBox(verticalAlignComboBox);
         panel5.add(verticalAlignComboBox, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel6 = new JPanel();
         panel6.setLayout(new GridLayoutManager(1, 3, new Insets(0, 0, 0, 0), -1, -1));
@@ -224,12 +104,14 @@ public class View {
         final JLabel label4 = new JLabel();
         label4.setText("User Password");
         panel7.add(label4, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        userPasswordField = new JPasswordField();
+        JPasswordField userPasswordField = new JPasswordField();
+        mediatorBuilder.linkUserPasswordField(userPasswordField);
         panel7.add(userPasswordField, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final JPanel panel8 = new JPanel();
         panel8.setLayout(new GridLayoutManager(1, 2, new Insets(0, 0, 0, 0), -1, -1));
         panel6.add(panel8, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
-        ownerPasswordField = new JPasswordField();
+        JPasswordField ownerPasswordField = new JPasswordField();
+        mediatorBuilder.linkOwnerPasswordField(ownerPasswordField);
         panel8.add(ownerPasswordField, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final JLabel label5 = new JLabel();
         label5.setText("Owner Password");
@@ -239,36 +121,44 @@ public class View {
         final JPanel panel9 = new JPanel();
         panel9.setLayout(new GridLayoutManager(2, 3, new Insets(0, 0, 0, 0), -1, -1));
         panel1.add(panel9, new GridConstraints(10, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
-        convertButton = new JButton();
+        JButton convertButton = new JButton();
         convertButton.setText("Convert");
+        mediatorBuilder.linkConvertButton(convertButton);
         panel9.add(convertButton, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        totalConversionProgressBar = new JProgressBar();
+        JProgressBar totalConversionProgressBar = new JProgressBar();
+        mediatorBuilder.linkTotalConversionProgressBar(totalConversionProgressBar);
         panel9.add(totalConversionProgressBar, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        totalConversionLabel = new JLabel();
+        JLabel totalConversionLabel = new JLabel();
         totalConversionLabel.setText("");
+        mediatorBuilder.linkTotalConversionLabel(totalConversionLabel);
         panel9.add(totalConversionLabel, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel10 = new JPanel();
         panel10.setLayout(new GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
         panel9.add(panel10, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
-        pageConversionProgressBar = new JProgressBar();
+        JProgressBar pageConversionProgressBar = new JProgressBar();
+        mediatorBuilder.linkPageConversionProgressBar(pageConversionProgressBar);
         panel10.add(pageConversionProgressBar, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        pageConversionLabel = new JLabel();
+        JLabel pageConversionLabel = new JLabel();
         pageConversionLabel.setText("");
+        mediatorBuilder.linkPageConversionLabel(pageConversionLabel);
         panel9.add(pageConversionLabel, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        stopButton = new JButton();
+        JButton stopButton = new JButton();
         stopButton.setText("Stop");
+        mediatorBuilder.linkStopButton(stopButton);
         panel9.add(stopButton, new GridConstraints(1, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel11 = new JPanel();
         panel11.setLayout(new GridLayoutManager(1, 3, new Insets(0, 0, 0, 0), -1, -1));
         panel1.add(panel11, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_NORTH, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
-        fileFilterField = new JTextField();
+        JTextField fileFilterField = new JTextField();
         fileFilterField.setText("*.{PNG,png,JPG,jpg}");
+        mediatorBuilder.linkFileFilterField(fileFilterField);
         panel11.add(fileFilterField, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final JLabel label6 = new JLabel();
         label6.setText("Filter");
         panel11.add(label6, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        sourceBrowseButton = new JButton();
+        JButton sourceBrowseButton = new JButton();
         sourceBrowseButton.setText("Browse");
+        mediatorBuilder.linkSourceBrowseButton(sourceBrowseButton);
         panel11.add(sourceBrowseButton, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel12 = new JPanel();
         panel12.setLayout(new GridLayoutManager(1, 4, new Insets(0, 0, 0, 0), -1, -1));
@@ -278,11 +168,13 @@ public class View {
         panel12.add(label7, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final Spacer spacer2 = new Spacer();
         panel12.add(spacer2, new GridConstraints(0, 3, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
-        DirectionComboBox = new JComboBox();
-        panel12.add(DirectionComboBox, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        autoRotateCheckBox = new JCheckBox();
+        JComboBox<PageDirection> directionComboBox = new JComboBox();
+        mediatorBuilder.linkDirectionComboBox(directionComboBox);
+        panel12.add(directionComboBox, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        JCheckBox autoRotateCheckBox = new JCheckBox();
         autoRotateCheckBox.setEnabled(true);
         autoRotateCheckBox.setText("Auto Rotate");
+        mediatorBuilder.linkAutoRotateCheckBox(autoRotateCheckBox);
         panel12.add(autoRotateCheckBox, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel13 = new JPanel();
         panel13.setLayout(new GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
@@ -320,8 +212,9 @@ public class View {
         final JLabel label11 = new JLabel();
         label11.setText("Output Format");
         panel16.add(label11, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        outputFormatField = new JTextField();
+        JTextField outputFormatField = new JTextField();
         outputFormatField.setText("<NAME>.pdf");
+        mediatorBuilder.linkOutputFormatField(outputFormatField);
         panel16.add(outputFormatField, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final Spacer spacer3 = new Spacer();
         panel16.add(spacer3, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
@@ -331,28 +224,32 @@ public class View {
         final JLabel label12 = new JLabel();
         label12.setText("Output Folder");
         panel17.add(label12, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        outputFolderBrowseButton = new JButton();
+        JButton outputFolderBrowseButton = new JButton();
         outputFolderBrowseButton.setText("Browse");
+        mediatorBuilder.linkOutputFolderBrowseButton(outputFolderBrowseButton);
         panel17.add(outputFolderBrowseButton, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        outputFolderField = new JTextField();
+        JTextField outputFolderField = new JTextField();
         outputFolderField.setText(".");
+        mediatorBuilder.linkOutputFolderField(outputFolderField);
         panel17.add(outputFolderField, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final JPanel panel18 = new JPanel();
         panel18.setLayout(new GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
         root.add(panel18, new GridConstraints(1, 0, 6, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         final JScrollPane scrollPane1 = new JScrollPane();
         panel18.add(scrollPane1, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(400, -1), null, 0, false));
-        sourceTree = new JTree();
+        JTree sourceTree = new JTree();
         sourceTree.setEnabled(true);
+        mediatorBuilder.linkSourceTree(sourceTree);
         scrollPane1.setViewportView(sourceTree);
-        imagePane = new JLabel();
+        JLabel imagePane = new JLabel();
         imagePane.setText("");
         root.add(imagePane, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel19 = new JPanel();
         panel19.setLayout(new GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
         root.add(panel19, new GridConstraints(7, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
-        clearAllButton = new JButton();
+        JButton clearAllButton = new JButton();
         clearAllButton.setText("Clear All");
+        mediatorBuilder.linkClearAllButton(clearAllButton);
         panel19.add(clearAllButton, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final Spacer spacer4 = new Spacer();
         root.add(spacer4, new GridConstraints(8, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
@@ -363,8 +260,14 @@ public class View {
         root.add(label13, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JScrollPane scrollPane2 = new JScrollPane();
         root.add(scrollPane2, new GridConstraints(3, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
-        logList = new JList();
+        JList<String> logList = new JList();
+        mediatorBuilder.linkLogList(logList);
         scrollPane2.setViewportView(logList);
+
+        UIMediator mediator = mediatorBuilder.build();
+        mediator.initialize();
+        mediator.setBatchProgress(20, 50);
+        mediator.setConversionProgress(10,100);
     }
 
     /**
