@@ -90,12 +90,14 @@ public class View {
         label4.setText("User Password");
         panel7.add(label4, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         JPasswordField userPasswordField = new JPasswordField();
+        userPasswordField.setEnabled(false);
         mediatorBuilder.linkUserPasswordField(userPasswordField);
         panel7.add(userPasswordField, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final JPanel panel8 = new JPanel();
         panel8.setLayout(new GridLayoutManager(1, 2, new Insets(0, 0, 0, 0), -1, -1));
         panel6.add(panel8, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         JPasswordField ownerPasswordField = new JPasswordField();
+        ownerPasswordField.setEnabled(false);
         mediatorBuilder.linkOwnerPasswordField(ownerPasswordField);
         panel8.add(ownerPasswordField, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final JLabel label5 = new JLabel();
@@ -156,7 +158,7 @@ public class View {
         mediatorBuilder.linkDirectionComboBox(directionComboBox);
         panel12.add(directionComboBox, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         JCheckBox autoRotateCheckBox = new JCheckBox();
-        autoRotateCheckBox.setEnabled(true);
+        autoRotateCheckBox.setSelected(false);
         autoRotateCheckBox.setText("Auto Rotate");
         mediatorBuilder.linkAutoRotateCheckBox(autoRotateCheckBox);
         panel12.add(autoRotateCheckBox, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
@@ -186,8 +188,13 @@ public class View {
         final JLabel label10 = new JLabel();
         Font label10Font = this.$$$getFont$$$(null, -1, 16, label10.getFont());
         if (label10Font != null) label10.setFont(label10Font);
-        label10.setText("Encrypt");
+        label10.setText("Encryption");
         panel15.add(label10, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        JCheckBox enableEncryptCheckBox = new JCheckBox();
+        enableEncryptCheckBox.setText("Enable Encryption");
+        mediatorBuilder.linkEncryptionCheckBox(enableEncryptCheckBox);
+        panel15.add(enableEncryptCheckBox, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_EAST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+
         final JSeparator separator3 = new JSeparator();
         panel1.add(separator3, new GridConstraints(9, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
         final JPanel panel16 = new JPanel();

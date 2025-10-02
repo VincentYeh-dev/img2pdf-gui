@@ -77,6 +77,7 @@ public class Model {
             tempFolder.deleteOnExit();
             listener.onBatchProgressUpdate(0, sources.size());
             File output_folder = state.getDestinationFolder();
+            boolean encryption = state.isEncrypted();
             String owner_password = state.getOwnerPassword();
             String user_password = state.getUserPassword();
             ColorType colorType = state.getColorType();
@@ -94,7 +95,7 @@ public class Model {
                 listener.onBatchStart();
                 ImagePDFFactory factory = Img2Pdf.createPDFBoxMaxPerformanceFactory();
 
-                DocumentArgument documentArgument = createDocumentArgument(owner_password, user_password);
+                DocumentArgument documentArgument = createDocumentArgument(encryption, owner_password, user_password);
                 PageArgument pageArgument = createPageArgument(
                         state.getVerticalAlign(),
                         state.getHorizontalAlign(),
@@ -166,9 +167,9 @@ public class Model {
         return new PageArgument(new PageAlign(verticalAlign, horizontalAlign), pageSize, pageDirection, autoRotate);
     }
 
-    private DocumentArgument createDocumentArgument(String owner_password, String user_password) {
+    private DocumentArgument createDocumentArgument(boolean encryption, String owner_password, String user_password) {
         DocumentArgument documentArgument = new DocumentArgument();
-        if (owner_password != null && user_password != null) {
+        if (encryption) {
             documentArgument.setEncryption(owner_password, user_password, new Permission());
         }
         return documentArgument;

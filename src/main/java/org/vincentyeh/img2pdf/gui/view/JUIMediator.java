@@ -31,6 +31,7 @@ public class JUIMediator implements UIMediator {
     private JTextField fileFilterField;
     private JComboBox<PageDirection> directionComboBox;
     private JCheckBox autoRotateCheckBox;
+    private JCheckBox encryptCheckBox;
     private JProgressBar totalConversionProgressBar;
     private JComboBox<ColorType> colorTypeComboBox;
     private JTree sourceTree;
@@ -326,6 +327,17 @@ public class JUIMediator implements UIMediator {
             mediator.outputFolderChooser = fileChooser;
         }
 
+        public void linkEncryptionCheckBox(JCheckBox checkBox) {
+            mediator.encryptCheckBox = checkBox;
+            mediator.encryptCheckBox.addActionListener(new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    boolean selected = mediator.encryptCheckBox.isSelected();
+                    mediator.notifyUI("encryption_change", selected);
+                }
+            });
+        }
+
         public UIMediator build() {
             return mediator;
         }
@@ -354,26 +366,36 @@ public class JUIMediator implements UIMediator {
             state.setFileFilterPattern(filter);
         }
         if (event.equals("owner_password_change")) {
+            if(!state.isEncrypted())
+                return;
             String password = (String) data[0];
             System.out.printf("Owner Password changed: %s\n", password.isEmpty() ? "<empty>" : password);
-            state.setEncrypted(true);
             state.setOwnerPassword(password);
         }
         if (event.equals("user_password_change")) {
+            if(!state.isEncrypted())
+                return;
             String password = (String) data[0];
             System.out.printf("User Password changed: %s\n", password.isEmpty() ? "<empty>" : password);
-            state.setEncrypted(true);
             state.setUserPassword(password);
         }
         if (event.equals("auto_rotate_change")) {
             boolean selected = (boolean) data[0];
             System.out.printf("Auto Rotate changed: %s\n", selected);
             state.setAutoRotate(selected);
+            state.setPageDirection(PageDirection.Portrait);
+            directionComboBox.setEnabled(!selected);
         }
         if (event.equals("page_size_change")) {
             PageSize size = (PageSize) data[0];
             System.out.printf("Page Size changed: %s\n", size);
             state.setPageSize(size);
+            horizontalAlignComboBox.setEnabled(size != PageSize.DEPEND_ON_IMG);
+            verticalAlignComboBox.setEnabled(size != PageSize.DEPEND_ON_IMG);
+            if (size == PageSize.DEPEND_ON_IMG) {
+                horizontalAlignComboBox.setSelectedItem(PageAlign.HorizontalAlign.CENTER);
+                verticalAlignComboBox.setSelectedItem(PageAlign.VerticalAlign.CENTER);
+            }
         }
         if (event.equals("horizontal_align_change")) {
             PageAlign.HorizontalAlign align = (PageAlign.HorizontalAlign) data[0];
@@ -419,6 +441,20 @@ public class JUIMediator implements UIMediator {
             System.out.printf("Stop Button clicked\n");
         }
 
+        if(event.equals("encryption_change")){
+            boolean selected = (boolean) data[0];
+            System.out.printf("Encryption changed: %s\n", selected);
+            state.setEncrypted(selected);
+            ownerPasswordField.setEnabled(selected);
+            userPasswordField.setEnabled(selected);
+            if(!selected){
+                state.setOwnerPassword("");
+                state.setUserPassword("");
+                ownerPasswordField.setText("");
+                userPasswordField.setText("");
+            }
+        }
+
     }
 
     @Override
@@ -428,13 +464,13 @@ public class JUIMediator implements UIMediator {
 
     @Override
     public void setRunningState(boolean running) {
-        if(running){
+        if (running) {
             convertButton.setEnabled(false);
             stopButton.setEnabled(true);
             clearAllButton.setEnabled(false);
             sourceBrowseButton.setEnabled(false);
             outputFolderBrowseButton.setEnabled(false);
-        }else{
+        } else {
             convertButton.setEnabled(true);
             stopButton.setEnabled(false);
             clearAllButton.setEnabled(true);
@@ -522,10 +558,12 @@ public class JUIMediator implements UIMediator {
         }
         colorTypeComboBox.setSelectedItem(ColorType.sRGB);
 
-        autoRotateCheckBox.setSelected(true);
-        state.setAutoRotate(true);
+        autoRotateCheckBox.setSelected(false);
+        state.setAutoRotate(false);
         outputFormatField.setText("<NAME>.pdf");
         fileFilterField.setText("*.{PNG,png,JPG,jpg}");
+
+        encryptCheckBox.setSelected(false);
 
         updateSourceTree(new LinkedList<>());
     }
