@@ -2,48 +2,26 @@ package org.vincentyeh.img2pdf.gui.controller;
 
 import org.vincentyeh.img2pdf.gui.model.Model;
 import org.vincentyeh.img2pdf.gui.model.ModelListener;
-import org.vincentyeh.img2pdf.gui.view.View;
 import org.vincentyeh.img2pdf.gui.model.Task;
-import org.vincentyeh.img2pdf.lib.image.ColorType;
-import org.vincentyeh.img2pdf.lib.pdf.parameter.*;
+import org.vincentyeh.img2pdf.gui.view.MediatorListener;
+import org.vincentyeh.img2pdf.gui.view.UIMediator;
+import org.vincentyeh.img2pdf.gui.view.UIState;
 
 import javax.swing.*;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
 import java.io.File;
 import java.util.List;
 
-public class Controller {
-    private final Model model;
-    private final View view;
-
+public class Controller implements MediatorListener, ModelListener {
     private final DefaultListModel<String> listModel = new DefaultListModel<>();
+    private final Model model;
+    private final UIMediator mediator;
 
-    public Controller(Model model, View view) {
+    public Controller(Model model, UIMediator mediator) {
         this.model = model;
-        this.view = view;
-        model.setModelListener(new ModelListener() {
-
-            @Override
-            public void onTotalConversionProgressUpdate(int progress, int total) {
-                setConversionProgress(progress, total);
-            }
-
-            @Override
-            public void onPageConversionProgressUpdate(int progress, int total) {
-                setPageConversionProgress(progress, total);
-            }
-
-            @Override
-            public void onSourcesUpdate(List<Task> source) {
-                updateSourceTree(source);
-            }
-
-            @Override
-            public void onLogUpdate(List<String> log) {
-                view.getLogList().setModel(convertToModel(log));
-            }
-        });
+        this.mediator = mediator;
+        mediator.setListener(this);
+        mediator.initialize();
+        model.setModelListener(this);
     }
 
     private ListModel<String> convertToModel(List<String> list) {
@@ -54,157 +32,66 @@ public class Controller {
         return listModel;
     }
 
-    public void initialize() {
-        JComboBox<PageDirection> combo_direction = view.getDirectionComboBox();
 
-        for (PageDirection direction : PageDirection.values()) {
-            combo_direction.addItem(direction);
-        }
-        combo_direction.addItemListener(e -> model.setPageDirection((PageDirection) combo_direction.getSelectedItem()));
-        model.setPageDirection((PageDirection) combo_direction.getSelectedItem());
-
-        JComboBox<PageAlign.VerticalAlign> combo_vertical = view.getVerticalAlignComboBox();
-        for (PageAlign.VerticalAlign align : PageAlign.VerticalAlign.values()) {
-            combo_vertical.addItem(align);
-        }
-
-        combo_vertical.addItemListener(e -> model.setVerticalAlign((PageAlign.VerticalAlign) combo_vertical.getSelectedItem()));
-        model.setVerticalAlign((PageAlign.VerticalAlign) combo_vertical.getSelectedItem());
-
-        JComboBox<PageAlign.HorizontalAlign> combo_horizontal = view.getHorizontalComboBox();
-
-        for (PageAlign.HorizontalAlign align : PageAlign.HorizontalAlign.values()) {
-            combo_horizontal.addItem(align);
-        }
-        combo_horizontal.addItemListener(e -> model.setHorizontalAlign((PageAlign.HorizontalAlign) combo_horizontal.getSelectedItem()));
-        model.setHorizontalAlign((PageAlign.HorizontalAlign) combo_horizontal.getSelectedItem());
-
-        JComboBox<PageSize> combo_size = view.getSizeComboBox();
-        for (PageSize size : PageSize.values()) {
-            combo_size.addItem(size);
-        }
-        combo_size.addItemListener(e -> onSizeChange((PageSize) combo_size.getSelectedItem())
-        );
-        model.setPageSize((PageSize) combo_size.getSelectedItem());
-
-        JComboBox<ColorType> comboBox_color = view.getColorComboBox();
-        for (ColorType color : ColorType.values()) {
-            comboBox_color.addItem(color);
-        }
-        comboBox_color.addItemListener(e -> model.setColorType((ColorType) comboBox_color.getSelectedItem()));
-        model.setColorType((ColorType) comboBox_color.getSelectedItem());
-
-        JCheckBox check_auto = view.getAutoRotateCheckBox();
-        check_auto.addActionListener(e -> onAutoRotateChange());
-        model.setAutoRotate(check_auto.isSelected());
-
-        JButton button_convert = view.getConvertButton();
-        button_convert.addActionListener(e -> convert());
-        JButton clearAllButton = view.getClearAllButton();
-        clearAllButton.addActionListener(e -> model.clearSource());
-
-        JButton button_source_browse = view.getSourceBrowseButton();
-        button_source_browse.addActionListener(e -> browseSources());
-
-        JButton button_output_folder_browse = view.getOutputFolderBrowseButton();
-        button_output_folder_browse.addActionListener(e -> browseOutputFolder());
-
-        view.getOutputFolderField().setText(model.getOutputFolder().getAbsolutePath());
-        view.getOutputFolderChooser().setCurrentDirectory(model.getOutputFolder());
-
-        updateSourceTree(model.getSources());
-    }
-
-    private void onSizeChange(PageSize selectedItem) {
-        if (selectedItem == null)
+    @Override
+    public void onSourcesUpdate(UIMediator mediator, UIState state) {
+        String outputFormat = state.getOutputFormat();
+        String fileFilter = state.getFileFilterPattern();
+        if (outputFormat == null || fileFilter == null)
             return;
-        model.setPageSize(selectedItem);
+        File[] sources = state.getSourceFiles();
+        if (sources == null)
+            return;
 
-        if (model.getPageSize() == PageSize.DEPEND_ON_IMG) {
-            model.setPageDirection(PageDirection.Portrait);
-            model.setAutoRotate(false);
-            model.setVerticalAlign(PageAlign.VerticalAlign.CENTER);
-            model.setHorizontalAlign(PageAlign.HorizontalAlign.CENTER);
+        List<Task> tasks = Model.parseSourceFiles(sources, outputFormat, fileFilter);
+        mediator.updateTasks(tasks);
+        model.setTask(tasks);
+    }
 
-        }
-        view.getDirectionComboBox().setEnabled(!model.isAutoRotate() && model.getPageSize() != PageSize.DEPEND_ON_IMG);
-
-        view.getAutoRotateCheckBox().setEnabled(model.getPageSize() != PageSize.DEPEND_ON_IMG);
-        view.getVerticalAlignComboBox().setEnabled(model.getPageSize() != PageSize.DEPEND_ON_IMG);
-        view.getHorizontalComboBox().setEnabled(model.getPageSize() != PageSize.DEPEND_ON_IMG);
-        view.getDirectionComboBox().setSelectedItem(model.getPageDirection());
-        view.getAutoRotateCheckBox().setSelected(model.isAutoRotate());
-        view.getVerticalAlignComboBox().setSelectedItem(model.getVerticalAlign());
-        view.getHorizontalComboBox().setSelectedItem(model.getHorizontalAlign());
+    @Override
+    public void onConvertButtonClick(UIMediator mediator, UIState state) {
+        model.convert(state);
 
     }
 
-    private void onAutoRotateChange() {
-        model.setAutoRotate(view.getAutoRotateCheckBox().isSelected());
-        model.setPageDirection(PageDirection.Portrait);
+    @Override
+    public void onStopButtonClick(UIMediator mediator) {
 
-        view.getDirectionComboBox().setEnabled(!view.getAutoRotateCheckBox().isSelected());
-        view.getDirectionComboBox().setSelectedItem(model.getPageDirection());
     }
 
-    private void convert() {
-        String owner_password = String.valueOf(view.getOwnerPasswordField().getPassword());
-        owner_password = owner_password.length() > 0 ? owner_password : null;
-        String user_password = String.valueOf(view.getUserPasswordField().getPassword());
-        user_password = user_password.length() > 0 ? user_password : null;
-        model.convert(owner_password, user_password);
+    @Override
+    public void onBatchProgressUpdate(int progress, int total) {
+        mediator.setBatchProgress(progress, total);
     }
 
-
-    private void browseOutputFolder() {
-        JFileChooser outputFolderChooser = view.getOutputFolderChooser();
-        if (outputFolderChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-            model.setOutputFolder(outputFolderChooser.getSelectedFile());
-            view.getOutputFolderField().setText(model.getOutputFolder().getPath());
-            outputFolderChooser.setCurrentDirectory(model.getOutputFolder());
-        }
+    @Override
+    public void onConversionProgressUpdate(int progress, int total) {
+        mediator.setConversionProgress(progress, total);
     }
 
-    private void browseSources() {
-        JFileChooser sourceFilesChooser = view.getSourceFilesChooser();
-        if (sourceFilesChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-            String output_format = view.getOutputFormatField().getText();
-            String file_filter = view.getFileFilterField().getText();
-            if (output_format == null || file_filter == null)
-                return;
-            model.addSource(sourceFilesChooser.getSelectedFiles(), output_format, file_filter);
-        }
-        updateSourceTree(model.getSources());
+    @Override
+    public void onBatchStart() {
+        mediator.setRunningState(true);
+        mediator.clearLog();
     }
 
-    public void updateSourceTree(List<Task> tasks) {
-        DefaultTreeModel model = (DefaultTreeModel) view.getSourcesTree().getModel();
-        DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
-        root.removeAllChildren();
-
-        for (Task task : tasks) {
-            DefaultMutableTreeNode node1 = new DefaultMutableTreeNode(task.destination.getName());
-            for (File file : task.files) {
-                DefaultMutableTreeNode node2 = new DefaultMutableTreeNode(file.getName());
-                node1.add(node2);
-            }
-            root.add(node1);
-        }
-        view.getConvertButton().setEnabled(tasks.size() != 0);
-        view.getClearAllButton().setEnabled(tasks.size() != 0);
-        model.reload();
+    @Override
+    public void onBatchComplete() {
+        mediator.setRunningState(false);
     }
 
-    public void setConversionProgress(int value, int max) {
-        view.getTotalConversionProgressBar().setMaximum(max);
-        view.getTotalConversionProgressBar().setValue(value);
-        view.getTotalConversionLabel().setText(value + "/" + max);
+    @Override
+    public void onSourcesUpdate(List<Task> source) {
+        model.setTask(source);
     }
 
-    public void setPageConversionProgress(int value, int max) {
-        view.getPageConversionProgressBar().setMaximum(max);
-        view.getPageConversionProgressBar().setValue(value);
-        view.getPageConversionLabel().setText(value + "/" + max);
+    @Override
+    public void onLogUpdate(List<String> log) {
+
     }
 
+    @Override
+    public void onLogAppend(String log) {
+        mediator.addLog(log);
+    }
 }

@@ -4,6 +4,7 @@ import org.vincentyeh.img2pdf.gui.model.util.file.FileNameFormatter;
 import org.vincentyeh.img2pdf.gui.model.util.file.FileSorter;
 import org.vincentyeh.img2pdf.gui.model.util.file.GlobbingFileFilter;
 import org.vincentyeh.img2pdf.gui.model.util.interfaces.NameFormatter;
+import org.vincentyeh.img2pdf.gui.view.UIState;
 import org.vincentyeh.img2pdf.lib.Img2Pdf;
 import org.vincentyeh.img2pdf.lib.image.ColorType;
 import org.vincentyeh.img2pdf.lib.pdf.framework.factory.IDocument;
@@ -22,31 +23,18 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class Model {
-    private ModelListener listener;
-    private File output_folder = new File("").getAbsoluteFile();
-    private final List<Task> sources = new LinkedList<>();
-    private ColorType colorType;
+    private List<Task> sources = new LinkedList<>();
+    private ModelListener listener = null;
 
-    private PageAlign.HorizontalAlign horizontalAlign;
-    private PageAlign.VerticalAlign verticalAlign;
-
-    private PageDirection pageDirection;
-    private boolean autoRotate;
-    private PageSize pageSize;
-    private final List<String> logList = new LinkedList<>();
-
-
-    public void setOutputFolder(File output_folder) {
-        this.output_folder = output_folder;
-    }
-
-    public void addSource(File[] directories, String output_format, String file_filter_pattern) {
-        NameFormatter<File> formatter = new FileNameFormatter(output_format);
-        FileFilter filter = new GlobbingFileFilter(file_filter_pattern);
+    public static List<Task> parseSourceFiles(File[] directories, String outputFormat, String fileFilterPattern) {
+        List<Task> sources = new LinkedList<>();
+        NameFormatter<File> formatter = new FileNameFormatter(outputFormat);
+        FileFilter filter = new GlobbingFileFilter(fileFilterPattern);
         Comparator<File> sorter = new FileSorter(FileSorter.Sortby.NUMERIC, FileSorter.Sequence.INCREASE);
 
         if (directories == null)
-            return;
+            throw new IllegalArgumentException("directories==null");
+
         Arrays.stream(directories).forEach(
                 (directory) -> {
                     try {
@@ -61,24 +49,38 @@ public class Model {
                         e.printStackTrace();
                     }
                 });
-        listener.onSourcesUpdate(sources);
-    }
-
-    public List<Task> getSources() {
         return sources;
     }
 
-    public void clearSource() {
-        sources.clear();
-        listener.onSourcesUpdate(sources);
+    public void setTask(List<Task> tasks) {
+        this.sources = tasks;
+    }
+
+    public void removeTask(int index) {
+        if (index < 0 || index >= sources.size())
+            throw new IllegalArgumentException("index out of range");
+        this.sources.remove(index);
+    }
+
+    public void removeTask(Task task) {
+        this.sources.remove(task);
+    }
+
+    public void removeAllTasks() {
+        this.sources.clear();
     }
 
 
-    public void convert(String owner_password, String user_password) {
+    public void convert(UIState state) {
         try {
             File tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
             tempFolder.deleteOnExit();
-            listener.onTotalConversionProgressUpdate(0, sources.size());
+            listener.onBatchProgressUpdate(0, sources.size());
+            File output_folder = state.getDestinationFolder();
+            boolean encryption = state.isEncrypted();
+            String owner_password = state.getOwnerPassword();
+            String user_password = state.getUserPassword();
+            ColorType colorType = state.getColorType();
 
             if (!output_folder.exists()) {
                 boolean success = output_folder.mkdirs();
@@ -90,11 +92,18 @@ public class Model {
 
 
             Thread conversion_thread = new Thread(() -> {
-
+                listener.onBatchStart();
                 ImagePDFFactory factory = Img2Pdf.createPDFBoxMaxPerformanceFactory();
 
-                DocumentArgument documentArgument = createDocumentArgument(owner_password, user_password);
-                PageArgument pageArgument = createPageArgument();
+                DocumentArgument documentArgument = createDocumentArgument(encryption, owner_password, user_password);
+                PageArgument pageArgument = createPageArgument(
+                        state.getVerticalAlign(),
+                        state.getHorizontalAlign(),
+                        state.getPageSize(),
+                        state.getPageDirection(),
+                        state.isAutoRotate()
+                );
+
 
                 for (int i = 0; i < sources.size(); i++) {
                     try {
@@ -106,17 +115,15 @@ public class Model {
                                 factoryListener);
                         document.save(new File(output_folder, sources.get(i).destination.getName()));
                         document.close();
-
-                        addLog(String.format("[OK] %s", sources.get(i).destination.getName()));
-                    } catch (PDFFactoryException e) {
-                        addLog(String.format("[ERROR] %s -> %s", sources.get(i).destination.getName(), e.getCause().getMessage()));
-                    } catch (IOException e) {
-                        addLog(String.format("[ERROR] %s -> %s", sources.get(i).destination.getName(), e.getCause().getMessage()));
+                        listener.onLogAppend(String.format("[OK] %s", sources.get(i).destination.getName()));
+                    } catch (PDFFactoryException | IOException e) {
+                        listener.onLogAppend(String.format("[ERROR] %s -> %s", sources.get(i).destination.getName(), e.getCause().getMessage()));
                     } finally {
-                        listener.onTotalConversionProgressUpdate(i + 1, sources.size());
+                        listener.onBatchProgressUpdate(i + 1, sources.size());
                     }
                 }
                 factory.shutdown();
+                listener.onBatchComplete();
             });
             conversion_thread.start();
 
@@ -125,10 +132,6 @@ public class Model {
         }
     }
 
-    private void addLog(String text) {
-        logList.add(text);
-        listener.onLogUpdate(logList);
-    }
 
     private final ImagePDFFactoryListener factoryListener = new ImagePDFFactoryListener() {
         private int total;
@@ -136,8 +139,7 @@ public class Model {
         @Override
         public void initializing(int total) {
             this.total = total;
-            listener.onPageConversionProgressUpdate(0, this.total);
-
+            listener.onConversionProgressUpdate(0, this.total);
         }
 
         @Override
@@ -147,79 +149,30 @@ public class Model {
 
         @Override
         public void onAppend(File file, int appended, int total) {
-            listener.onPageConversionProgressUpdate(appended, this.total);
+            listener.onConversionProgressUpdate(appended, this.total);
         }
     };
 
-
-    public void setColorType(ColorType colorType) {
-        this.colorType = colorType;
-    }
-
-    public ColorType getColorType() {
-        return colorType;
-    }
-
-    public void setPageDirection(PageDirection pageDirection) {
-        this.pageDirection = pageDirection;
-    }
-
-    public PageDirection getPageDirection() {
-        return pageDirection;
-    }
-
-    public void setAutoRotate(boolean autoRotate) {
-        this.autoRotate = autoRotate;
-    }
-
-    public boolean isAutoRotate() {
-        return autoRotate;
-
-    }
-
-    public void setPageSize(PageSize pageSize) {
-        this.pageSize = pageSize;
-    }
-
-
-    public void setHorizontalAlign(PageAlign.HorizontalAlign horizontalAlign) {
-        this.horizontalAlign = horizontalAlign;
-    }
-
-    public PageAlign.HorizontalAlign getHorizontalAlign() {
-        return horizontalAlign;
-    }
-
-    public void setVerticalAlign(PageAlign.VerticalAlign verticalAlign) {
-        this.verticalAlign = verticalAlign;
-    }
-
-    public PageAlign.VerticalAlign getVerticalAlign() {
-        return verticalAlign;
-    }
 
     public void setModelListener(ModelListener listener) {
         this.listener = listener;
     }
 
 
-    public File getOutputFolder() {
-        return output_folder;
-    }
-
-    private PageArgument createPageArgument() {
+    private PageArgument createPageArgument(PageAlign.VerticalAlign verticalAlign,
+                                            PageAlign.HorizontalAlign horizontalAlign,
+                                            PageSize pageSize,
+                                            PageDirection pageDirection,
+                                            boolean autoRotate) {
         return new PageArgument(new PageAlign(verticalAlign, horizontalAlign), pageSize, pageDirection, autoRotate);
     }
 
-    private DocumentArgument createDocumentArgument(String owner_password, String user_password) {
+    private DocumentArgument createDocumentArgument(boolean encryption, String owner_password, String user_password) {
         DocumentArgument documentArgument = new DocumentArgument();
-        if (owner_password != null && user_password != null) {
+        if (encryption) {
             documentArgument.setEncryption(owner_password, user_password, new Permission());
         }
         return documentArgument;
     }
 
-    public PageSize getPageSize() {
-        return pageSize;
-    }
 }
