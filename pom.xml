@@ -4,7 +4,7 @@
 
     <groupId>org.vincentyeh</groupId>
     <artifactId>img2pdf.gui</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.3</version>
     <packaging>jar</packaging>
     <name>img2pdf-gui</name>
 
@@ -28,8 +28,9 @@
         <dependency>
             <groupId>org.vincentyeh</groupId>
             <artifactId>img2pdf.lib</artifactId>
-            <version>7.0.0</version>
+            <version>8.0.1</version>
         </dependency>
+
         <dependency>
             <groupId>com.intellij</groupId>
             <artifactId>forms_rt</artifactId>
@@ -81,8 +82,15 @@
                                         <exclude>META-INF/LICENSE*</exclude>
                                         <exclude>META-INF/NOTICE*</exclude>
                                         <exclude>META-INF/MANIFEST*</exclude>
+                                        <exclude>META-INF/versions/9/module-info.class</exclude>
+                                        <exclude>commons-logging:commons-logging</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
                                     </excludes>
+
                                 </filter>
+
                             </filters>
                             <artifactSet>
                                 <excludes>
@@ -116,8 +124,9 @@
                         <goals>
                             <goal>launch4j</goal>
                         </goals>
+
                         <configuration>
-                            <headerType>gui</headerType>
+                            <headerType>console</headerType>
                             <jar>target/${jar-name}.jar</jar>
                             <outfile>target/bin/${exe-name}.exe</outfile>
                             <downloadUrl>http://www.java.com</downloadUrl>
