@@ -20,12 +20,17 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class JUIMediator implements UIMediator {
 
+    private static final int THUMBNAIL_SIZE = 48;
+    private final Map<File, ImageIcon> thumbnailCache = new HashMap<>();
 
     private MediatorListener listener;
     private JButton sourceBrowseButton;
@@ -207,8 +212,9 @@ public class JUIMediator implements UIMediator {
 
         public void linkSourceTree(JTree tree) {
             mediator.sourceTree = tree;
+            tree.setRowHeight(0); // 讓各列根據 renderer 自動計算高度
 
-            // 4-B: Cell Renderer，讓 Task 節點顯示 destination 名稱
+            // 4-B: Cell Renderer，讓 Task 節點顯示縮圖與 destination 名稱
             tree.setCellRenderer(new DefaultTreeCellRenderer() {
                 @Override
                 public Component getTreeCellRendererComponent(
@@ -216,7 +222,17 @@ public class JUIMediator implements UIMediator {
                         boolean leaf, int row, boolean hasFocus) {
                     Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
                     if (userObject instanceof Task) {
-                        value = ((Task) userObject).destination.getName();
+                        Task task = (Task) userObject;
+                        value = task.destination.getName();
+                        Component c = super.getTreeCellRendererComponent(
+                                tree, value, sel, expanded, leaf, row, hasFocus);
+                        if (task.files != null && task.files.length > 0) {
+                            ImageIcon icon = mediator.thumbnailCache.get(task.files[0]);
+                            if (icon != null) {
+                                setIcon(icon);
+                            }
+                        }
+                        return c;
                     }
                     return super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
                 }
@@ -522,6 +538,23 @@ public class JUIMediator implements UIMediator {
             root.add(node1);
         }
         model.reload();
+
+        // 清除不再使用的快取（已移除的任務）
+        Set<File> activeFiles = tasks.stream()
+                .filter(t -> t.files != null && t.files.length > 0)
+                .map(t -> t.files[0])
+                .collect(Collectors.toSet());
+        thumbnailCache.keySet().retainAll(activeFiles);
+
+        // 為尚未快取的第一張圖啟動非同步縮圖載入
+        for (Task task : tasks) {
+            if (task.files != null && task.files.length > 0) {
+                File firstFile = task.files[0];
+                if (!thumbnailCache.containsKey(firstFile)) {
+                    loadThumbnailAsync(firstFile);
+                }
+            }
+        }
     }
 
     public void setBatchProgress(int progress, int total) {
@@ -625,6 +658,35 @@ public class JUIMediator implements UIMediator {
         chooser.setMultiSelectionEnabled(false);
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         return chooser;
+    }
+
+    private void loadThumbnailAsync(File imageFile) {
+        new SwingWorker<ImageIcon, Void>() {
+            @Override
+            protected ImageIcon doInBackground() throws Exception {
+                java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(imageFile);
+                if (img == null) return null;
+                double scale = Math.min(
+                        (double) THUMBNAIL_SIZE / img.getWidth(),
+                        (double) THUMBNAIL_SIZE / img.getHeight());
+                int newW = Math.max(1, (int) (img.getWidth() * scale));
+                int newH = Math.max(1, (int) (img.getHeight() * scale));
+                java.awt.Image scaled = img.getScaledInstance(newW, newH, java.awt.Image.SCALE_SMOOTH);
+                return new ImageIcon(scaled);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    ImageIcon icon = get();
+                    if (icon != null) {
+                        thumbnailCache.put(imageFile, icon);
+                        sourceTree.repaint(); // 不重建 model，避免摺疊展開節點
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }.execute();
     }
 
 }
