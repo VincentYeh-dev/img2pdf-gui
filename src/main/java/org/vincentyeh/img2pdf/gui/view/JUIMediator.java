@@ -681,7 +681,20 @@ public class JUIMediator implements UIMediator {
                     ImageIcon icon = get();
                     if (icon != null) {
                         thumbnailCache.put(imageFile, icon);
-                        sourceTree.repaint(); // 不重建 model，避免摺疊展開節點
+                        // 找到對應節點，通知 model 使其重新計算該 row 高度
+                        DefaultTreeModel treeModel = (DefaultTreeModel) sourceTree.getModel();
+                        DefaultMutableTreeNode root = (DefaultMutableTreeNode) treeModel.getRoot();
+                        for (int i = 0; i < root.getChildCount(); i++) {
+                            DefaultMutableTreeNode child = (DefaultMutableTreeNode) root.getChildAt(i);
+                            Object userObj = child.getUserObject();
+                            if (userObj instanceof Task) {
+                                Task t = (Task) userObj;
+                                if (t.files != null && t.files.length > 0 && imageFile.equals(t.files[0])) {
+                                    treeModel.nodeChanged(child);
+                                    break;
+                                }
+                            }
+                        }
                     }
                 } catch (Exception ignored) {
                 }
