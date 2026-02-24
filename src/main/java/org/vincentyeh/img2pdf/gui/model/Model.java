@@ -56,6 +56,10 @@ public class Model {
         this.sources = tasks;
     }
 
+    public List<Task> getTasks() {
+        return sources;
+    }
+
     public void removeTask(int index) {
         if (index < 0 || index >= sources.size())
             throw new IllegalArgumentException("index out of range");

@@ -10,11 +10,19 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
+import java.awt.Component;
+import java.awt.datatransfer.DataFlavor;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class JUIMediator implements UIMediator {
 
@@ -199,6 +207,77 @@ public class JUIMediator implements UIMediator {
 
         public void linkSourceTree(JTree tree) {
             mediator.sourceTree = tree;
+
+            // 4-B: Cell Renderer，讓 Task 節點顯示 destination 名稱
+            tree.setCellRenderer(new DefaultTreeCellRenderer() {
+                @Override
+                public Component getTreeCellRendererComponent(
+                        JTree tree, Object value, boolean sel, boolean expanded,
+                        boolean leaf, int row, boolean hasFocus) {
+                    Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
+                    if (userObject instanceof Task) {
+                        value = ((Task) userObject).destination.getName();
+                    }
+                    return super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
+                }
+            });
+
+            // 4-C: 右鍵 MouseListener
+            tree.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mousePressed(MouseEvent e) {
+                    if (SwingUtilities.isRightMouseButton(e)) {
+                        int row = tree.getRowForLocation(e.getX(), e.getY());
+                        if (row < 0) return;
+                        tree.setSelectionRow(row);
+                        DefaultMutableTreeNode node = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
+                        if (node == null || !(node.getUserObject() instanceof Task)) return;
+                        Task task = (Task) node.getUserObject();
+
+                        JPopupMenu popup = new JPopupMenu();
+                        JMenuItem removeItem = new JMenuItem("Remove");
+                        removeItem.addActionListener(ev -> mediator.notifyUI("remove_task", task));
+                        popup.add(removeItem);
+                        popup.show(tree, e.getX(), e.getY());
+                    }
+                }
+            });
+
+            // 4-D: 拖曳 TransferHandler
+            tree.setDropMode(DropMode.ON_OR_INSERT);
+            tree.setTransferHandler(new TransferHandler() {
+                @Override
+                public boolean canImport(TransferSupport support) {
+                    return support.isDataFlavorSupported(DataFlavor.javaFileListFlavor);
+                }
+
+                @Override
+                @SuppressWarnings("unchecked")
+                public boolean importData(TransferSupport support) {
+                    if (!canImport(support)) return false;
+                    try {
+                        List<File> dropped = (List<File>) support.getTransferable()
+                                .getTransferData(DataFlavor.javaFileListFlavor);
+                        List<File> dirs = dropped.stream()
+                                .filter(File::isDirectory)
+                                .collect(Collectors.toList());
+                        if (dirs.isEmpty()) return false;
+
+                        File[] existing = mediator.state.getSourceFiles();
+                        List<File> merged = new ArrayList<>();
+                        if (existing != null) merged.addAll(Arrays.asList(existing));
+                        for (File dir : dirs) {
+                            if (!merged.contains(dir)) merged.add(dir);
+                        }
+                        mediator.state.setSourceFiles(merged.toArray(new File[0]));
+                        if (mediator.listener != null)
+                            mediator.listener.onSourcesUpdate(mediator, mediator.state);
+                        return true;
+                    } catch (Exception ex) {
+                        return false;
+                    }
+                }
+            });
         }
 
         public void linkTotalConversionLabel(JLabel label) {
@@ -384,6 +463,11 @@ public class JUIMediator implements UIMediator {
             System.out.printf("Stop Button clicked\n");
         }
 
+        if (event.equals("remove_task")) {
+            Task task = (Task) data[0];
+            if (listener != null) listener.onTaskRemove(this, task);
+        }
+
         if(event.equals("encryption_change")){
             boolean selected = (boolean) data[0];
             System.out.printf("Encryption changed: %s\n", selected);
@@ -430,7 +514,7 @@ public class JUIMediator implements UIMediator {
         root.removeAllChildren();
 
         for (Task task : tasks) {
-            DefaultMutableTreeNode node1 = new DefaultMutableTreeNode(task.destination.getName());
+            DefaultMutableTreeNode node1 = new DefaultMutableTreeNode(task);
             for (File file : task.files) {
                 DefaultMutableTreeNode node2 = new DefaultMutableTreeNode(file.getName());
                 node1.add(node2);

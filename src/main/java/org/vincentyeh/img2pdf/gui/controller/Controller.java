@@ -56,6 +56,12 @@ public class Controller implements MediatorListener, ModelListener {
     }
 
     @Override
+    public void onTaskRemove(UIMediator mediator, Task task) {
+        model.removeTask(task);
+        mediator.updateTasks(model.getTasks());
+    }
+
+    @Override
     public void onBatchProgressUpdate(int progress, int total) {
         mediator.setBatchProgress(progress, total);
     }
