@@ -258,15 +258,14 @@ public class JUIMediator implements UIMediator {
 
                         JMenuItem removeFromDiskItem = new JMenuItem("Remove from disk");
                         removeFromDiskItem.addActionListener(ev -> {
-                            String fileList = Arrays.stream(task.files)
-                                    .map(File::getName)
-                                    .collect(Collectors.joining("\n"));
-                            Object[] options = {"刪除", "取消"};
+                            String folderPath = task.files[0].getParentFile().getAbsolutePath();
+                            Object[] options = {"Delete", "Cancel"};
                             int confirm = JOptionPane.showOptionDialog(
                                     tree,
-                                    "此操作將永久刪除以下 " + task.files.length + " 個檔案：\n\n"
-                                            + fileList + "\n\n此操作無法復原！",
-                                    "危險操作警告",
+                                    "This will permanently delete the folder:\n\n"
+                                            + folderPath + "\n\n"
+                                            + "and all files inside it. This action cannot be undone.",
+                                    "Warning",
                                     JOptionPane.YES_NO_OPTION,
                                     JOptionPane.WARNING_MESSAGE,
                                     null,
