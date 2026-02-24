@@ -24,7 +24,6 @@ public class JUIMediator implements UIMediator {
     private JComboBox<PageSize> pageSizeComboBox;
     private JComboBox<PageAlign.HorizontalAlign> horizontalAlignComboBox;
     private JComboBox<PageAlign.VerticalAlign> verticalAlignComboBox;
-    private JTextField outputFormatField;
     private JPasswordField ownerPasswordField;
     private JPasswordField userPasswordField;
     private JButton convertButton;
@@ -100,28 +99,6 @@ public class JUIMediator implements UIMediator {
                             mediator.verticalAlignComboBox.getItemAt(mediator.verticalAlignComboBox.getSelectedIndex()));
                 }
             });
-        }
-
-        public void linkOutputFormatField(JTextField textField) {
-            mediator.outputFormatField = textField;
-            mediator.outputFormatField.getDocument().addDocumentListener(new DocumentListener() {
-                @Override
-                public void insertUpdate(DocumentEvent e) {
-                    String text = mediator.outputFormatField.getText();
-                    mediator.notifyUI("output_format_change", text);
-                }
-
-                @Override
-                public void removeUpdate(DocumentEvent e) {
-                    String text = mediator.outputFormatField.getText();
-                    mediator.notifyUI("output_format_change", text);
-                }
-
-                @Override
-                public void changedUpdate(DocumentEvent e) {
-                }
-            });
-
         }
 
         public void linkOwnerPasswordField(JPasswordField passwordField) {
@@ -326,12 +303,6 @@ public class JUIMediator implements UIMediator {
 
     @Override
     public void notifyUI(String event, Object... data) {
-        if (event.equals("output_format_change")) {
-            String format = (String) data[0];
-            System.out.printf("Output Format changed: %s\n", format);
-            state.setOutputFormat(format);
-            convertButton.setEnabled(!format.isEmpty());
-        }
         if (event.equals("output_folder_change")) {
             String folder = (String) data[0];
             System.out.printf("Output Folder changed: %s\n", folder);
@@ -532,7 +503,6 @@ public class JUIMediator implements UIMediator {
 
         autoRotateCheckBox.setSelected(false);
         state.setAutoRotate(false);
-        outputFormatField.setText("<NAME>.pdf");
 
         encryptCheckBox.setSelected(false);
 

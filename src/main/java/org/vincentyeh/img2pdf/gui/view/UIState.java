@@ -23,7 +23,6 @@ public class UIState {
     private String userPassword = null;
 
     private File[] sourceFiles = null;
-    private String outputFormat = null;
     private File destinationFolder = null;
     private ColorType colorType = null;
     private PageSize pageSize = null;
@@ -139,11 +138,4 @@ public class UIState {
         return pageDirection;
     }
 
-    public String getOutputFormat() {
-        return outputFormat;
-    }
-
-    public void setOutputFormat(String outputFormat) {
-        this.outputFormat = outputFormat;
-    }
 }
