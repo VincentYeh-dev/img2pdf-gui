@@ -251,9 +251,34 @@ public class JUIMediator implements UIMediator {
                         Task task = (Task) node.getUserObject();
 
                         JPopupMenu popup = new JPopupMenu();
-                        JMenuItem removeItem = new JMenuItem("Remove");
+
+                        JMenuItem removeItem = new JMenuItem("Remove from list");
                         removeItem.addActionListener(ev -> mediator.notifyUI("remove_task", task));
                         popup.add(removeItem);
+
+                        JMenuItem removeFromDiskItem = new JMenuItem("Remove from disk");
+                        removeFromDiskItem.addActionListener(ev -> {
+                            String fileList = Arrays.stream(task.files)
+                                    .map(File::getName)
+                                    .collect(Collectors.joining("\n"));
+                            Object[] options = {"刪除", "取消"};
+                            int confirm = JOptionPane.showOptionDialog(
+                                    tree,
+                                    "此操作將永久刪除以下 " + task.files.length + " 個檔案：\n\n"
+                                            + fileList + "\n\n此操作無法復原！",
+                                    "危險操作警告",
+                                    JOptionPane.YES_NO_OPTION,
+                                    JOptionPane.WARNING_MESSAGE,
+                                    null,
+                                    options,
+                                    options[1]
+                            );
+                            if (confirm == JOptionPane.YES_OPTION) {
+                                mediator.notifyUI("remove_task_from_disk", task);
+                            }
+                        });
+                        popup.add(removeFromDiskItem);
+
                         popup.show(tree, e.getX(), e.getY());
                     }
                 }
@@ -482,6 +507,11 @@ public class JUIMediator implements UIMediator {
         if (event.equals("remove_task")) {
             Task task = (Task) data[0];
             if (listener != null) listener.onTaskRemove(this, task);
+        }
+
+        if (event.equals("remove_task_from_disk")) {
+            Task task = (Task) data[0];
+            if (listener != null) listener.onTaskRemoveFromDisk(this, task);
         }
 
         if(event.equals("encryption_change")){

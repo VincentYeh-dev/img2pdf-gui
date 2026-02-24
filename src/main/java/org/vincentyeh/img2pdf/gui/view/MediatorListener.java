@@ -10,4 +10,6 @@ public interface MediatorListener {
     void onStopButtonClick(UIMediator mediator);
 
     void onTaskRemove(UIMediator mediator, Task task);
+
+    void onTaskRemoveFromDisk(UIMediator mediator, Task task);
 }

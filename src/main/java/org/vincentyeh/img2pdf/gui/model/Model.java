@@ -70,6 +70,15 @@ public class Model {
         this.sources.remove(task);
     }
 
+    public void removeTaskFromDisk(Task task) {
+        if (task.files != null) {
+            for (File file : task.files) {
+                file.delete();
+            }
+        }
+        this.sources.remove(task);
+    }
+
     public void removeAllTasks() {
         this.sources.clear();
     }
