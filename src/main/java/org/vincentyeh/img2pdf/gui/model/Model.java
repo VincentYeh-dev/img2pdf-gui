@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -71,9 +72,15 @@ public class Model {
     }
 
     public void removeTaskFromDisk(Task task) {
-        if (task.files != null) {
-            for (File file : task.files) {
-                file.delete();
+        if (task.files != null && task.files.length > 0) {
+            File folder = task.files[0].getParentFile();
+            try {
+                Files.walk(folder.toPath())
+                        .sorted(Comparator.reverseOrder())
+                        .map(Path::toFile)
+                        .forEach(File::delete);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
         this.sources.remove(task);
