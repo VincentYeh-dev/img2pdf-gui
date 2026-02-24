@@ -32,7 +32,6 @@ public class UIState {
     private PageAlign.HorizontalAlign horizontalAlign;
     private PageAlign.VerticalAlign verticalAlign;
     private PageDirection pageDirection;
-    private String fileFilterPattern = null;
 
 
     private UIState() {
@@ -89,9 +88,6 @@ public class UIState {
     }
 
 
-    public void setFileFilterPattern(String fileFilterPattern) {
-        this.fileFilterPattern = fileFilterPattern;
-    }
 
     public boolean isRunning() {
         return running;
@@ -130,9 +126,6 @@ public class UIState {
     }
 
 
-    public String getFileFilterPattern() {
-        return fileFilterPattern;
-    }
 
     public PageAlign.HorizontalAlign getHorizontalAlign() {
         return horizontalAlign;

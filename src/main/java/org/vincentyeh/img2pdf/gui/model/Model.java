@@ -26,10 +26,10 @@ public class Model {
     private List<Task> sources = new LinkedList<>();
     private ModelListener listener = null;
 
-    public static List<Task> parseSourceFiles(File[] directories, String outputFormat, String fileFilterPattern) {
+    public static List<Task> parseSourceFiles(File[] directories, String outputFormat) {
         List<Task> sources = new LinkedList<>();
         NameFormatter<File> formatter = new FileNameFormatter(outputFormat);
-        FileFilter filter = new GlobbingFileFilter(fileFilterPattern);
+        FileFilter filter = new GlobbingFileFilter("*.{JPG,jpg,JPEG,jpeg,PNG,png,BMP,bmp,webp,WEBP}");
         Comparator<File> sorter = new FileSorter(FileSorter.Sortby.NUMERIC, FileSorter.Sequence.INCREASE);
 
         if (directories == null)

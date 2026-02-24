@@ -28,7 +28,6 @@ public class JUIMediator implements UIMediator {
     private JPasswordField ownerPasswordField;
     private JPasswordField userPasswordField;
     private JButton convertButton;
-    private JTextField fileFilterField;
     private JComboBox<PageDirection> directionComboBox;
     private JCheckBox autoRotateCheckBox;
     private JCheckBox encryptCheckBox;
@@ -175,28 +174,6 @@ public class JUIMediator implements UIMediator {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     mediator.notifyUI("convert_button_click");
-                }
-            });
-        }
-
-        public void linkFileFilterField(JTextField textField) {
-            mediator.fileFilterField = textField;
-            mediator.fileFilterField.getDocument().addDocumentListener(new DocumentListener() {
-                @Override
-                public void insertUpdate(DocumentEvent e) {
-                    String text = mediator.fileFilterField.getText();
-                    mediator.notifyUI("file_filter_change", text);
-                }
-
-                @Override
-                public void removeUpdate(DocumentEvent e) {
-                    String text = mediator.fileFilterField.getText();
-                    mediator.notifyUI("file_filter_change", text);
-                }
-
-                @Override
-                public void changedUpdate(DocumentEvent e) {
-
                 }
             });
         }
@@ -359,11 +336,6 @@ public class JUIMediator implements UIMediator {
             String folder = (String) data[0];
             System.out.printf("Output Folder changed: %s\n", folder);
             state.setDestinationFolder(new File(folder));
-        }
-        if (event.equals("file_filter_change")) {
-            String filter = (String) data[0];
-            System.out.printf("File Filter changed: %s\n", filter);
-            state.setFileFilterPattern(filter);
         }
         if (event.equals("owner_password_change")) {
             if(!state.isEncrypted())
@@ -561,7 +533,6 @@ public class JUIMediator implements UIMediator {
         autoRotateCheckBox.setSelected(false);
         state.setAutoRotate(false);
         outputFormatField.setText("<NAME>.pdf");
-        fileFilterField.setText("*.{PNG,png,JPG,jpg}");
 
         encryptCheckBox.setSelected(false);
 

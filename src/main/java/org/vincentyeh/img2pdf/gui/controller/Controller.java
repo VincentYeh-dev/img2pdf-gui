@@ -36,14 +36,13 @@ public class Controller implements MediatorListener, ModelListener {
     @Override
     public void onSourcesUpdate(UIMediator mediator, UIState state) {
         String outputFormat = state.getOutputFormat();
-        String fileFilter = state.getFileFilterPattern();
-        if (outputFormat == null || fileFilter == null)
+        if (outputFormat == null)
             return;
         File[] sources = state.getSourceFiles();
         if (sources == null)
             return;
 
-        List<Task> tasks = Model.parseSourceFiles(sources, outputFormat, fileFilter);
+        List<Task> tasks = Model.parseSourceFiles(sources, outputFormat);
         mediator.updateTasks(tasks);
         model.setTask(tasks);
     }
