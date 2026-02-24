@@ -40,7 +40,7 @@ mvn clean package
 
 ### View（`view/`）
 - **`View.java` / `View.form`** — `View.form` 為 IntelliJ UI Designer 佈局定義，`View.java` 為手動維護的對應實作。`View.java` 中所有被 `.form` 綁定（`binding`）的元件**必須宣告為 instance fields**，並在 `$$$setupUI$$$()` 中初始化後交由 `JUIMediator.Builder` 接管。
-- **`UIState.java`** — 單例，儲存所有目前的 GUI 狀態（來源檔案、頁面大小／對齊／方向、加密、色彩類型、檔案過濾樣式、目標資料夾）。
+- **`UIState.java`** — 單例，儲存所有目前的 GUI 狀態（來源檔案、頁面大小／對齊／方向、加密、色彩類型、目標資料夾）。
 - **`UIMediator` / `JUIMediator.java`** — Mediator 模式的核心，將所有 Swing 元件串接，並提供 `Builder` API。`JUIMediator` 約 600 行，負責管理所有 UI 狀態切換與元件互動。
 - **`MediatorListener`** — Controller 實作的介面，用於接收 UI 事件（`onSourcesUpdate`、`onConvertButtonClick`、`onStopButtonClick`）。
 
@@ -58,3 +58,22 @@ mvn clean package
 - **`img2pdf.lib` (8.0.1)** — proprietary/custom library for the actual PDF generation; not on Maven Central.
 - **`flatlaf` (1.6.1)** — FlatDarkLaf Swing look-and-feel.
 - **`forms_rt` (7.0.3)** — IntelliJ UI Designer runtime (required for `View.java`).
+
+## Git Workflow
+
+本專案採用簡化 Git Flow 分支模型。
+
+### 分支模型
+- **`master`** — 正式發布版本，**唯讀**。禁止直接 commit、push 或合併操作（可讀取／查看）。對 master 的任何合併操作需由使用者手動執行，Claude Code 不可自行操作。
+- **`develop`** — 主要開發分支，所有功能開發完成後合併至此。
+- **`feature/*`** — 從 `develop` 分出，功能完成後合併回 `develop`。
+- **`hotfix/*`** — 從 `master` 分出，修復完成後同時合併回 `master` 與 `develop`，合併完成後刪除該 hotfix 分支。
+
+### Commit 規則
+- 使用中文撰寫 commit message。
+- 禁止對任何分支執行 force push（`--force` / `--force-with-lease`）。
+
+### 合併規則
+- `feature/*` → `develop`
+- `hotfix/*` → `master` + `develop`（由使用者手動合併至 master）
+- 只有 `develop` 和 `hotfix/*` 可以合併進 `master`。
