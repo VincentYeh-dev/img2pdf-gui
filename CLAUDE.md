@@ -70,8 +70,9 @@ mvn clean package
 - **`hotfix/*`** — 從 `master` 分出，修復完成後同時合併回 `master` 與 `develop`，合併完成後刪除該 hotfix 分支。
 
 ### Commit 規則
-- 使用中文撰寫 commit message。
+- 使用中文撰寫 commit message，只寫一行摘要，不加描述段落。
 - 禁止對任何分支執行 force push（`--force` / `--force-with-lease`）。
+- 每次任務完成後，主動進行 commit，無需等待使用者提示。
 
 ### 合併規則
 - `feature/*` → `develop`
