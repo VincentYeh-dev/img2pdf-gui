@@ -72,7 +72,8 @@ mvn clean package
 ### Commit 規則
 - 使用中文撰寫 commit message，只寫一行摘要，不加描述段落。
 - 禁止對任何分支執行 force push（`--force` / `--force-with-lease`）。
-- 每次任務完成後，主動進行 commit，無需等待使用者提示。
+- 每次任務完成後，主動執行 `mvn compile` 驗證，通過後直接 commit，無需詢問使用者。
+- 執行任何 git 操作前，必須先確認目前所在的分支是否正確。
 
 ### 合併規則
 - `feature/*` → `develop`
