@@ -22,6 +22,7 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,6 +31,22 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class JUIMediator implements UIMediator {
+
+    public enum TaskSortOrder {
+        NONE("None"),
+        NAME_ASC("Name A→Z"),
+        NAME_DESC("Name Z→A"),
+        COUNT_DESC("Count ↓"),
+        COUNT_ASC("Count ↑"),
+        DATE_DESC("Date ↓"),
+        DATE_ASC("Date ↑");
+
+        private final String label;
+        TaskSortOrder(String label) { this.label = label; }
+
+        @Override
+        public String toString() { return label; }
+    }
 
     private static final int THUMBNAIL_SIZE = 48;
     private final Map<File, ImageIcon> thumbnailCache = new HashMap<>();
@@ -60,6 +77,9 @@ public class JUIMediator implements UIMediator {
 
     private JFileChooser sourceFilesChooser;
     private JFileChooser outputFolderChooser;
+
+    private JComboBox<TaskSortOrder> sortComboBox;
+    private List<Task> currentTasks = new ArrayList<>();
 
     private UIState state = UIState.getInstance();
 
@@ -415,6 +435,15 @@ public class JUIMediator implements UIMediator {
             });
         }
 
+        public Builder linkSortComboBox(JComboBox<TaskSortOrder> comboBox) {
+            for (TaskSortOrder order : TaskSortOrder.values()) {
+                comboBox.addItem(order);
+            }
+            mediator.sortComboBox = comboBox;
+            comboBox.addActionListener(e -> mediator.applySort());
+            return this;
+        }
+
         public void linkLogList(JList<String> list) {
             mediator.logList = list;
         }
@@ -560,7 +589,46 @@ public class JUIMediator implements UIMediator {
 
     @Override
     public void updateTasks(List<Task> tasks) {
-        updateSourceTree(tasks);
+        currentTasks = new ArrayList<>(tasks);
+        applySort();
+    }
+
+    private void applySort() {
+        List<Task> sorted = new ArrayList<>(currentTasks);
+        if (sortComboBox != null) {
+            TaskSortOrder order = (TaskSortOrder) sortComboBox.getSelectedItem();
+            if (order != null && order != TaskSortOrder.NONE) {
+                sorted.sort(getTaskComparator(order));
+            }
+        }
+        updateSourceTree(sorted);
+    }
+
+    private Comparator<Task> getTaskComparator(TaskSortOrder order) {
+        switch (order) {
+            case NAME_ASC:
+                return Comparator.comparing(t -> t.destination.getName());
+            case NAME_DESC:
+                return (a, b) -> b.destination.getName().compareTo(a.destination.getName());
+            case COUNT_ASC:
+                return Comparator.comparingInt(t -> t.files.length);
+            case COUNT_DESC:
+                return (a, b) -> Integer.compare(b.files.length, a.files.length);
+            case DATE_ASC:
+                return Comparator.comparingLong(t ->
+                        (t.files != null && t.files.length > 0 && t.files[0].getParentFile() != null)
+                        ? t.files[0].getParentFile().lastModified() : 0L);
+            case DATE_DESC:
+                return (a, b) -> {
+                    long aDate = (a.files != null && a.files.length > 0 && a.files[0].getParentFile() != null)
+                            ? a.files[0].getParentFile().lastModified() : 0L;
+                    long bDate = (b.files != null && b.files.length > 0 && b.files[0].getParentFile() != null)
+                            ? b.files[0].getParentFile().lastModified() : 0L;
+                    return Long.compare(bDate, aDate);
+                };
+            default:
+                return (a, b) -> 0;
+        }
     }
 
     @Override
