@@ -17,7 +17,7 @@
 - **功能**：批次將圖片轉換為 PDF 的 Windows 桌面應用
 - **平台**：Windows 11 / Java 8 Swing
 - **主類別**：`org.vincentyeh.img2pdf.gui.App`
-- **無測試套件**：每次任務後必須以 `mvn compile` 手動驗證。
+- **測試套件**：已加入 AssertJ Swing 測試作為 Vibe Coding 驗收工具，涵蓋單元測試與 GUI 自動化測試。
 
 ---
 
@@ -33,6 +33,9 @@
 | forms_rt | 7.0.3 | IntelliJ UI Designer runtime |
 | launch4j plugin | 2.1.1 | 產生 Windows EXE |
 | maven-shade plugin | 3.2.4 | 產生 Fat JAR |
+| JUnit 5 | 5.9.3 | 測試框架（test scope） |
+| AssertJ Swing | 3.17.1 | Swing GUI 自動化測試（test scope） |
+| maven-surefire-plugin | 2.22.2 | JUnit 5 測試執行支援 |
 
 ---
 
@@ -77,6 +80,7 @@
 
 ```bash
 mvn compile          # 編譯驗證
+mvn test             # 執行所有測試（單元 + GUI）
 mvn clean package    # 打包（Fat JAR + EXE）
 ```
 
@@ -99,13 +103,29 @@ mvn clean package    # 打包（Fat JAR + EXE）
 ### Commit 規則
 - 使用中文撰寫 commit message，只寫一行摘要，不加描述段落。
 - 禁止對任何分支執行 force push（`--force` / `--force-with-lease`）。
-- 每次任務完成後，主動執行 `mvn compile` 驗證，通過後直接 commit，無需詢問使用者。
+- 每次任務完成後，主動執行 `mvn compile && mvn test` 驗證，兩者皆通過後直接 commit，無需詢問使用者。
 - 執行任何 git 操作前，必須先確認目前所在的分支是否正確。
 
 ### 合併規則
 - `feature/*` → `develop`
 - `hotfix/*` → `develop`（Claude Code 執行）、`hotfix/*` → `master`（使用者手動執行）
 - 只有 `develop` 和 `hotfix/*` 可以合併進 `master`。
+
+### Vibe Coding 評估流程
+
+採用「先實作、後驗收」循環：
+
+1. **實作（Implement）**
+   依照使用者提供的需求，以自然語言描述給 AI。
+   AI 修改 `View.java` / `JUIMediator.java` / `Controller.java` 等完成功能。
+
+2. **測試（Test）**
+   針對剛完成的實作，在對應測試檔中撰寫 AssertJ Swing 測試驗收期望行為。
+   執行 `mvn test` → 測試應 PASS。
+
+3. **評估（Evaluate）**
+   - PASS：實作正確，可 commit（包含實作與測試）
+   - FAIL：實作有誤，回到步驟 1 修正，不單獨 commit
 
 ### 依賴管理
 **嚴禁**在未經使用者明確允許的情況下，於 `pom.xml` 新增任何 Maven 套件（`<dependency>`）或 Maven Plugin（`<plugin>`）。
@@ -128,6 +148,8 @@ mvn clean package    # 打包（Fat JAR + EXE）
 | 協調層 | `src/main/java/org/vincentyeh/img2pdf/gui/controller/Controller.java` |
 | 建置設定 | `pom.xml` |
 | UI 優化文件 | `UI Optimization.md` |
+| GUI 測試 | `src/test/java/org/vincentyeh/img2pdf/gui/view/JUIMediatorTest.java` |
+| Model 測試 | `src/test/java/org/vincentyeh/img2pdf/gui/model/ModelParseTest.java` |
 
 ---
 
@@ -137,4 +159,7 @@ mvn clean package    # 打包（Fat JAR + EXE）
 - **img2pdf.lib 私有庫**：不在 Maven Central，需本地安裝至 local repository。不可從 `pom.xml` 刪除此依賴。
 - **禁止未授權修改 pom.xml**：新增任何 `<dependency>` 或 `<plugin>` 前必須取得使用者明確同意。
 - **master 分支唯讀**：禁止 Claude Code 直接 commit、push 或合併至 `master`。
-- **無測試套件**：每次任務後必須以 `mvn compile` 手動驗證，無法依賴自動化測試。
+- **JPasswordField 查找**：`FrameFixture` 無 `passwordField(name)` 方法，應改用 `textBox(name)`（`JPasswordField` 繼承自 `JTextComponent`）。
+- **Windows glob 大小寫**：`PathMatcher` glob 在 Windows 不區分大小寫，`*.jpg` 可匹配 `photo.JPG`，測試時勿誤判為過濾失敗。
+- **測試套件包名**：GUI 測試必須放在 `org.vincentyeh.img2pdf.gui.view` 套件，才能存取 `UIState.resetForTesting()`（package-private）。
+- **元件命名**：`JUIMediator.Builder` 的每個 `link*()` 方法必須呼叫 `setName()`，AssertJ Swing 才能透過名稱找到元件。
