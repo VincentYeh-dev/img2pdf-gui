@@ -12,6 +12,8 @@ import javax.swing.event.DocumentListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
+import javax.swing.tree.TreeSelectionModel;
 import java.awt.Component;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.event.ActionEvent;
@@ -213,6 +215,7 @@ public class JUIMediator implements UIMediator {
         public void linkSourceTree(JTree tree) {
             mediator.sourceTree = tree;
             tree.setRowHeight(0); // 讓各列根據 renderer 自動計算高度
+            tree.getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
 
             // 4-B: Cell Renderer，讓 Task 節點顯示縮圖與 destination 名稱
             tree.setCellRenderer(new DefaultTreeCellRenderer() {
@@ -245,26 +248,45 @@ public class JUIMediator implements UIMediator {
                     if (SwingUtilities.isRightMouseButton(e)) {
                         int row = tree.getRowForLocation(e.getX(), e.getY());
                         if (row < 0) return;
-                        tree.setSelectionRow(row);
-                        DefaultMutableTreeNode node = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
-                        if (node == null || !(node.getUserObject() instanceof Task)) return;
-                        Task task = (Task) node.getUserObject();
+
+                        // 若右鍵點擊的 row 不在目前選擇中，才切換選擇
+                        if (!tree.isRowSelected(row)) {
+                            tree.setSelectionRow(row);
+                        }
+
+                        // 收集所有選中的 Task 節點
+                        TreePath[] selectionPaths = tree.getSelectionPaths();
+                        if (selectionPaths == null) return;
+                        List<Task> selectedTasks = new ArrayList<>();
+                        for (TreePath path : selectionPaths) {
+                            Object last = path.getLastPathComponent();
+                            if (last instanceof DefaultMutableTreeNode) {
+                                Object userObj = ((DefaultMutableTreeNode) last).getUserObject();
+                                if (userObj instanceof Task) {
+                                    selectedTasks.add((Task) userObj);
+                                }
+                            }
+                        }
+                        if (selectedTasks.isEmpty()) return;
 
                         JPopupMenu popup = new JPopupMenu();
 
                         JMenuItem removeItem = new JMenuItem("Remove from list");
-                        removeItem.addActionListener(ev -> mediator.notifyUI("remove_task", task));
+                        removeItem.addActionListener(ev -> mediator.notifyUI("remove_tasks", selectedTasks));
                         popup.add(removeItem);
 
                         JMenuItem removeFromDiskItem = new JMenuItem("Remove from disk");
                         removeFromDiskItem.addActionListener(ev -> {
-                            String folderPath = task.files[0].getParentFile().getAbsolutePath();
+                            StringBuilder sb = new StringBuilder();
+                            for (Task t : selectedTasks) {
+                                sb.append(t.files[0].getParentFile().getAbsolutePath()).append("\n");
+                            }
                             Object[] options = {"Delete", "Cancel"};
                             int confirm = JOptionPane.showOptionDialog(
                                     tree,
-                                    "This will permanently delete the folder:\n\n"
-                                            + folderPath + "\n\n"
-                                            + "and all files inside it. This action cannot be undone.",
+                                    "This will permanently delete the following folder(s):\n\n"
+                                            + sb.toString()
+                                            + "\nand all files inside them. This action cannot be undone.",
                                     "Warning",
                                     JOptionPane.YES_NO_OPTION,
                                     JOptionPane.WARNING_MESSAGE,
@@ -273,7 +295,7 @@ public class JUIMediator implements UIMediator {
                                     options[1]
                             );
                             if (confirm == JOptionPane.YES_OPTION) {
-                                mediator.notifyUI("remove_task_from_disk", task);
+                                mediator.notifyUI("remove_tasks_from_disk", selectedTasks);
                             }
                         });
                         popup.add(removeFromDiskItem);
@@ -503,14 +525,16 @@ public class JUIMediator implements UIMediator {
             System.out.printf("Stop Button clicked\n");
         }
 
-        if (event.equals("remove_task")) {
-            Task task = (Task) data[0];
-            if (listener != null) listener.onTaskRemove(this, task);
+        if (event.equals("remove_tasks")) {
+            @SuppressWarnings("unchecked")
+            List<Task> tasks = (List<Task>) data[0];
+            if (listener != null) listener.onTaskRemove(this, tasks);
         }
 
-        if (event.equals("remove_task_from_disk")) {
-            Task task = (Task) data[0];
-            if (listener != null) listener.onTaskRemoveFromDisk(this, task);
+        if (event.equals("remove_tasks_from_disk")) {
+            @SuppressWarnings("unchecked")
+            List<Task> tasks = (List<Task>) data[0];
+            if (listener != null) listener.onTaskRemoveFromDisk(this, tasks);
         }
 
         if(event.equals("encryption_change")){

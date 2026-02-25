@@ -56,14 +56,14 @@ public class Controller implements MediatorListener, ModelListener {
     }
 
     @Override
-    public void onTaskRemove(UIMediator mediator, Task task) {
-        model.removeTask(task);
+    public void onTaskRemove(UIMediator mediator, List<Task> tasks) {
+        for (Task task : tasks) model.removeTask(task);
         mediator.updateTasks(model.getTasks());
     }
 
     @Override
-    public void onTaskRemoveFromDisk(UIMediator mediator, Task task) {
-        model.removeTaskFromDisk(task);
+    public void onTaskRemoveFromDisk(UIMediator mediator, List<Task> tasks) {
+        for (Task task : tasks) model.removeTaskFromDisk(task);
         mediator.updateTasks(model.getTasks());
     }
 
