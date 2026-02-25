@@ -352,7 +352,9 @@
                         <preferred-size width="150" height="-1"/>
                       </grid>
                     </constraints>
-                    <properties/>
+                    <properties>
+                      <enabled value="false"/>
+                    </properties>
                   </component>
                 </children>
               </grid>
@@ -370,7 +372,9 @@
                         <preferred-size width="150" height="-1"/>
                       </grid>
                     </constraints>
-                    <properties/>
+                    <properties>
+                      <enabled value="false"/>
+                    </properties>
                   </component>
                   <component id="5f7b9" class="javax.swing.JLabel">
                     <constraints>
