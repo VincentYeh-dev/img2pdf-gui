@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 public class JUIMediator implements UIMediator {
 
     public enum TaskSortOrder {
-        NONE("None"),
         NAME_ASC("Name A→Z"),
         NAME_DESC("Name Z→A"),
         COUNT_DESC("Count ↓"),
@@ -597,7 +596,7 @@ public class JUIMediator implements UIMediator {
         List<Task> sorted = new ArrayList<>(currentTasks);
         if (sortComboBox != null) {
             TaskSortOrder order = (TaskSortOrder) sortComboBox.getSelectedItem();
-            if (order != null && order != TaskSortOrder.NONE) {
+            if (order != null) {
                 sorted.sort(getTaskComparator(order));
             }
         }
