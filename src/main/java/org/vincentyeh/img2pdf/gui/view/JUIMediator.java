@@ -14,11 +14,15 @@ import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.event.ActionEvent;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import javax.swing.border.Border;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -454,6 +458,23 @@ public class JUIMediator implements UIMediator {
 
                 }
             });
+            Border originalBorder = textField.getBorder();
+            textField.addFocusListener(new FocusAdapter() {
+                @Override
+                public void focusLost(FocusEvent e) {
+                    File f = new File(textField.getText().trim());
+                    if (f.exists() && f.isDirectory()) {
+                        textField.setBorder(originalBorder);
+                    } else {
+                        textField.setBorder(BorderFactory.createLineBorder(Color.RED));
+                    }
+                }
+
+                @Override
+                public void focusGained(FocusEvent e) {
+                    textField.setBorder(originalBorder);
+                }
+            });
         }
 
         public Builder linkSortComboBox(JComboBox<TaskSortOrder> comboBox) {
@@ -778,12 +799,20 @@ public class JUIMediator implements UIMediator {
         encryptCheckBox.setSelected(false);
 
         updateSourceTree(new LinkedList<>());
+
+        outputFolderField.setText(new File(".").getAbsolutePath());
     }
 
     private void browseOutputFolder() {
         JFileChooser outputFolderChooser = createOutputFolderChooser();
-        if (outputFolderChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-            outputFolderChooser.setCurrentDirectory(outputFolderChooser.getSelectedFile());
+        String currentText = outputFolderField.getText().trim();
+        if (!currentText.isEmpty()) {
+            File current = new File(currentText);
+            if (current.exists() && current.isDirectory()) {
+                outputFolderChooser.setCurrentDirectory(current);
+            }
+        }
+        if (outputFolderChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
             String selectedPath = outputFolderChooser.getSelectedFile().getAbsolutePath();
             outputFolderField.setText(selectedPath);
             state.setDestinationFolder(new File(selectedPath));

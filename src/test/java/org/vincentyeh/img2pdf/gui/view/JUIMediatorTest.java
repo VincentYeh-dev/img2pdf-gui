@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.PageSize;
 
 import javax.swing.*;
+import javax.swing.border.LineBorder;
+import java.awt.*;
 import java.io.File;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -101,10 +103,28 @@ class JUIMediatorTest {
 
     @Test
     void typing_output_folder_updates_uistate() {
-        // View initializes the field with "." before the DocumentListener is attached,
-        // so the initial UIState destination is null; delete existing text then type.
+        // initialize() sets an absolute path; delete it then type a custom value.
         window.textBox("outputFolderField").deleteText().enterText("output");
         assertThat(UIState.getInstance().getDestinationFolder())
                 .isEqualTo(new File("output"));
+    }
+
+    @Test
+    void output_folder_initial_value_is_absolute_path() {
+        String text = window.textBox("outputFolderField").text();
+        assertThat(text).isNotEqualTo(".");
+        assertThat(new File(text).isAbsolute()).isTrue();
+    }
+
+    @Test
+    void invalid_output_folder_path_shows_red_border() {
+        window.textBox("outputFolderField").deleteText().enterText("Z:/does/not/exist/path");
+        window.button("convertButton").focus();
+        robot.waitForIdle();
+        javax.swing.border.Border border = GuiActionRunner.execute(() ->
+                ((JTextField) window.textBox("outputFolderField").target()).getBorder()
+        );
+        assertThat(border).isInstanceOf(LineBorder.class);
+        assertThat(((LineBorder) border).getLineColor()).isEqualTo(Color.RED);
     }
 }
