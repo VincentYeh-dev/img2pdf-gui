@@ -14,15 +14,11 @@ import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.event.ActionEvent;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import javax.swing.border.Border;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -439,6 +435,7 @@ public class JUIMediator implements UIMediator {
 
         public void linkOutputFolderField(JTextField textField) {
             textField.setName("outputFolderField");
+            textField.setEditable(false);
             mediator.outputFolderField = textField;
             mediator.outputFolderField.getDocument().addDocumentListener(new DocumentListener() {
                 @Override
@@ -456,23 +453,6 @@ public class JUIMediator implements UIMediator {
                 @Override
                 public void changedUpdate(DocumentEvent e) {
 
-                }
-            });
-            Border originalBorder = textField.getBorder();
-            textField.addFocusListener(new FocusAdapter() {
-                @Override
-                public void focusLost(FocusEvent e) {
-                    File f = new File(textField.getText().trim());
-                    if (f.exists() && f.isDirectory()) {
-                        textField.setBorder(originalBorder);
-                    } else {
-                        textField.setBorder(BorderFactory.createLineBorder(Color.RED));
-                    }
-                }
-
-                @Override
-                public void focusGained(FocusEvent e) {
-                    textField.setBorder(originalBorder);
                 }
             });
         }
