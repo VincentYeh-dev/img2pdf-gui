@@ -59,6 +59,11 @@ mvn clean package
 - **`flatlaf` (1.6.1)** — FlatDarkLaf Swing look-and-feel.
 - **`forms_rt` (7.0.3)** — IntelliJ UI Designer runtime (required for `View.java`).
 
+## 依賴管理規則
+
+**嚴禁**在未經使用者明確允許的情況下，於 `pom.xml` 新增任何 Maven 套件（`<dependency>`）或 Maven Plugin（`<plugin>`）。
+若評估後認為需要引入新依賴或 Plugin，必須先向使用者說明原因與替代方案，待使用者明確同意後才可修改 `pom.xml`。
+
 ## Git Workflow
 
 本專案採用簡化 Git Flow 分支模型。
