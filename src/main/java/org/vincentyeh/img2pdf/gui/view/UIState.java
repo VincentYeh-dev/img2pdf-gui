@@ -37,6 +37,10 @@ public class UIState {
 
     }
 
+    static void resetForTesting() {
+        instance = new UIState();
+    }
+
     public void setRunning(boolean running) {
         this.running = running;
     }

@@ -88,6 +88,7 @@ public class JUIMediator implements UIMediator {
         private final JUIMediator mediator = new JUIMediator();
 
         public void linkSourceBrowseButton(JButton button) {
+            button.setName("sourceBrowseButton");
             mediator.sourceBrowseButton = button;
             mediator.sourceBrowseButton.addActionListener(new AbstractAction() {
                 @Override
@@ -98,6 +99,7 @@ public class JUIMediator implements UIMediator {
         }
 
         public void linkPageSizeComboBox(JComboBox<PageSize> comboBox) {
+            comboBox.setName("pageSizeComboBox");
             mediator.pageSizeComboBox = comboBox;
             mediator.pageSizeComboBox.addActionListener(new AbstractAction() {
                 @Override
@@ -111,6 +113,7 @@ public class JUIMediator implements UIMediator {
         }
 
         public void linkHorizontalAlignComboBox(JComboBox<PageAlign.HorizontalAlign> comboBox) {
+            comboBox.setName("horizontalAlignComboBox");
             mediator.horizontalAlignComboBox = comboBox;
             mediator.horizontalAlignComboBox.addActionListener(new AbstractAction() {
                 @Override
@@ -125,6 +128,7 @@ public class JUIMediator implements UIMediator {
         }
 
         public void linkVerticalAlignComboBox(JComboBox<PageAlign.VerticalAlign> comboBox) {
+            comboBox.setName("verticalAlignComboBox");
             mediator.verticalAlignComboBox = comboBox;
             mediator.verticalAlignComboBox.addActionListener(new AbstractAction() {
                 @Override
@@ -138,6 +142,7 @@ public class JUIMediator implements UIMediator {
         }
 
         public void linkOwnerPasswordField(JPasswordField passwordField) {
+            passwordField.setName("ownerPasswordField");
             mediator.ownerPasswordField = passwordField;
             mediator.ownerPasswordField.getDocument().addDocumentListener(new DocumentListener() {
                 @Override
@@ -160,6 +165,7 @@ public class JUIMediator implements UIMediator {
         }
 
         public void linkUserPasswordField(JPasswordField passwordField) {
+            passwordField.setName("userPasswordField");
             mediator.userPasswordField = passwordField;
             mediator.userPasswordField.getDocument().addDocumentListener(new DocumentListener() {
                 @Override
@@ -182,6 +188,7 @@ public class JUIMediator implements UIMediator {
         }
 
         public void linkConvertButton(JButton button) {
+            button.setName("convertButton");
             mediator.convertButton = button;
             mediator.convertButton.addActionListener(new AbstractAction() {
                 @Override
@@ -192,6 +199,7 @@ public class JUIMediator implements UIMediator {
         }
 
         public void linkDirectionComboBox(JComboBox<PageDirection> comboBox) {
+            comboBox.setName("directionComboBox");
             mediator.directionComboBox = comboBox;
             mediator.directionComboBox.addActionListener(new AbstractAction() {
                 @Override
@@ -205,6 +213,7 @@ public class JUIMediator implements UIMediator {
         }
 
         public void linkAutoRotateCheckBox(JCheckBox checkBox) {
+            checkBox.setName("autoRotateCheckBox");
             mediator.autoRotateCheckBox = checkBox;
             mediator.autoRotateCheckBox.addActionListener(new AbstractAction() {
                 @Override
@@ -216,11 +225,13 @@ public class JUIMediator implements UIMediator {
         }
 
         public void linkTotalConversionProgressBar(JProgressBar progressBar) {
+            progressBar.setName("totalConversionProgressBar");
             mediator.totalConversionProgressBar = progressBar;
         }
 
 
         public void linkColorTypeComboBox(JComboBox<ColorType> comboBox) {
+            comboBox.setName("colorTypeComboBox");
             mediator.colorTypeComboBox = comboBox;
             mediator.colorTypeComboBox.addActionListener(new AbstractAction() {
                 @Override
@@ -234,6 +245,7 @@ public class JUIMediator implements UIMediator {
         }
 
         public void linkSourceTree(JTree tree) {
+            tree.setName("sourceTree");
             mediator.sourceTree = tree;
             tree.setRowHeight(0); // 讓各列根據 renderer 自動計算高度
             tree.getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
@@ -369,10 +381,12 @@ public class JUIMediator implements UIMediator {
         }
 
         public void linkTotalConversionLabel(JLabel label) {
+            label.setName("totalConversionLabel");
             mediator.totalConversionLabel = label;
         }
 
         public void linkClearAllButton(JButton button) {
+            button.setName("clearAllButton");
             mediator.clearAllButton = button;
             mediator.clearAllButton.addActionListener(new AbstractAction() {
                 @Override
@@ -383,14 +397,17 @@ public class JUIMediator implements UIMediator {
         }
 
         public void linkPageConversionProgressBar(JProgressBar progressBar) {
+            progressBar.setName("pageConversionProgressBar");
             mediator.pageConversionProgressBar = progressBar;
         }
 
         public void linkPageConversionLabel(JLabel label) {
+            label.setName("pageConversionLabel");
             mediator.pageConversionLabel = label;
         }
 
         public void linkStopButton(JButton button) {
+            button.setName("stopButton");
             mediator.stopButton = button;
             mediator.stopButton.addActionListener(new AbstractAction() {
                 @Override
@@ -401,10 +418,12 @@ public class JUIMediator implements UIMediator {
         }
 
         public void linkImagePane(JLabel label) {
+            label.setName("imagePane");
             mediator.imagePane = label;
         }
 
         public void linkOutputFolderBrowseButton(JButton button) {
+            button.setName("outputFolderBrowseButton");
             mediator.outputFolderBrowseButton = button;
             mediator.outputFolderBrowseButton.addActionListener(new AbstractAction() {
                 @Override
@@ -415,6 +434,7 @@ public class JUIMediator implements UIMediator {
         }
 
         public void linkOutputFolderField(JTextField textField) {
+            textField.setName("outputFolderField");
             mediator.outputFolderField = textField;
             mediator.outputFolderField.getDocument().addDocumentListener(new DocumentListener() {
                 @Override
@@ -437,6 +457,7 @@ public class JUIMediator implements UIMediator {
         }
 
         public Builder linkSortComboBox(JComboBox<TaskSortOrder> comboBox) {
+            comboBox.setName("sortComboBox");
             for (TaskSortOrder order : TaskSortOrder.values()) {
                 comboBox.addItem(order);
             }
@@ -446,6 +467,7 @@ public class JUIMediator implements UIMediator {
         }
 
         public void linkLogList(JList<String> list) {
+            list.setName("logList");
             mediator.logList = list;
         }
 
@@ -458,6 +480,7 @@ public class JUIMediator implements UIMediator {
         }
 
         public void linkEncryptionCheckBox(JCheckBox checkBox) {
+            checkBox.setName("encryptCheckBox");
             mediator.encryptCheckBox = checkBox;
             mediator.encryptCheckBox.addActionListener(new AbstractAction() {
                 @Override
