@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.text.Collator;
+import java.util.Locale;
 
 public class JUIMediator implements UIMediator {
 
@@ -605,10 +607,14 @@ public class JUIMediator implements UIMediator {
 
     private Comparator<Task> getTaskComparator(TaskSortOrder order) {
         switch (order) {
-            case NAME_ASC:
-                return Comparator.comparing(t -> t.destination.getName());
-            case NAME_DESC:
-                return (a, b) -> b.destination.getName().compareTo(a.destination.getName());
+            case NAME_ASC: {
+                Collator collator = Collator.getInstance(Locale.getDefault());
+                return (a, b) -> collator.compare(a.destination.getName(), b.destination.getName());
+            }
+            case NAME_DESC: {
+                Collator collator = Collator.getInstance(Locale.getDefault());
+                return (a, b) -> collator.compare(b.destination.getName(), a.destination.getName());
+            }
             case COUNT_ASC:
                 return Comparator.comparingInt(t -> t.files.length);
             case COUNT_DESC:
