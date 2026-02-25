@@ -247,7 +247,12 @@ public class JUIMediator implements UIMediator {
                 public void mousePressed(MouseEvent e) {
                     if (SwingUtilities.isRightMouseButton(e)) {
                         int row = tree.getRowForLocation(e.getX(), e.getY());
-                        if (row < 0) return;
+                        if (row < 0) {
+                            row = tree.getClosestRowForLocation(e.getX(), e.getY());
+                            if (row < 0) return;
+                            java.awt.Rectangle bounds = tree.getRowBounds(row);
+                            if (bounds == null || e.getY() < bounds.y || e.getY() > bounds.y + bounds.height) return;
+                        }
 
                         // 若右鍵點擊的 row 不在目前選擇中，才切換選擇
                         if (!tree.isRowSelected(row)) {
