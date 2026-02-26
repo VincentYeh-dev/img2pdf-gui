@@ -781,6 +781,8 @@ public class JUIMediator implements UIMediator {
         updateSourceTree(new LinkedList<>());
 
         outputFolderField.setText(new File(".").getAbsolutePath());
+
+        stopButton.setEnabled(false);
     }
 
     private void browseOutputFolder() {
