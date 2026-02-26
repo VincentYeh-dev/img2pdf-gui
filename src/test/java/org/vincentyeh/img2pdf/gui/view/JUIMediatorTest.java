@@ -128,8 +128,8 @@ class JUIMediatorTest {
     // ===== A. 初始狀態 =====
 
     @Test
-    void initial_convert_button_is_enabled() {
-        window.button("convertButton").requireEnabled();
+    void initial_convert_button_is_disabled_without_tasks() {
+        window.button("convertButton").requireDisabled();
     }
 
     @Test

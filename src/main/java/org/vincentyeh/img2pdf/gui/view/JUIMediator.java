@@ -514,6 +514,7 @@ public class JUIMediator implements UIMediator {
             String password = (String) data[0];
             System.out.printf("Owner Password changed: %s\n", password.isEmpty() ? "<empty>" : password);
             state.setOwnerPassword(password);
+            refreshConvertButton();
         }
         if (event.equals("user_password_change")) {
             if(!state.isEncrypted())
@@ -521,6 +522,7 @@ public class JUIMediator implements UIMediator {
             String password = (String) data[0];
             System.out.printf("User Password changed: %s\n", password.isEmpty() ? "<empty>" : password);
             state.setUserPassword(password);
+            refreshConvertButton();
         }
         if (event.equals("auto_rotate_change")) {
             boolean selected = (boolean) data[0];
@@ -608,6 +610,7 @@ public class JUIMediator implements UIMediator {
                 ownerPasswordField.setText("");
                 userPasswordField.setText("");
             }
+            refreshConvertButton();
         }
 
     }
@@ -616,6 +619,7 @@ public class JUIMediator implements UIMediator {
     public void updateTasks(List<Task> tasks) {
         currentTasks = new ArrayList<>(tasks);
         applySort();
+        refreshConvertButton();
     }
 
     private void applySort() {
@@ -657,6 +661,22 @@ public class JUIMediator implements UIMediator {
                 };
             default:
                 return (a, b) -> 0;
+        }
+    }
+
+    private void refreshConvertButton() {
+        if (currentTasks.isEmpty()) {
+            convertButton.setEnabled(false);
+            return;
+        }
+        if (state.isEncrypted()) {
+            String owner = state.getOwnerPassword();
+            String user  = state.getUserPassword();
+            boolean ownerOk = owner != null && !owner.isEmpty();
+            boolean userOk  = user != null && !user.isEmpty();
+            convertButton.setEnabled(ownerOk && userOk);
+        } else {
+            convertButton.setEnabled(true);
         }
     }
 
@@ -783,6 +803,7 @@ public class JUIMediator implements UIMediator {
         outputFolderField.setText(new File(".").getAbsolutePath());
 
         stopButton.setEnabled(false);
+        refreshConvertButton();
     }
 
     private void browseOutputFolder() {
