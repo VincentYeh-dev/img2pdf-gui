@@ -6,7 +6,9 @@ import org.assertj.swing.edt.GuiActionRunner;
 import org.assertj.swing.fixture.FrameFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.vincentyeh.img2pdf.lib.image.ColorType;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.PageAlign;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.PageDirection;
@@ -21,6 +23,7 @@ import org.vincentyeh.img2pdf.gui.model.Task;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@TestMethodOrder(MethodOrderer.MethodName.class)
 class JUIMediatorTest {
 
     private Robot robot;
@@ -42,6 +45,7 @@ class JUIMediatorTest {
         });
         window = new FrameFixture(robot, frame);
         window.show();
+        robot.waitForIdle();
     }
 
     @AfterEach
@@ -560,6 +564,41 @@ class JUIMediatorTest {
         GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", true));
         GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", false));
         window.button("convertButton").requireEnabled();
+    }
+
+    // ===== K. 有 Task 時 Running State 按鈕行為 =====
+
+    @Test
+    void hasTask_beforeRunning_convertEnabled() {
+        // 有 Task，尚未執行 → Convert ENABLED
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        window.button("convertButton").requireEnabled();
+    }
+
+    @Test
+    void hasTask_beforeRunning_stopDisabled() {
+        // 有 Task，尚未執行 → Stop DISABLED
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        window.button("stopButton").requireDisabled();
+    }
+
+    @Test
+    void hasTask_setRunningTrue_convertDisabled_stopEnabled() {
+        // 有 Task → setRunningState(true) → Convert DISABLED，Stop ENABLED
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.setRunningState(true));
+        window.button("convertButton").requireDisabled();
+        window.button("stopButton").requireEnabled();
+    }
+
+    @Test
+    void hasTask_setRunningFalse_convertEnabled_stopDisabled() {
+        // 有 Task → running → setRunningState(false) → Convert ENABLED，Stop DISABLED
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.setRunningState(true));
+        GuiActionRunner.execute(() -> mediator.setRunningState(false));
+        window.button("convertButton").requireEnabled();
+        window.button("stopButton").requireDisabled();
     }
 
     // ===== 輔助方法 =====
