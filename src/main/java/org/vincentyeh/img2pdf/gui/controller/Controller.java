@@ -12,7 +12,6 @@ import java.io.File;
 import java.util.List;
 
 public class Controller implements MediatorListener, ModelListener {
-    private final DefaultListModel<String> listModel = new DefaultListModel<>();
     private final Model model;
     private final UIMediator mediator;
 
@@ -23,15 +22,6 @@ public class Controller implements MediatorListener, ModelListener {
         mediator.initialize();
         model.setModelListener(this);
     }
-
-    private ListModel<String> convertToModel(List<String> list) {
-        listModel.clear();
-        for (int i = 0; i < list.size(); i++) {
-            listModel.add(i, list.get(i));
-        }
-        return listModel;
-    }
-
 
     @Override
     public void onSourcesUpdate(UIMediator mediator, UIState state) {
@@ -80,7 +70,6 @@ public class Controller implements MediatorListener, ModelListener {
     @Override
     public void onBatchStart() {
         mediator.setRunningState(true);
-        mediator.clearLog();
     }
 
     @Override
@@ -91,16 +80,6 @@ public class Controller implements MediatorListener, ModelListener {
     @Override
     public void onSourcesUpdate(List<Task> source) {
         model.setTask(source);
-    }
-
-    @Override
-    public void onLogUpdate(List<String> log) {
-
-    }
-
-    @Override
-    public void onLogAppend(String log) {
-        mediator.addLog(log);
     }
 
     @Override

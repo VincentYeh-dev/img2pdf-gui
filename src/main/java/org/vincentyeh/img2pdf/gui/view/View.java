@@ -38,24 +38,17 @@ public class View {
     private JTree sourceTree;
     private JLabel imagePane;
     private JButton clearAllButton;
-    private JList<String> logList;
     private JCheckBox enableEncryptCheckBox;
     private JComboBox<JUIMediator.TaskSortOrder> sortComboBox;
 
     public View() {
         $$$setupUI$$$();
-        initialize();
         createUIMediator();
     }
 
 
     public JPanel getRootPanel() {
         return root;
-    }
-
-    private void initialize(){
-        DefaultListModel<String> model = new DefaultListModel<>();
-        logList.setModel(model);
     }
 
     private void createUIMediator() {
@@ -81,7 +74,6 @@ public class View {
         mediatorBuilder.linkSortComboBox(sortComboBox);
         mediatorBuilder.linkSourceTree(sourceTree);
         mediatorBuilder.linkClearAllButton(clearAllButton);
-        mediatorBuilder.linkLogList(logList);
         uiMediator = mediatorBuilder.build();
     }
 
@@ -267,17 +259,6 @@ public class View {
         panel18.add(clearAllButton, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final Spacer spacer4 = new Spacer();
         root.add(spacer4, new GridConstraints(8, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
-        final JLabel label12 = new JLabel();
-        Font label12Font = this.$$$getFont$$$(null, -1, 16, label12.getFont());
-        if (label12Font != null) label12.setFont(label12Font);
-        label12.setText("Log");
-        root.add(label12, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        final JScrollPane scrollPane2 = new JScrollPane();
-        root.add(scrollPane2, new GridConstraints(3, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
-        logList = new JList();
-        final DefaultListModel defaultListModel1 = new DefaultListModel();
-        logList.setModel(defaultListModel1);
-        scrollPane2.setViewportView(logList);
     }
 
     /**

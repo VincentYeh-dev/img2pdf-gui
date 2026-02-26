@@ -136,10 +136,8 @@ public class Model {
                                 factoryListener);
                         document.save(new File(output_folder, currentTask.destination.getName()));
                         document.close();
-                        listener.onLogAppend(String.format("[OK] %s", currentTask.destination.getName()));
                         listener.onTaskComplete(currentTask, true);
                     } catch (PDFFactoryException | IOException e) {
-                        listener.onLogAppend(String.format("[ERROR] %s -> %s", currentTask.destination.getName(), e.getCause().getMessage()));
                         listener.onTaskComplete(currentTask, false);
                     } finally {
                         listener.onBatchProgressUpdate(i + 1, sources.size());

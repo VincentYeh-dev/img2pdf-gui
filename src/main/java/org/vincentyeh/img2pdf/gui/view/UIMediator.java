@@ -10,8 +10,6 @@ public interface UIMediator {
     void setRunningState(boolean running);
     void setBatchProgress(int progress, int total);
     void setConversionProgress(int progress, int total);
-    void addLog(String log);
-    void clearLog();
     void initialize();
     void setListener(MediatorListener listener);
     void updateTaskStatus(Task task, boolean success);

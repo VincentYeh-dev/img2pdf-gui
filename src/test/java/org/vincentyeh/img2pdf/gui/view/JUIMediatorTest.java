@@ -459,34 +459,6 @@ class JUIMediatorTest {
         assertThat(window.label("pageConversionLabel").text()).isEqualTo("5/20");
     }
 
-    // ===== I. Log 操作 =====
-
-    @Test
-    void add_log_appends_to_log_list() {
-        GuiActionRunner.execute(() -> mediator.addLog("line1"));
-        assertThat(window.list("logList").target().getModel().getSize()).isEqualTo(1);
-    }
-
-    @Test
-    void clear_log_empties_log_list() {
-        GuiActionRunner.execute(() -> {
-            mediator.addLog("line1");
-            mediator.addLog("line2");
-            mediator.clearLog();
-        });
-        assertThat(window.list("logList").target().getModel().getSize()).isEqualTo(0);
-    }
-
-    @Test
-    void multiple_add_log_accumulates_entries() {
-        GuiActionRunner.execute(() -> {
-            mediator.addLog("a");
-            mediator.addLog("b");
-            mediator.addLog("c");
-        });
-        assertThat(window.list("logList").target().getModel().getSize()).isEqualTo(3);
-    }
-
     // ===== J. Convert 按鈕 enable/disable 黑箱測試 =====
 
     @Test
