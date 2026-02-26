@@ -16,10 +16,15 @@ import org.vincentyeh.img2pdf.lib.pdf.parameter.PageSize;
 
 import javax.swing.*;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import org.vincentyeh.img2pdf.gui.model.Task;
+import org.vincentyeh.img2pdf.gui.model.TaskSortOrder;
+
+import javax.swing.tree.DefaultMutableTreeNode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -623,6 +628,101 @@ class JUIMediatorTest {
         GuiActionRunner.execute(() -> mediator.setRunningState(true));
         robot.waitForIdle();
         assertThat(jMediator.taskStatusMap).isEmpty();
+    }
+
+    // ===== M. 排序行為測試 =====
+
+    @Test
+    void M1_default_sort_NAME_ASC_updateTasks_displays_in_given_order() {
+        // Model 已按 NAME_ASC 排序後傳給 updateTasks，JTree 應照順序顯示
+        Task taskA = new Task(new File("a.pdf"), new File[0]);
+        Task taskB = new Task(new File("b.pdf"), new File[0]);
+        Task taskC = new Task(new File("c.pdf"), new File[0]);
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(taskA, taskB, taskC)));
+        robot.waitForIdle();
+
+        List<String> names = GuiActionRunner.execute(() -> {
+            JTree tree = window.tree("sourceTree").target();
+            DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
+            List<String> result = new ArrayList<>();
+            for (int i = 0; i < root.getChildCount(); i++) {
+                Task t = (Task) ((DefaultMutableTreeNode) root.getChildAt(i)).getUserObject();
+                result.add(t.destination.getName());
+            }
+            return result;
+        });
+        assertThat(names).containsExactly("a.pdf", "b.pdf", "c.pdf");
+    }
+
+    @Test
+    void M2_sortComboBox_change_to_NAME_DESC_fires_onSortOrderChange() {
+        // 設置 mock listener，驗證 onSortOrderChange 被呼叫且傳入正確的 order
+        TaskSortOrder[] captured = {null};
+        MediatorListener mockListener = new MediatorListener() {
+            @Override public void onSourcesUpdate(UIMediator m, UIState s) {}
+            @Override public void onConvertButtonClick(UIMediator m, UIState s) {}
+            @Override public void onStopButtonClick(UIMediator m) {}
+            @Override public void onTaskRemove(UIMediator m, List<Task> t) {}
+            @Override public void onTaskRemoveFromDisk(UIMediator m, List<Task> t) {}
+            @Override public void onSortOrderChange(UIMediator m, TaskSortOrder order) { captured[0] = order; }
+        };
+        GuiActionRunner.execute(() -> ((JUIMediator) mediator).setListener(mockListener));
+
+        GuiActionRunner.execute(() ->
+                window.comboBox("sortComboBox").target().setSelectedItem(TaskSortOrder.NAME_DESC));
+        robot.waitForIdle();
+
+        assertThat(captured[0]).isEqualTo(TaskSortOrder.NAME_DESC);
+    }
+
+    @Test
+    void M3_updateTasks_with_COUNT_DESC_sorted_data_shows_correct_order() {
+        // 模擬 Model 按 COUNT_DESC 排序後傳給 updateTasks，JTree 應保留該順序
+        Task task3 = new Task(new File("c.pdf"), new File[]{new File("f1.jpg"), new File("f2.jpg"), new File("f3.jpg")});
+        Task task2 = new Task(new File("b.pdf"), new File[]{new File("f1.jpg"), new File("f2.jpg")});
+        Task task1 = new Task(new File("a.pdf"), new File[]{new File("f1.jpg")});
+        // COUNT_DESC 順序：3 > 2 > 1
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(task3, task2, task1)));
+        robot.waitForIdle();
+
+        List<Integer> counts = GuiActionRunner.execute(() -> {
+            JTree tree = window.tree("sourceTree").target();
+            DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
+            List<Integer> result = new ArrayList<>();
+            for (int i = 0; i < root.getChildCount(); i++) {
+                Task t = (Task) ((DefaultMutableTreeNode) root.getChildAt(i)).getUserObject();
+                result.add(t.files.length);
+            }
+            return result;
+        });
+        assertThat(counts).containsExactly(3, 2, 1);
+    }
+
+    @Test
+    void M4_re_updateTasks_preserves_new_given_order() {
+        // 第一次 updateTasks
+        Task taskB = new Task(new File("b.pdf"), new File[0]);
+        Task taskA = new Task(new File("a.pdf"), new File[0]);
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(taskB, taskA)));
+        robot.waitForIdle();
+
+        // 再次 updateTasks（模擬 Model 按 NAME_DESC 重新排序後傳入）
+        Task taskZ = new Task(new File("z.pdf"), new File[0]);
+        Task taskM = new Task(new File("m.pdf"), new File[0]);
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(taskZ, taskM)));
+        robot.waitForIdle();
+
+        List<String> names = GuiActionRunner.execute(() -> {
+            JTree tree = window.tree("sourceTree").target();
+            DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
+            List<String> result = new ArrayList<>();
+            for (int i = 0; i < root.getChildCount(); i++) {
+                Task t = (Task) ((DefaultMutableTreeNode) root.getChildAt(i)).getUserObject();
+                result.add(t.destination.getName());
+            }
+            return result;
+        });
+        assertThat(names).containsExactly("z.pdf", "m.pdf");
     }
 
     // ===== 輔助方法 =====

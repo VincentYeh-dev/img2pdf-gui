@@ -4,6 +4,7 @@ package org.vincentyeh.img2pdf.gui.view;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
+import org.vincentyeh.img2pdf.gui.model.TaskSortOrder;
 import org.vincentyeh.img2pdf.lib.image.ColorType;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.*;
 
@@ -39,7 +40,7 @@ public class View {
     private JLabel imagePane;
     private JButton clearAllButton;
     private JCheckBox enableEncryptCheckBox;
-    private JComboBox<JUIMediator.TaskSortOrder> sortComboBox;
+    private JComboBox<TaskSortOrder> sortComboBox;
 
     public View() {
         $$$setupUI$$$();

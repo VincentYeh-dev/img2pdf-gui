@@ -18,6 +18,7 @@ import java.io.FileFilter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -26,6 +27,7 @@ import java.util.List;
 public class Model {
     private List<Task> sources = new LinkedList<>();
     private ModelListener listener = null;
+    private TaskSortOrder sortOrder = TaskSortOrder.NAME_ASC;
 
     public static List<Task> parseSourceFiles(File[] directories) {
         List<Task> sources = new LinkedList<>();
@@ -54,11 +56,21 @@ public class Model {
     }
 
     public void setTask(List<Task> tasks) {
-        this.sources = tasks;
+        this.sources = new ArrayList<>(tasks);
+        this.sources.sort(sortOrder.getComparator());
     }
 
     public List<Task> getTasks() {
         return sources;
+    }
+
+    public void setSortOrder(TaskSortOrder order) {
+        this.sortOrder = order;
+        sources.sort(order.getComparator());
+    }
+
+    public TaskSortOrder getSortOrder() {
+        return sortOrder;
     }
 
     public void removeTask(int index) {

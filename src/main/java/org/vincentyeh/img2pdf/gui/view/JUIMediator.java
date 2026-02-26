@@ -1,6 +1,7 @@
 package org.vincentyeh.img2pdf.gui.view;
 
 import org.vincentyeh.img2pdf.gui.model.Task;
+import org.vincentyeh.img2pdf.gui.model.TaskSortOrder;
 import org.vincentyeh.img2pdf.lib.image.ColorType;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.PageAlign;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.PageDirection;
@@ -24,34 +25,16 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.text.Collator;
-import java.util.Locale;
 
 public class JUIMediator implements UIMediator {
 
     public enum TaskStatus { PENDING, SUCCESS, FAILED }
-
-    public enum TaskSortOrder {
-        NAME_ASC("Name A→Z"),
-        NAME_DESC("Name Z→A"),
-        COUNT_DESC("Count ↓"),
-        COUNT_ASC("Count ↑"),
-        DATE_DESC("Date ↓"),
-        DATE_ASC("Date ↑");
-
-        private final String label;
-        TaskSortOrder(String label) { this.label = label; }
-
-        @Override
-        public String toString() { return label; }
-    }
 
     private static final int THUMBNAIL_SIZE = 48;
     private final Map<File, ImageIcon> thumbnailCache = new HashMap<>();
@@ -83,7 +66,7 @@ public class JUIMediator implements UIMediator {
     private JFileChooser sourceFilesChooser;
     private JFileChooser outputFolderChooser;
 
-    private JComboBox<TaskSortOrder> sortComboBox;
+    private JComboBox<org.vincentyeh.img2pdf.gui.model.TaskSortOrder> sortComboBox;
     private List<Task> currentTasks = new ArrayList<>();
 
     private UIState state = UIState.getInstance();
@@ -476,7 +459,11 @@ public class JUIMediator implements UIMediator {
                 comboBox.addItem(order);
             }
             mediator.sortComboBox = comboBox;
-            comboBox.addActionListener(e -> mediator.applySort());
+            comboBox.addActionListener(e -> {
+                TaskSortOrder order = (TaskSortOrder) comboBox.getSelectedItem();
+                if (order != null && mediator.listener != null)
+                    mediator.listener.onSortOrderChange(mediator, order);
+            });
             return this;
         }
 
@@ -627,50 +614,8 @@ public class JUIMediator implements UIMediator {
     public void updateTasks(List<Task> tasks) {
         currentTasks = new ArrayList<>(tasks);
         taskStatusMap.clear();
-        applySort();
+        updateSourceTree(currentTasks);
         refreshConvertButton();
-    }
-
-    private void applySort() {
-        List<Task> sorted = new ArrayList<>(currentTasks);
-        if (sortComboBox != null) {
-            TaskSortOrder order = (TaskSortOrder) sortComboBox.getSelectedItem();
-            if (order != null) {
-                sorted.sort(getTaskComparator(order));
-            }
-        }
-        updateSourceTree(sorted);
-    }
-
-    private Comparator<Task> getTaskComparator(TaskSortOrder order) {
-        switch (order) {
-            case NAME_ASC: {
-                Collator collator = Collator.getInstance(Locale.getDefault());
-                return (a, b) -> collator.compare(a.destination.getName(), b.destination.getName());
-            }
-            case NAME_DESC: {
-                Collator collator = Collator.getInstance(Locale.getDefault());
-                return (a, b) -> collator.compare(b.destination.getName(), a.destination.getName());
-            }
-            case COUNT_ASC:
-                return Comparator.comparingInt(t -> t.files.length);
-            case COUNT_DESC:
-                return (a, b) -> Integer.compare(b.files.length, a.files.length);
-            case DATE_ASC:
-                return Comparator.comparingLong(t ->
-                        (t.files != null && t.files.length > 0 && t.files[0].getParentFile() != null)
-                        ? t.files[0].getParentFile().lastModified() : 0L);
-            case DATE_DESC:
-                return (a, b) -> {
-                    long aDate = (a.files != null && a.files.length > 0 && a.files[0].getParentFile() != null)
-                            ? a.files[0].getParentFile().lastModified() : 0L;
-                    long bDate = (b.files != null && b.files.length > 0 && b.files[0].getParentFile() != null)
-                            ? b.files[0].getParentFile().lastModified() : 0L;
-                    return Long.compare(bDate, aDate);
-                };
-            default:
-                return (a, b) -> 0;
-        }
     }
 
     private void refreshConvertButton() {

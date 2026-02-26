@@ -3,6 +3,7 @@ package org.vincentyeh.img2pdf.gui.controller;
 import org.vincentyeh.img2pdf.gui.model.Model;
 import org.vincentyeh.img2pdf.gui.model.ModelListener;
 import org.vincentyeh.img2pdf.gui.model.Task;
+import org.vincentyeh.img2pdf.gui.model.TaskSortOrder;
 import org.vincentyeh.img2pdf.gui.view.MediatorListener;
 import org.vincentyeh.img2pdf.gui.view.UIMediator;
 import org.vincentyeh.img2pdf.gui.view.UIState;
@@ -30,8 +31,14 @@ public class Controller implements MediatorListener, ModelListener {
             return;
 
         List<Task> tasks = Model.parseSourceFiles(sources);
-        mediator.updateTasks(tasks);
         model.setTask(tasks);
+        mediator.updateTasks(model.getTasks());
+    }
+
+    @Override
+    public void onSortOrderChange(UIMediator mediator, TaskSortOrder order) {
+        model.setSortOrder(order);
+        mediator.updateTasks(model.getTasks());
     }
 
     @Override
