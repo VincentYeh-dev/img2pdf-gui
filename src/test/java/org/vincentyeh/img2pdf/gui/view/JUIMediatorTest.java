@@ -601,6 +601,58 @@ class JUIMediatorTest {
         window.button("stopButton").requireDisabled();
     }
 
+    // ===== L. updateTaskStatus 狀態圖示測試 =====
+
+    @Test
+    void updateTaskStatus_success_marks_task_as_SUCCESS() {
+        Task task = createDummyTask();
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(task)));
+        GuiActionRunner.execute(() -> mediator.updateTaskStatus(task, true));
+        robot.waitForIdle();
+        JUIMediator jMediator = (JUIMediator) mediator;
+        assertThat(jMediator.taskStatusMap.get(task))
+                .isEqualTo(JUIMediator.TaskStatus.SUCCESS);
+    }
+
+    @Test
+    void updateTaskStatus_failure_marks_task_as_FAILED() {
+        Task task = createDummyTask();
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(task)));
+        GuiActionRunner.execute(() -> mediator.updateTaskStatus(task, false));
+        robot.waitForIdle();
+        JUIMediator jMediator = (JUIMediator) mediator;
+        assertThat(jMediator.taskStatusMap.get(task))
+                .isEqualTo(JUIMediator.TaskStatus.FAILED);
+    }
+
+    @Test
+    void updateTasks_clears_taskStatusMap() {
+        Task task = createDummyTask();
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(task)));
+        GuiActionRunner.execute(() -> mediator.updateTaskStatus(task, true));
+        robot.waitForIdle();
+        JUIMediator jMediator = (JUIMediator) mediator;
+        assertThat(jMediator.taskStatusMap).isNotEmpty();
+
+        GuiActionRunner.execute(() -> mediator.updateTasks(Collections.emptyList()));
+        robot.waitForIdle();
+        assertThat(jMediator.taskStatusMap).isEmpty();
+    }
+
+    @Test
+    void setRunningTrue_clears_taskStatusMap() {
+        Task task = createDummyTask();
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(task)));
+        GuiActionRunner.execute(() -> mediator.updateTaskStatus(task, true));
+        robot.waitForIdle();
+        JUIMediator jMediator = (JUIMediator) mediator;
+        assertThat(jMediator.taskStatusMap).isNotEmpty();
+
+        GuiActionRunner.execute(() -> mediator.setRunningState(true));
+        robot.waitForIdle();
+        assertThat(jMediator.taskStatusMap).isEmpty();
+    }
+
     // ===== 輔助方法 =====
 
     private Task createDummyTask() {

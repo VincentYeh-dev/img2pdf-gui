@@ -14,5 +14,6 @@ public interface UIMediator {
     void clearLog();
     void initialize();
     void setListener(MediatorListener listener);
+    void updateTaskStatus(Task task, boolean success);
 
 }

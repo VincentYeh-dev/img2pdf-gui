@@ -102,4 +102,9 @@ public class Controller implements MediatorListener, ModelListener {
     public void onLogAppend(String log) {
         mediator.addLog(log);
     }
+
+    @Override
+    public void onTaskComplete(Task task, boolean success) {
+        mediator.updateTaskStatus(task, success);
+    }
 }

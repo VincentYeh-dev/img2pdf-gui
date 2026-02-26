@@ -12,7 +12,7 @@ public interface ModelListener{
     void onLogUpdate(List<String> log);
     void onLogAppend(String log);
 
-
+    void onTaskComplete(Task task, boolean success);
 
 
 }

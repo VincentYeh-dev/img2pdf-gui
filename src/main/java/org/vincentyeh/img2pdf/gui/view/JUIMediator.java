@@ -12,8 +12,10 @@ import javax.swing.event.DocumentListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.event.ActionEvent;
@@ -34,6 +36,8 @@ import java.util.Locale;
 
 public class JUIMediator implements UIMediator {
 
+    public enum TaskStatus { PENDING, SUCCESS, FAILED }
+
     public enum TaskSortOrder {
         NAME_ASC("Name A→Z"),
         NAME_DESC("Name Z→A"),
@@ -51,6 +55,7 @@ public class JUIMediator implements UIMediator {
 
     private static final int THUMBNAIL_SIZE = 48;
     private final Map<File, ImageIcon> thumbnailCache = new HashMap<>();
+    final Map<Task, TaskStatus> taskStatusMap = new HashMap<>();
 
     private MediatorListener listener;
     private JButton sourceBrowseButton;
@@ -250,7 +255,7 @@ public class JUIMediator implements UIMediator {
             tree.setRowHeight(0); // 讓各列根據 renderer 自動計算高度
             tree.getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
 
-            // 4-B: Cell Renderer，讓 Task 節點顯示縮圖與 destination 名稱
+            // 4-B: Cell Renderer，讓 Task 節點顯示縮圖、狀態圖示與 destination 名稱
             tree.setCellRenderer(new DefaultTreeCellRenderer() {
                 @Override
                 public Component getTreeCellRendererComponent(
@@ -259,9 +264,18 @@ public class JUIMediator implements UIMediator {
                     Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
                     if (userObject instanceof Task) {
                         Task task = (Task) userObject;
-                        value = task.destination.getName();
+                        TaskStatus status = mediator.taskStatusMap.getOrDefault(task, TaskStatus.PENDING);
+                        String prefix = status == TaskStatus.SUCCESS ? "\u2713 " :
+                                        status == TaskStatus.FAILED  ? "\u2717 " : "";
+                        value = prefix + task.destination.getName();
                         Component c = super.getTreeCellRendererComponent(
                                 tree, value, sel, expanded, leaf, row, hasFocus);
+                        if (!sel) {
+                            if (status == TaskStatus.SUCCESS)
+                                c.setForeground(new Color(76, 175, 80));
+                            else if (status == TaskStatus.FAILED)
+                                c.setForeground(new Color(244, 67, 54));
+                        }
                         if (task.files != null && task.files.length > 0) {
                             ImageIcon icon = mediator.thumbnailCache.get(task.files[0]);
                             if (icon != null) {
@@ -618,6 +632,7 @@ public class JUIMediator implements UIMediator {
     @Override
     public void updateTasks(List<Task> tasks) {
         currentTasks = new ArrayList<>(tasks);
+        taskStatusMap.clear();
         applySort();
         refreshConvertButton();
     }
@@ -683,6 +698,7 @@ public class JUIMediator implements UIMediator {
     @Override
     public void setRunningState(boolean running) {
         if (running) {
+            taskStatusMap.clear();
             convertButton.setEnabled(false);
             stopButton.setEnabled(true);
             clearAllButton.setEnabled(false);
@@ -698,6 +714,16 @@ public class JUIMediator implements UIMediator {
         }
     }
 
+
+    @Override
+    public void updateTaskStatus(Task task, boolean success) {
+        taskStatusMap.put(task, success ? TaskStatus.SUCCESS : TaskStatus.FAILED);
+        SwingUtilities.invokeLater(() -> {
+            DefaultTreeModel model = (DefaultTreeModel) sourceTree.getModel();
+            model.nodeChanged((TreeNode) model.getRoot());
+            sourceTree.repaint();
+        });
+    }
 
     public void updateSourceTree(List<Task> tasks) {
         DefaultTreeModel model = (DefaultTreeModel) sourceTree.getModel();

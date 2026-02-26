@@ -126,18 +126,21 @@ public class Model {
 
 
                 for (int i = 0; i < sources.size(); i++) {
+                    Task currentTask = sources.get(i);
                     try {
                         IDocument document = factory.start(
-                                sources.get(i).files,
+                                currentTask.files,
                                 colorType,
                                 documentArgument,
                                 pageArgument,
                                 factoryListener);
-                        document.save(new File(output_folder, sources.get(i).destination.getName()));
+                        document.save(new File(output_folder, currentTask.destination.getName()));
                         document.close();
-                        listener.onLogAppend(String.format("[OK] %s", sources.get(i).destination.getName()));
+                        listener.onLogAppend(String.format("[OK] %s", currentTask.destination.getName()));
+                        listener.onTaskComplete(currentTask, true);
                     } catch (PDFFactoryException | IOException e) {
-                        listener.onLogAppend(String.format("[ERROR] %s -> %s", sources.get(i).destination.getName(), e.getCause().getMessage()));
+                        listener.onLogAppend(String.format("[ERROR] %s -> %s", currentTask.destination.getName(), e.getCause().getMessage()));
+                        listener.onTaskComplete(currentTask, false);
                     } finally {
                         listener.onBatchProgressUpdate(i + 1, sources.size());
                     }
