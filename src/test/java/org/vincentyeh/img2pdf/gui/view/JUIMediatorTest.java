@@ -14,6 +14,10 @@ import org.vincentyeh.img2pdf.lib.pdf.parameter.PageSize;
 
 import javax.swing.*;
 import java.io.File;
+import java.util.Arrays;
+import java.util.Collections;
+
+import org.vincentyeh.img2pdf.gui.model.Task;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -477,5 +481,90 @@ class JUIMediatorTest {
             mediator.addLog("c");
         });
         assertThat(window.list("logList").target().getModel().getSize()).isEqualTo(3);
+    }
+
+    // ===== J. Convert 按鈕 enable/disable 黑箱測試 =====
+
+    @Test
+    void convert_disabled_with_no_tasks() {
+        // 初始狀態：無任何 task，Convert 應 DISABLED
+        window.button("convertButton").requireDisabled();
+    }
+
+    @Test
+    void convert_enabled_when_tasks_present_no_encrypt() {
+        // 有 task、無加密，Convert 應 ENABLED
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        window.button("convertButton").requireEnabled();
+    }
+
+    @Test
+    void convert_disabled_after_all_tasks_cleared() {
+        // 加入 task 後清空，Convert 應 DISABLED
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.updateTasks(Collections.emptyList()));
+        window.button("convertButton").requireDisabled();
+    }
+
+    @Test
+    void convert_disabled_when_encrypt_on_no_password() {
+        // 有 task + 開啟加密 + 兩個密碼均未填，Convert 應 DISABLED
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", true));
+        window.button("convertButton").requireDisabled();
+    }
+
+    @Test
+    void convert_disabled_when_encrypt_on_owner_only() {
+        // 有 task + 開啟加密 + 只填 ownerPassword，Convert 應 DISABLED
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", true));
+        window.textBox("ownerPasswordField").enterText("owner123");
+        window.button("convertButton").requireDisabled();
+    }
+
+    @Test
+    void convert_disabled_when_encrypt_on_user_only() {
+        // 有 task + 開啟加密 + 只填 userPassword，Convert 應 DISABLED
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", true));
+        window.textBox("userPasswordField").enterText("user123");
+        window.button("convertButton").requireDisabled();
+    }
+
+    @Test
+    void convert_enabled_when_encrypt_on_both_passwords() {
+        // 有 task + 開啟加密 + 兩個密碼均填，Convert 應 ENABLED
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", true));
+        window.textBox("ownerPasswordField").enterText("owner123");
+        window.textBox("userPasswordField").enterText("user123");
+        window.button("convertButton").requireEnabled();
+    }
+
+    @Test
+    void convert_disabled_when_owner_password_cleared() {
+        // 有 task + 開啟加密 + 填兩個密碼後清空 ownerPassword，Convert 應 DISABLED
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", true));
+        window.textBox("ownerPasswordField").enterText("owner123");
+        window.textBox("userPasswordField").enterText("user123");
+        window.textBox("ownerPasswordField").deleteText();
+        window.button("convertButton").requireDisabled();
+    }
+
+    @Test
+    void convert_enabled_after_encrypt_disabled_with_tasks() {
+        // 有 task + 開啟加密後再關閉，Convert 應回歸「有 task → ENABLED」
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", true));
+        GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", false));
+        window.button("convertButton").requireEnabled();
+    }
+
+    // ===== 輔助方法 =====
+
+    private Task createDummyTask() {
+        return new Task(new File("dummy.pdf"), new File[0]);
     }
 }
