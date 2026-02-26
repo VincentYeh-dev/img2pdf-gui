@@ -60,7 +60,9 @@
   - `GlobbingFileFilter.java` — Glob 樣式檔案過濾（例如 `*.jpg`、`*.{png,jpg}`）。
 
 ### View（`view/`）
-- **`View.java` / `View.form`** — `View.form` 為 IntelliJ UI Designer 佈局定義，`View.java` 為手動維護的對應實作。`View.java` 中所有被 `.form` 綁定（`binding`）的元件**必須宣告為 instance fields**，並在 `$$$setupUI$$$()` 中初始化後交由 `JUIMediator.Builder` 接管。
+- **`View.java` / `View.form`** — `View.form` 為 IntelliJ UI Designer 佈局定義，`View.java` 為手動維護的對應實作。`View.java` 中所有被 `.form` 綁定（`binding`）的元件**必須宣告為 instance fields**，並在 `$$$setupUI$$$()` 中初始化後交由 `JUIMediator.Builder` 接管。IntelliJ GUI Designer 設定為「儲存時產生 Java 原始碼」，因此 `$$$setupUI$$$()` 為**自動產生**，不可手動編輯。修改 UI 佈局時，**必須同步更改 `View.form` 與 `View.java`**：在 `View.form` 中調整佈局（IntelliJ 儲存時自動更新 `$$$setupUI$$$()`），同時在 `View.java` 手動同步以下部分：
+  - 新增元件的 instance field 宣告
+  - `JUIMediator.Builder` 的 `link*()` 呼叫
 - **`UIState.java`** — 單例，儲存所有目前的 GUI 狀態（來源檔案、頁面大小／對齊／方向、加密、色彩類型、目標資料夾）。
 - **`UIMediator` / `JUIMediator.java`** — Mediator 模式的核心，將所有 Swing 元件串接，並提供 `Builder` API，負責管理所有 UI 狀態切換與元件互動。
 - **`MediatorListener`** — Controller 實作的介面，用於接收 UI 事件（`onSourcesUpdate`、`onConvertButtonClick`、`onStopButtonClick`）。
@@ -163,3 +165,4 @@ mvn clean package    # 打包（Fat JAR + EXE）
 - **Windows glob 大小寫**：`PathMatcher` glob 在 Windows 不區分大小寫，`*.jpg` 可匹配 `photo.JPG`，測試時勿誤判為過濾失敗。
 - **測試套件包名**：GUI 測試必須放在 `org.vincentyeh.img2pdf.gui.view` 套件，才能存取 `UIState.resetForTesting()`（package-private）。
 - **元件命名**：`JUIMediator.Builder` 的每個 `link*()` 方法必須呼叫 `setName()`，AssertJ Swing 才能透過名稱找到元件。
+- **`$$$setupUI$$$()` 為自動產生，禁止手動編輯**：IntelliJ GUI Designer 設定為「form 儲存時產生 Java 原始碼」，`$$$setupUI$$$()` 由 IntelliJ 自動寫入 `View.java`。手動修改 `$$$setupUI$$$()` 將在下次儲存 `View.form` 時被覆蓋。修改 UI 佈局時，**必須同步更改 `View.form` 與 `View.java`**：`View.form` 負責佈局定義（IntelliJ 儲存時自動同步 `$$$setupUI$$$()`），`View.java` 仍需手動維護：instance field 宣告、`JUIMediator.Builder` 的 `link*()` 呼叫。
