@@ -9,10 +9,7 @@ public interface ModelListener{
     void onBatchStart();
     void onBatchComplete();
     void onSourcesUpdate(List<Task> source);
-    void onLogUpdate(List<String> log);
-    void onLogAppend(String log);
-
-
+    void onTaskComplete(Task task, boolean success);
 
 
 }

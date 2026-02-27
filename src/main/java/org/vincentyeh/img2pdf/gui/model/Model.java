@@ -17,6 +17,8 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -25,11 +27,17 @@ import java.util.List;
 public class Model {
     private List<Task> sources = new LinkedList<>();
     private ModelListener listener = null;
+    private TaskSortOrder sortOrder = TaskSortOrder.NAME_ASC;
+    private volatile boolean stopRequested = false;
 
-    public static List<Task> parseSourceFiles(File[] directories, String outputFormat, String fileFilterPattern) {
+    public void requestStop() {
+        stopRequested = true;
+    }
+
+    public static List<Task> parseSourceFiles(File[] directories) {
         List<Task> sources = new LinkedList<>();
-        NameFormatter<File> formatter = new FileNameFormatter(outputFormat);
-        FileFilter filter = new GlobbingFileFilter(fileFilterPattern);
+        NameFormatter<File> formatter = new FileNameFormatter("<NAME>.pdf");
+        FileFilter filter = new GlobbingFileFilter("*.{JPG,jpg,JPEG,jpeg,PNG,png,BMP,bmp,webp,WEBP}");
         Comparator<File> sorter = new FileSorter(FileSorter.Sortby.NUMERIC, FileSorter.Sequence.INCREASE);
 
         if (directories == null)
@@ -53,7 +61,21 @@ public class Model {
     }
 
     public void setTask(List<Task> tasks) {
-        this.sources = tasks;
+        this.sources = new ArrayList<>(tasks);
+        this.sources.sort(sortOrder.getComparator());
+    }
+
+    public List<Task> getTasks() {
+        return sources;
+    }
+
+    public void setSortOrder(TaskSortOrder order) {
+        this.sortOrder = order;
+        sources.sort(order.getComparator());
+    }
+
+    public TaskSortOrder getSortOrder() {
+        return sortOrder;
     }
 
     public void removeTask(int index) {
@@ -63,6 +85,21 @@ public class Model {
     }
 
     public void removeTask(Task task) {
+        this.sources.remove(task);
+    }
+
+    public void removeTaskFromDisk(Task task) {
+        if (task.files != null && task.files.length > 0) {
+            File folder = task.files[0].getParentFile();
+            try {
+                Files.walk(folder.toPath())
+                        .sorted(Comparator.reverseOrder())
+                        .map(Path::toFile)
+                        .forEach(File::delete);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         this.sources.remove(task);
     }
 
@@ -92,6 +129,7 @@ public class Model {
 
 
             Thread conversion_thread = new Thread(() -> {
+                stopRequested = false;
                 listener.onBatchStart();
                 ImagePDFFactory factory = Img2Pdf.createPDFBoxMaxPerformanceFactory();
 
@@ -106,18 +144,20 @@ public class Model {
 
 
                 for (int i = 0; i < sources.size(); i++) {
+                    Task currentTask = sources.get(i);
+                    if (stopRequested) break;
                     try {
                         IDocument document = factory.start(
-                                sources.get(i).files,
+                                currentTask.files,
                                 colorType,
                                 documentArgument,
                                 pageArgument,
                                 factoryListener);
-                        document.save(new File(output_folder, sources.get(i).destination.getName()));
+                        document.save(new File(output_folder, currentTask.destination.getName()));
                         document.close();
-                        listener.onLogAppend(String.format("[OK] %s", sources.get(i).destination.getName()));
+                        listener.onTaskComplete(currentTask, true);
                     } catch (PDFFactoryException | IOException e) {
-                        listener.onLogAppend(String.format("[ERROR] %s -> %s", sources.get(i).destination.getName(), e.getCause().getMessage()));
+                        listener.onTaskComplete(currentTask, false);
                     } finally {
                         listener.onBatchProgressUpdate(i + 1, sources.size());
                     }

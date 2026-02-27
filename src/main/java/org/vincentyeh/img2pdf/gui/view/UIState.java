@@ -23,7 +23,6 @@ public class UIState {
     private String userPassword = null;
 
     private File[] sourceFiles = null;
-    private String outputFormat = null;
     private File destinationFolder = null;
     private ColorType colorType = null;
     private PageSize pageSize = null;
@@ -32,11 +31,14 @@ public class UIState {
     private PageAlign.HorizontalAlign horizontalAlign;
     private PageAlign.VerticalAlign verticalAlign;
     private PageDirection pageDirection;
-    private String fileFilterPattern = null;
 
 
     private UIState() {
 
+    }
+
+    static void resetForTesting() {
+        instance = new UIState();
     }
 
     public void setRunning(boolean running) {
@@ -89,9 +91,6 @@ public class UIState {
     }
 
 
-    public void setFileFilterPattern(String fileFilterPattern) {
-        this.fileFilterPattern = fileFilterPattern;
-    }
 
     public boolean isRunning() {
         return running;
@@ -130,9 +129,6 @@ public class UIState {
     }
 
 
-    public String getFileFilterPattern() {
-        return fileFilterPattern;
-    }
 
     public PageAlign.HorizontalAlign getHorizontalAlign() {
         return horizontalAlign;
@@ -146,11 +142,4 @@ public class UIState {
         return pageDirection;
     }
 
-    public String getOutputFormat() {
-        return outputFormat;
-    }
-
-    public void setOutputFormat(String outputFormat) {
-        this.outputFormat = outputFormat;
-    }
 }
