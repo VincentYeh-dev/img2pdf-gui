@@ -14,6 +14,16 @@ import javax.swing.text.StyleContext;
 import java.awt.*;
 import java.util.*;
 
+/**
+ * The main UI container for img2pdf-gui.
+ * <p>
+ * The component layout is defined in {@code View.form} (IntelliJ UI Designer) and
+ * the generated initialisation code lives in the auto-generated {@code $$$setupUI$$$()}
+ * method — <strong>do not edit that method manually</strong>.
+ * After component initialisation, {@link #createUIMediator()} wires all Swing
+ * components to a {@link JUIMediator} via {@link JUIMediator.Builder}.
+ * </p>
+ */
 public class View {
 
     private JPanel root;
@@ -42,16 +52,30 @@ public class View {
     private JCheckBox enableEncryptCheckBox;
     private JComboBox<TaskSortOrder> sortComboBox;
 
+    /**
+     * Constructs the View by initialising all Swing components (via the
+     * auto-generated {@code $$$setupUI$$$()} method) and then wiring them
+     * together through {@link #createUIMediator()}.
+     */
     public View() {
         $$$setupUI$$$();
         createUIMediator();
     }
 
-
+    /**
+     * Returns the root {@link JPanel} that should be set as the content pane of
+     * the application's {@link javax.swing.JFrame}.
+     *
+     * @return the root panel
+     */
     public JPanel getRootPanel() {
         return root;
     }
 
+    /**
+     * Builds the {@link JUIMediator} by linking every Swing component declared in
+     * this view to the mediator via {@link JUIMediator.Builder}.
+     */
     private void createUIMediator() {
         JUIMediator.Builder mediatorBuilder = new JUIMediator.Builder();
         mediatorBuilder.linkPageSizeComboBox(pageSizeComboBox);
@@ -291,6 +315,13 @@ public class View {
         return root;
     }
 
+    /**
+     * Returns the {@link UIMediator} created during construction.
+     * The Controller registers itself as listener on this mediator to receive
+     * UI events.
+     *
+     * @return the mediator managing all UI component interactions
+     */
     public UIMediator getUIMediator() {
         return uiMediator;
     }

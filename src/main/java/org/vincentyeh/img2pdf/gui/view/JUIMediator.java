@@ -32,12 +32,38 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Concrete {@link UIMediator} implementation that manages all Swing component
+ * interactions for the img2pdf-gui application.
+ * <p>
+ * Components are wired together via the inner {@link Builder} class.
+ * All UI event processing is centralised in {@link #notifyUI(String, Object...)}
+ * using string-based event identifiers. State is persisted in the singleton
+ * {@link UIState}; user-action events are forwarded to the registered
+ * {@link MediatorListener}.
+ * </p>
+ */
 public class JUIMediator implements UIMediator {
 
-    public enum TaskStatus { PENDING, SUCCESS, FAILED }
+    /**
+     * Represents the display status of a task node in the source tree.
+     */
+    public enum TaskStatus {
+        /** Task has not yet been processed. */
+        PENDING,
+        /** Task completed successfully. */
+        SUCCESS,
+        /** Task failed during conversion. */
+        FAILED
+    }
 
+    /** Side length (in pixels) of the thumbnail icons shown in the source tree. */
     private static final int THUMBNAIL_SIZE = 48;
+
+    /** Cache of scaled thumbnail icons keyed by the first image file of each task. */
     private final Map<File, ImageIcon> thumbnailCache = new HashMap<>();
+
+    /** Maps each task to its current display status (visible in the tree). */
     final Map<Task, TaskStatus> taskStatusMap = new HashMap<>();
 
     private MediatorListener listener;
@@ -66,9 +92,23 @@ public class JUIMediator implements UIMediator {
 
     private final UIState state = UIState.getInstance();
 
+    /**
+     * Builder that links individual Swing components to a {@link JUIMediator}
+     * instance, then returns the fully configured mediator via {@link #build()}.
+     * <p>
+     * Every {@code link*()} method assigns the component name (for AssertJ Swing
+     * lookup), stores the reference in the mediator, and attaches the appropriate
+     * event listener.
+     * </p>
+     */
     public static class Builder {
         private final JUIMediator mediator = new JUIMediator();
 
+        /**
+         * Links the source-folder browse button to the mediator.
+         *
+         * @param button the button that opens the source-directory chooser
+         */
         public void linkSourceBrowseButton(JButton button) {
             button.setName("sourceBrowseButton");
             mediator.sourceBrowseButton = button;
@@ -80,6 +120,11 @@ public class JUIMediator implements UIMediator {
             });
         }
 
+        /**
+         * Links the page-size combo-box to the mediator.
+         *
+         * @param comboBox the combo-box containing {@link PageSize} options
+         */
         public void linkPageSizeComboBox(JComboBox<PageSize> comboBox) {
             comboBox.setName("pageSizeComboBox");
             mediator.pageSizeComboBox = comboBox;
@@ -94,6 +139,11 @@ public class JUIMediator implements UIMediator {
             });
         }
 
+        /**
+         * Links the horizontal-alignment combo-box to the mediator.
+         *
+         * @param comboBox the combo-box containing {@link PageAlign.HorizontalAlign} options
+         */
         public void linkHorizontalAlignComboBox(JComboBox<PageAlign.HorizontalAlign> comboBox) {
             comboBox.setName("horizontalAlignComboBox");
             mediator.horizontalAlignComboBox = comboBox;
@@ -109,6 +159,11 @@ public class JUIMediator implements UIMediator {
 
         }
 
+        /**
+         * Links the vertical-alignment combo-box to the mediator.
+         *
+         * @param comboBox the combo-box containing {@link PageAlign.VerticalAlign} options
+         */
         public void linkVerticalAlignComboBox(JComboBox<PageAlign.VerticalAlign> comboBox) {
             comboBox.setName("verticalAlignComboBox");
             mediator.verticalAlignComboBox = comboBox;
@@ -123,6 +178,11 @@ public class JUIMediator implements UIMediator {
             });
         }
 
+        /**
+         * Links the owner-password field to the mediator.
+         *
+         * @param passwordField the password field for the PDF owner (permissions) password
+         */
         public void linkOwnerPasswordField(JPasswordField passwordField) {
             passwordField.setName("ownerPasswordField");
             mediator.ownerPasswordField = passwordField;
@@ -146,6 +206,11 @@ public class JUIMediator implements UIMediator {
             });
         }
 
+        /**
+         * Links the user-password field to the mediator.
+         *
+         * @param passwordField the password field for the PDF user (open) password
+         */
         public void linkUserPasswordField(JPasswordField passwordField) {
             passwordField.setName("userPasswordField");
             mediator.userPasswordField = passwordField;
@@ -169,6 +234,11 @@ public class JUIMediator implements UIMediator {
             });
         }
 
+        /**
+         * Links the Convert button to the mediator.
+         *
+         * @param button the button that triggers batch PDF conversion
+         */
         public void linkConvertButton(JButton button) {
             button.setName("convertButton");
             mediator.convertButton = button;
@@ -180,6 +250,11 @@ public class JUIMediator implements UIMediator {
             });
         }
 
+        /**
+         * Links the page-direction combo-box to the mediator.
+         *
+         * @param comboBox the combo-box containing {@link PageDirection} options
+         */
         public void linkDirectionComboBox(JComboBox<PageDirection> comboBox) {
             comboBox.setName("directionComboBox");
             mediator.directionComboBox = comboBox;
@@ -194,6 +269,11 @@ public class JUIMediator implements UIMediator {
             });
         }
 
+        /**
+         * Links the auto-rotate check-box to the mediator.
+         *
+         * @param checkBox the check-box that enables automatic image rotation
+         */
         public void linkAutoRotateCheckBox(JCheckBox checkBox) {
             checkBox.setName("autoRotateCheckBox");
             mediator.autoRotateCheckBox = checkBox;
@@ -206,12 +286,22 @@ public class JUIMediator implements UIMediator {
             });
         }
 
+        /**
+         * Links the overall batch conversion progress bar to the mediator.
+         *
+         * @param progressBar the progress bar that shows how many tasks have been completed
+         */
         public void linkTotalConversionProgressBar(JProgressBar progressBar) {
             progressBar.setName("totalConversionProgressBar");
             mediator.totalConversionProgressBar = progressBar;
         }
 
 
+        /**
+         * Links the colour-type combo-box to the mediator.
+         *
+         * @param comboBox the combo-box containing {@link ColorType} options
+         */
         public void linkColorTypeComboBox(JComboBox<ColorType> comboBox) {
             comboBox.setName("colorTypeComboBox");
             mediator.colorTypeComboBox = comboBox;
@@ -226,6 +316,18 @@ public class JUIMediator implements UIMediator {
             });
         }
 
+        /**
+         * Links the source task tree to the mediator.
+         * <p>
+         * Also configures:
+         * <ul>
+         *   <li>A custom cell renderer that shows task status icons and thumbnails.</li>
+         *   <li>A right-click context menu for removing tasks or deleting source folders.</li>
+         *   <li>A drag-and-drop {@link TransferHandler} for dropping folders onto the tree.</li>
+         * </ul>
+         *
+         * @param tree the tree used to display the list of conversion tasks
+         */
         public void linkSourceTree(JTree tree) {
             tree.setName("sourceTree");
             mediator.sourceTree = tree;
@@ -371,11 +473,21 @@ public class JUIMediator implements UIMediator {
             });
         }
 
+        /**
+         * Links the batch progress label to the mediator.
+         *
+         * @param label the label that shows the current/total task count (e.g. {@code "2/5"})
+         */
         public void linkTotalConversionLabel(JLabel label) {
             label.setName("totalConversionLabel");
             mediator.totalConversionLabel = label;
         }
 
+        /**
+         * Links the Clear All button to the mediator.
+         *
+         * @param button the button that clears all tasks from the list
+         */
         public void linkClearAllButton(JButton button) {
             button.setName("clearAllButton");
             mediator.clearAllButton = button;
@@ -387,16 +499,31 @@ public class JUIMediator implements UIMediator {
             });
         }
 
+        /**
+         * Links the per-page conversion progress bar to the mediator.
+         *
+         * @param progressBar the progress bar that shows page-level progress for the current task
+         */
         public void linkPageConversionProgressBar(JProgressBar progressBar) {
             progressBar.setName("pageConversionProgressBar");
             mediator.pageConversionProgressBar = progressBar;
         }
 
+        /**
+         * Links the per-page progress label to the mediator.
+         *
+         * @param label the label that shows the current/total page count within the active task
+         */
         public void linkPageConversionLabel(JLabel label) {
             label.setName("pageConversionLabel");
             mediator.pageConversionLabel = label;
         }
 
+        /**
+         * Links the Stop button to the mediator.
+         *
+         * @param button the button that requests early termination of the running conversion
+         */
         public void linkStopButton(JButton button) {
             button.setName("stopButton");
             mediator.stopButton = button;
@@ -408,6 +535,11 @@ public class JUIMediator implements UIMediator {
             });
         }
 
+        /**
+         * Links the output-folder browse button to the mediator.
+         *
+         * @param button the button that opens the output-directory chooser dialog
+         */
         public void linkOutputFolderBrowseButton(JButton button) {
             button.setName("outputFolderBrowseButton");
             mediator.outputFolderBrowseButton = button;
@@ -419,6 +551,12 @@ public class JUIMediator implements UIMediator {
             });
         }
 
+        /**
+         * Links the output-folder text field to the mediator.
+         * The field is set to read-only; its text is updated programmatically.
+         *
+         * @param textField the text field displaying the selected output directory path
+         */
         public void linkOutputFolderField(JTextField textField) {
             textField.setName("outputFolderField");
             textField.setEditable(false);
@@ -443,6 +581,12 @@ public class JUIMediator implements UIMediator {
             });
         }
 
+        /**
+         * Links the sort-order combo-box to the mediator and populates its items.
+         *
+         * @param comboBox the combo-box containing {@link TaskSortOrder} options
+         * @return {@code this} builder, for method chaining
+         */
         public Builder linkSortComboBox(JComboBox<TaskSortOrder> comboBox) {
             comboBox.setName("sortComboBox");
             for (TaskSortOrder order : TaskSortOrder.values()) {
@@ -456,6 +600,11 @@ public class JUIMediator implements UIMediator {
             return this;
         }
 
+        /**
+         * Links the encryption enable check-box to the mediator.
+         *
+         * @param checkBox the check-box that toggles PDF encryption on or off
+         */
         public void linkEncryptionCheckBox(JCheckBox checkBox) {
             checkBox.setName("encryptCheckBox");
             mediator.encryptCheckBox = checkBox;
@@ -468,15 +617,44 @@ public class JUIMediator implements UIMediator {
             });
         }
 
+        /**
+         * Builds and returns the fully configured {@link UIMediator}.
+         *
+         * @return the constructed mediator, ready to use after calling
+         *         {@link UIMediator#initialize()}
+         */
         public UIMediator build() {
             return mediator;
         }
     }
 
+    /** Private constructor — instances are created exclusively by {@link Builder}. */
     private JUIMediator() {
 
     }
 
+    /**
+     * Central event-dispatch method.
+     * <p>
+     * Accepts string-keyed events fired by Swing component listeners and routes
+     * them to the appropriate state update, UI refresh, or listener notification.
+     * </p>
+     * Supported event names include:
+     * <ul>
+     *   <li>{@code "output_folder_change"} — updates the destination folder in {@link UIState}</li>
+     *   <li>{@code "owner_password_change"} / {@code "user_password_change"} — updates passwords</li>
+     *   <li>{@code "auto_rotate_change"} — toggles auto-rotate and page-direction state</li>
+     *   <li>{@code "page_size_change"}, {@code "horizontal_align_change"}, etc. — updates page settings</li>
+     *   <li>{@code "source_browse_button_click"} — opens the source-folder chooser</li>
+     *   <li>{@code "convert_button_click"} — delegates to {@link MediatorListener#onConvertButtonClick}</li>
+     *   <li>{@code "stop_button_click"} — delegates to {@link MediatorListener#onStopButtonClick}</li>
+     *   <li>{@code "remove_tasks"} / {@code "remove_tasks_from_disk"} — task removal events</li>
+     *   <li>{@code "encryption_change"} — enables/disables encryption and password fields</li>
+     * </ul>
+     *
+     * @param event the name identifying the UI event
+     * @param data  optional payload values associated with the event
+     */
     @Override
     public void notifyUI(String event, Object... data) {
         if (event.equals("output_folder_change")) {
@@ -599,6 +777,13 @@ public class JUIMediator implements UIMediator {
         refreshConvertButton();
     }
 
+    /**
+     * Re-evaluates whether the Convert button should be enabled.
+     * <p>
+     * The button is enabled only when there is at least one task and, if encryption
+     * is active, both owner and user passwords are non-empty.
+     * </p>
+     */
     private void refreshConvertButton() {
         if (currentTasks.isEmpty()) {
             convertButton.setEnabled(false);
@@ -646,6 +831,15 @@ public class JUIMediator implements UIMediator {
         });
     }
 
+    /**
+     * Rebuilds the source {@link JTree} from the given task list.
+     * <p>
+     * Stale thumbnail cache entries are evicted, and asynchronous thumbnail
+     * loading is triggered for any first-image files not yet cached.
+     * </p>
+     *
+     * @param tasks the current list of tasks to display in the tree
+     */
     public void updateSourceTree(List<Task> tasks) {
         DefaultTreeModel model = (DefaultTreeModel) sourceTree.getModel();
         DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
@@ -737,6 +931,10 @@ public class JUIMediator implements UIMediator {
         refreshConvertButton();
     }
 
+    /**
+     * Opens a directory-chooser dialog for the output folder and updates the
+     * output folder field and {@link UIState} if the user confirms a selection.
+     */
     private void browseOutputFolder() {
         JFileChooser outputFolderChooser = createOutputFolderChooser();
         String currentText = outputFolderField.getText().trim();
@@ -753,6 +951,10 @@ public class JUIMediator implements UIMediator {
         }
     }
 
+    /**
+     * Opens a multi-selection directory-chooser dialog for source folders and
+     * notifies the listener when the user confirms a selection.
+     */
     private void browseSources() {
         JFileChooser sourceFilesChooser = createSourceFilesChooser();
         if (sourceFilesChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
@@ -763,6 +965,11 @@ public class JUIMediator implements UIMediator {
         }
     }
 
+    /**
+     * Creates a {@link JFileChooser} configured for selecting multiple source directories.
+     *
+     * @return a chooser set to multi-selection, directories-only mode
+     */
     private JFileChooser createSourceFilesChooser() {
         JFileChooser chooser = new JFileChooser();
         chooser.setMultiSelectionEnabled(true);
@@ -770,6 +977,11 @@ public class JUIMediator implements UIMediator {
         return chooser;
     }
 
+    /**
+     * Creates a {@link JFileChooser} configured for selecting a single output directory.
+     *
+     * @return a chooser set to single-selection, directories-only mode
+     */
     private JFileChooser createOutputFolderChooser() {
         JFileChooser chooser = new JFileChooser();
         chooser.setMultiSelectionEnabled(false);
@@ -777,6 +989,13 @@ public class JUIMediator implements UIMediator {
         return chooser;
     }
 
+    /**
+     * Starts a background {@link SwingWorker} to load and scale a thumbnail for the
+     * given image file, then stores the result in {@link #thumbnailCache} and
+     * triggers a tree node repaint when done.
+     *
+     * @param imageFile the image file for which to generate a thumbnail
+     */
     private void loadThumbnailAsync(File imageFile) {
         new SwingWorker<ImageIcon, Void>() {
             @Override

@@ -10,11 +10,19 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
 /**
- * Hello world!
+ * Application entry point for img2pdf-gui.
+ * <p>
+ * Initialises the FlatDarkLaf theme, constructs the MVC triad
+ * (Model, View, Controller), and displays the main application window.
+ * </p>
  */
 public class App {
 
-
+    /**
+     * Launches the application.
+     *
+     * @param args command-line arguments (not used)
+     */
     public static void main(String[] args) {
         FlatDarkLaf.setup();
 
