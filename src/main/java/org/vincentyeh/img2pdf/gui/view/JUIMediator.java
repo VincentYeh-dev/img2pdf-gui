@@ -578,7 +578,7 @@ public class JUIMediator implements UIMediator {
                 listener.onSourcesUpdate(this, state);
         }
         if (event.equals("stop_button_click")) {
-            System.out.printf("Stop Button clicked\n");
+            if (listener != null) listener.onStopButtonClick(this);
         }
 
         if (event.equals("remove_tasks")) {

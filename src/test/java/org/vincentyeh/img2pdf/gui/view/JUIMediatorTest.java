@@ -725,6 +725,28 @@ class JUIMediatorTest {
         assertThat(names).containsExactly("z.pdf", "m.pdf");
     }
 
+    // ===== N. StopButton 點擊通知 Listener =====
+
+    @Test
+    void N1_click_stopButton_while_running_notifies_listener_onStopButtonClick() {
+        int[] callCount = {0};
+        MediatorListener mockListener = new MediatorListener() {
+            @Override public void onSourcesUpdate(UIMediator m, UIState s) {}
+            @Override public void onConvertButtonClick(UIMediator m, UIState s) {}
+            @Override public void onStopButtonClick(UIMediator m) { callCount[0]++; }
+            @Override public void onTaskRemove(UIMediator m, List<Task> t) {}
+            @Override public void onTaskRemoveFromDisk(UIMediator m, List<Task> t) {}
+            @Override public void onSortOrderChange(UIMediator m, TaskSortOrder order) {}
+        };
+        GuiActionRunner.execute(() -> ((JUIMediator) mediator).setListener(mockListener));
+        GuiActionRunner.execute(() -> mediator.setRunningState(true));
+
+        window.button("stopButton").click();
+        robot.waitForIdle();
+
+        assertThat(callCount[0]).isEqualTo(1);
+    }
+
     // ===== 輔助方法 =====
 
     private Task createDummyTask() {

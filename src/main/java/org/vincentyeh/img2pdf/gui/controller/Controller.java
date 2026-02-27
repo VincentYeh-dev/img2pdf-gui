@@ -49,7 +49,7 @@ public class Controller implements MediatorListener, ModelListener {
 
     @Override
     public void onStopButtonClick(UIMediator mediator) {
-
+        model.requestStop();
     }
 
     @Override

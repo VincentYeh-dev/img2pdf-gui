@@ -28,6 +28,11 @@ public class Model {
     private List<Task> sources = new LinkedList<>();
     private ModelListener listener = null;
     private TaskSortOrder sortOrder = TaskSortOrder.NAME_ASC;
+    private volatile boolean stopRequested = false;
+
+    public void requestStop() {
+        stopRequested = true;
+    }
 
     public static List<Task> parseSourceFiles(File[] directories) {
         List<Task> sources = new LinkedList<>();
@@ -124,6 +129,7 @@ public class Model {
 
 
             Thread conversion_thread = new Thread(() -> {
+                stopRequested = false;
                 listener.onBatchStart();
                 ImagePDFFactory factory = Img2Pdf.createPDFBoxMaxPerformanceFactory();
 
@@ -139,6 +145,7 @@ public class Model {
 
                 for (int i = 0; i < sources.size(); i++) {
                     Task currentTask = sources.get(i);
+                    if (stopRequested) break;
                     try {
                         IDocument document = factory.start(
                                 currentTask.files,
