@@ -4,7 +4,6 @@ import org.vincentyeh.img2pdf.gui.model.util.file.FileNameFormatter;
 import org.vincentyeh.img2pdf.gui.model.util.file.FileSorter;
 import org.vincentyeh.img2pdf.gui.model.util.file.GlobbingFileFilter;
 import org.vincentyeh.img2pdf.gui.model.util.interfaces.NameFormatter;
-import org.vincentyeh.img2pdf.gui.view.UIState;
 import org.vincentyeh.img2pdf.lib.Img2Pdf;
 import org.vincentyeh.img2pdf.lib.image.ColorType;
 import org.vincentyeh.img2pdf.lib.pdf.framework.factory.IDocument;
@@ -108,16 +107,16 @@ public class Model {
     }
 
 
-    public void convert(UIState state) {
+    public void convert(ConversionConfig config) {
         try {
             File tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
             tempFolder.deleteOnExit();
             listener.onBatchProgressUpdate(0, sources.size());
-            File output_folder = state.getDestinationFolder();
-            boolean encryption = state.isEncrypted();
-            String owner_password = state.getOwnerPassword();
-            String user_password = state.getUserPassword();
-            ColorType colorType = state.getColorType();
+            File output_folder = config.destinationFolder;
+            boolean encryption = config.encrypted;
+            String owner_password = config.ownerPassword;
+            String user_password = config.userPassword;
+            ColorType colorType = config.colorType;
 
             if (!output_folder.exists()) {
                 boolean success = output_folder.mkdirs();
@@ -135,11 +134,11 @@ public class Model {
 
                 DocumentArgument documentArgument = createDocumentArgument(encryption, owner_password, user_password);
                 PageArgument pageArgument = createPageArgument(
-                        state.getVerticalAlign(),
-                        state.getHorizontalAlign(),
-                        state.getPageSize(),
-                        state.getPageDirection(),
-                        state.isAutoRotate()
+                        config.verticalAlign,
+                        config.horizontalAlign,
+                        config.pageSize,
+                        config.pageDirection,
+                        config.autoRotate
                 );
 
 

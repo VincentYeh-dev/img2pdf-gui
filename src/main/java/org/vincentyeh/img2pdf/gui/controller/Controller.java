@@ -1,5 +1,6 @@
 package org.vincentyeh.img2pdf.gui.controller;
 
+import org.vincentyeh.img2pdf.gui.model.ConversionConfig;
 import org.vincentyeh.img2pdf.gui.model.Model;
 import org.vincentyeh.img2pdf.gui.model.ModelListener;
 import org.vincentyeh.img2pdf.gui.model.Task;
@@ -43,8 +44,19 @@ public class Controller implements MediatorListener, ModelListener {
 
     @Override
     public void onConvertButtonClick(UIMediator mediator, UIState state) {
-        model.convert(state);
-
+        ConversionConfig config = new ConversionConfig(
+                state.getDestinationFolder(),
+                state.isEncrypted(),
+                state.getOwnerPassword(),
+                state.getUserPassword(),
+                state.getColorType(),
+                state.getPageSize(),
+                state.getPageDirection(),
+                state.getVerticalAlign(),
+                state.getHorizontalAlign(),
+                state.isAutoRotate()
+        );
+        model.convert(config);
     }
 
     @Override
