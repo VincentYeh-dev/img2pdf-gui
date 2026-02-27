@@ -70,7 +70,7 @@ class ModelParseTest {
     }
 
     @Test
-    void empty_directory_still_produces_task(@TempDir Path tempDir) throws Exception {
+    void empty_directory_still_produces_task(@TempDir Path tempDir) {
         File dir = tempDir.resolve("empty").toFile();
         dir.mkdirs();
 

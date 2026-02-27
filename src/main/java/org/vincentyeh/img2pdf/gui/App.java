@@ -30,7 +30,7 @@ public class App {
 
         Model model = new Model();
         View view = new View();
-        Controller controller = new Controller(model, view.getUIMediator());
+        new Controller(model, view.getUIMediator());
 
         frame.setContentPane(view.getRootPanel());
         frame.pack();

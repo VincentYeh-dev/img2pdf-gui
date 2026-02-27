@@ -73,16 +73,6 @@ public class Model {
         sources.sort(order.getComparator());
     }
 
-    public TaskSortOrder getSortOrder() {
-        return sortOrder;
-    }
-
-    public void removeTask(int index) {
-        if (index < 0 || index >= sources.size())
-            throw new IllegalArgumentException("index out of range");
-        this.sources.remove(index);
-    }
-
     public void removeTask(Task task) {
         this.sources.remove(task);
     }
@@ -100,10 +90,6 @@ public class Model {
             }
         }
         this.sources.remove(task);
-    }
-
-    public void removeAllTasks() {
-        this.sources.clear();
     }
 
 

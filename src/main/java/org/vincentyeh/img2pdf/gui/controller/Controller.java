@@ -9,7 +9,6 @@ import org.vincentyeh.img2pdf.gui.view.MediatorListener;
 import org.vincentyeh.img2pdf.gui.view.UIMediator;
 import org.vincentyeh.img2pdf.gui.view.UIState;
 
-import javax.swing.*;
 import java.io.File;
 import java.util.List;
 
@@ -94,11 +93,6 @@ public class Controller implements MediatorListener, ModelListener {
     @Override
     public void onBatchComplete() {
         mediator.setRunningState(false);
-    }
-
-    @Override
-    public void onSourcesUpdate(List<Task> source) {
-        model.setTask(source);
     }
 
     @Override

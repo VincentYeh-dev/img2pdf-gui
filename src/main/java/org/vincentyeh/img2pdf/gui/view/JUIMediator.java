@@ -59,17 +59,12 @@ public class JUIMediator implements UIMediator {
     private JProgressBar pageConversionProgressBar;
     private JLabel pageConversionLabel;
     private JButton stopButton;
-    private JLabel imagePane;
     private JButton outputFolderBrowseButton;
     private JTextField outputFolderField;
 
-    private JFileChooser sourceFilesChooser;
-    private JFileChooser outputFolderChooser;
-
-    private JComboBox<org.vincentyeh.img2pdf.gui.model.TaskSortOrder> sortComboBox;
     private List<Task> currentTasks = new ArrayList<>();
 
-    private UIState state = UIState.getInstance();
+    private final UIState state = UIState.getInstance();
 
     public static class Builder {
         private final JUIMediator mediator = new JUIMediator();
@@ -413,11 +408,6 @@ public class JUIMediator implements UIMediator {
             });
         }
 
-        public void linkImagePane(JLabel label) {
-            label.setName("imagePane");
-            mediator.imagePane = label;
-        }
-
         public void linkOutputFolderBrowseButton(JButton button) {
             button.setName("outputFolderBrowseButton");
             mediator.outputFolderBrowseButton = button;
@@ -458,21 +448,12 @@ public class JUIMediator implements UIMediator {
             for (TaskSortOrder order : TaskSortOrder.values()) {
                 comboBox.addItem(order);
             }
-            mediator.sortComboBox = comboBox;
             comboBox.addActionListener(e -> {
                 TaskSortOrder order = (TaskSortOrder) comboBox.getSelectedItem();
                 if (order != null && mediator.listener != null)
                     mediator.listener.onSortOrderChange(mediator, order);
             });
             return this;
-        }
-
-        public void linkSourceFilesChooser(JFileChooser fileChooser) {
-            mediator.sourceFilesChooser = fileChooser;
-        }
-
-        public void linkOutputFolderChooser(JFileChooser fileChooser) {
-            mediator.outputFolderChooser = fileChooser;
         }
 
         public void linkEncryptionCheckBox(JCheckBox checkBox) {

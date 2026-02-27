@@ -41,10 +41,6 @@ public class UIState {
         instance = new UIState();
     }
 
-    public void setRunning(boolean running) {
-        this.running = running;
-    }
-
 
     public void setPageDirection(PageDirection pageDirection) {
         this.pageDirection = pageDirection;
@@ -90,11 +86,6 @@ public class UIState {
         this.autoRotate = autoRotate;
     }
 
-
-
-    public boolean isRunning() {
-        return running;
-    }
 
     public boolean isEncrypted() {
         return encrypted;
