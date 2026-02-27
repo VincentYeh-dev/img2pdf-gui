@@ -747,6 +747,29 @@ class JUIMediatorTest {
         assertThat(callCount[0]).isEqualTo(1);
     }
 
+    // ===== O. setRunningState(true) 重置 Task 狀態圖示 =====
+
+    @Test
+    void setRunningState_true_clears_task_status_to_PENDING() {
+        // 1. 建立任務並設置 SUCCESS 狀態
+        Task task = createDummyTask();
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(task)));
+        GuiActionRunner.execute(() -> mediator.updateTaskStatus(task, true));
+        robot.waitForIdle();
+
+        JUIMediator jMediator = (JUIMediator) mediator;
+        // 確認狀態已是 SUCCESS
+        assertThat(jMediator.taskStatusMap.getOrDefault(task, JUIMediator.TaskStatus.PENDING))
+                .isEqualTo(JUIMediator.TaskStatus.SUCCESS);
+
+        // 2. setRunningState(true) 後，renderer 應讀取到 PENDING
+        GuiActionRunner.execute(() -> mediator.setRunningState(true));
+        robot.waitForIdle();
+
+        assertThat(jMediator.taskStatusMap.getOrDefault(task, JUIMediator.TaskStatus.PENDING))
+                .isEqualTo(JUIMediator.TaskStatus.PENDING);
+    }
+
     // ===== 輔助方法 =====
 
     private Task createDummyTask() {

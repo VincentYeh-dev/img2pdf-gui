@@ -638,6 +638,7 @@ public class JUIMediator implements UIMediator {
     public void setRunningState(boolean running) {
         if (running) {
             taskStatusMap.clear();
+            sourceTree.repaint();
             convertButton.setEnabled(false);
             stopButton.setEnabled(true);
             clearAllButton.setEnabled(false);
