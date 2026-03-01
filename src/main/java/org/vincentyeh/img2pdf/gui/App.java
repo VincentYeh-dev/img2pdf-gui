@@ -9,6 +9,7 @@ import javax.swing.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.logging.Level;
+import java.util.logging.LogManager;
 
 /**
  * Application entry point for img2pdf-gui.
@@ -25,6 +26,15 @@ public class App {
      * @param args command-line arguments (not used)
      */
     public static void main(String[] args) {
+        // Ensure all logging handlers (including FileHandler) are flushed and closed
+        // on JVM exit, regardless of how the application terminates.
+        Runtime.getRuntime().addShutdownHook(
+                new Thread(LogManager.getLogManager()::reset, "log-shutdown"));
+
+        // Force AppLogger initialisation before the window appears so that
+        // isFileLoggingActive() returns a reliable result when checked below.
+        AppLogger.get();
+
         try {
             FlatDarkLaf.setup();
 
@@ -45,6 +55,18 @@ public class App {
             frame.setContentPane(view.getRootPanel());
             frame.pack();
             frame.setVisible(true);
+
+            // Warn the user if the log file could not be opened at startup.
+            SwingUtilities.invokeLater(() -> {
+                if (!AppLogger.isFileLoggingActive()) {
+                    JOptionPane.showMessageDialog(
+                            frame,
+                            "Unable to write log file. Logging to console only.\n"
+                                    + "Attempted path: " + AppLogger.getLogFilePath(),
+                            "Log File Warning",
+                            JOptionPane.WARNING_MESSAGE);
+                }
+            });
 
         } catch (Exception e) {
             AppLogger.get().log(Level.SEVERE, "Fatal error during application startup", e);
