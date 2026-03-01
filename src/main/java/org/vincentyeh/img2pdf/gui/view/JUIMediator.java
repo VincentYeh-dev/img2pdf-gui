@@ -659,14 +659,12 @@ public class JUIMediator implements UIMediator {
     public void notifyUI(String event, Object... data) {
         if (event.equals("output_folder_change")) {
             String folder = (String) data[0];
-            System.out.printf("Output Folder changed: %s\n", folder);
             state.setDestinationFolder(new File(folder));
         }
         if (event.equals("owner_password_change")) {
             if(!state.isEncrypted())
                 return;
             String password = (String) data[0];
-            System.out.printf("Owner Password changed: %s\n", password.isEmpty() ? "<empty>" : password);
             state.setOwnerPassword(password);
             refreshConvertButton();
         }
@@ -674,20 +672,17 @@ public class JUIMediator implements UIMediator {
             if(!state.isEncrypted())
                 return;
             String password = (String) data[0];
-            System.out.printf("User Password changed: %s\n", password.isEmpty() ? "<empty>" : password);
             state.setUserPassword(password);
             refreshConvertButton();
         }
         if (event.equals("auto_rotate_change")) {
             boolean selected = (boolean) data[0];
-            System.out.printf("Auto Rotate changed: %s\n", selected);
             state.setAutoRotate(selected);
             state.setPageDirection(PageDirection.Portrait);
             directionComboBox.setEnabled(!selected);
         }
         if (event.equals("page_size_change")) {
             PageSize size = (PageSize) data[0];
-            System.out.printf("Page Size changed: %s\n", size);
             state.setPageSize(size);
             horizontalAlignComboBox.setEnabled(size != PageSize.DEPEND_ON_IMG);
             verticalAlignComboBox.setEnabled(size != PageSize.DEPEND_ON_IMG);
@@ -698,40 +693,32 @@ public class JUIMediator implements UIMediator {
         }
         if (event.equals("horizontal_align_change")) {
             PageAlign.HorizontalAlign align = (PageAlign.HorizontalAlign) data[0];
-            System.out.printf("Horizontal Align changed: %s\n", align);
             state.setHorizontalAlign(align);
         }
         if (event.equals("vertical_align_change")) {
             PageAlign.VerticalAlign align = (PageAlign.VerticalAlign) data[0];
-            System.out.printf("Vertical Align changed: %s\n", align);
             state.setVerticalAlign(align);
         }
         if (event.equals("page_direction_change")) {
             PageDirection direction = (PageDirection) data[0];
-            System.out.printf("Page Direction changed: %s\n", direction);
             state.setPageDirection(direction);
         }
         if (event.equals("color_type_change")) {
             ColorType color = (ColorType) data[0];
-            System.out.printf("Color Type changed: %s\n", color);
             state.setColorType(color);
         }
 
         if (event.equals("source_browse_button_click")) {
-            System.out.printf("Source Browse Button clicked\n");
             browseSources();
         }
         if (event.equals("output_folder_browse_button_click")) {
-            System.out.printf("Output Folder Browse Button clicked\n");
             browseOutputFolder();
         }
         if (event.equals("convert_button_click")) {
-            System.out.printf("Convert Button clicked\n");
             if (listener != null)
                 listener.onConvertButtonClick(this, state);
         }
         if (event.equals("clear_all_button_click")) {
-            System.out.printf("Clear All Button clicked\n");
             state.setSourceFiles(new File[]{});
             if (listener != null)
                 listener.onSourcesUpdate(this, state);
@@ -754,7 +741,6 @@ public class JUIMediator implements UIMediator {
 
         if(event.equals("encryption_change")){
             boolean selected = (boolean) data[0];
-            System.out.printf("Encryption changed: %s\n", selected);
             state.setEncrypted(selected);
             ownerPasswordField.setEnabled(selected);
             userPasswordField.setEnabled(selected);
