@@ -114,9 +114,12 @@ class JUIMediatorTest {
         window.button("stopButton").requireEnabled();
     }
 
-    // Verifies that leaving running state re-enables the convert button and disables the stop button.
+    // Verifies that leaving running state re-enables the convert button (when tasks exist)
+    // and disables the stop button.
     @Test
     void set_running_false_enables_convert_and_disables_stop() {
+        Task task = new Task(new File("a.pdf"), new File[0]);
+        GuiActionRunner.execute(() -> mediator.updateTasks(Collections.singletonList(task)));
         GuiActionRunner.execute(() -> mediator.setRunningState(false));
         window.button("convertButton").requireEnabled();
         window.button("stopButton").requireDisabled();
@@ -234,6 +237,8 @@ class JUIMediatorTest {
     // Verifies that leaving running state restores all navigation buttons to their enabled state.
     @Test
     void set_running_false_restores_all_navigation_buttons() {
+        Task task = new Task(new File("a.pdf"), new File[0]);
+        GuiActionRunner.execute(() -> mediator.updateTasks(Collections.singletonList(task)));
         GuiActionRunner.execute(() -> mediator.setRunningState(true));
         GuiActionRunner.execute(() -> mediator.setRunningState(false));
         window.button("convertButton").requireEnabled();

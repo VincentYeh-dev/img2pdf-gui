@@ -15,6 +15,7 @@ import org.vincentyeh.img2pdf.lib.pdf.parameter.PageDirection;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.PageSize;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
@@ -164,15 +165,30 @@ class ControllerTest {
     // Verifies that onTaskRemoveFromDisk() calls model.removeTaskFromDisk() for each task
     // and then calls mediator.updateTasks() exactly once.
     @Test
-    void onTaskRemoveFromDisk_calls_removeTaskFromDisk_for_each_and_updates_mediator() {
+    void onTaskRemoveFromDisk_calls_removeTaskFromDisk_for_each_and_updates_mediator() throws IOException {
         Task t1 = new Task(new File("a.pdf"), new File[0]);
         Task t2 = new Task(new File("b.pdf"), new File[0]);
         List<Task> toRemove = Arrays.asList(t1, t2);
+        doNothing().when(model).removeTaskFromDisk(any());
 
         controller.onTaskRemoveFromDisk(mediator, toRemove);
 
         verify(model).removeTaskFromDisk(t1);
         verify(model).removeTaskFromDisk(t2);
+        verify(mediator, atLeastOnce()).updateTasks(any());
+    }
+
+    // Verifies that onTaskRemoveFromDisk() shows an error dialog and keeps the task
+    // when model.removeTaskFromDisk() throws IOException.
+    @Test
+    void onTaskRemoveFromDisk_when_IOException_calls_showError_and_keeps_other_tasks() throws IOException {
+        File img = new File("folder/1.jpg");
+        Task t1 = new Task(new File("a.pdf"), new File[]{img});
+        doThrow(new IOException("disk error")).when(model).removeTaskFromDisk(t1);
+
+        controller.onTaskRemoveFromDisk(mediator, Collections.singletonList(t1));
+
+        verify(mediator).showError(anyString(), anyString());
         verify(mediator, atLeastOnce()).updateTasks(any());
     }
 
@@ -208,23 +224,31 @@ class ControllerTest {
         verify(mediator).setRunningState(false);
     }
 
-    // Verifies that onTaskComplete() with success=true calls mediator.updateTaskStatus(task, true).
+    // Verifies that onTaskComplete() with error=null calls mediator.updateTaskStatus(task, true).
     @Test
     void onTaskComplete_success_calls_mediator_updateTaskStatus_with_true() {
         Task task = new Task(new File("a.pdf"), new File[0]);
 
-        controller.onTaskComplete(task, true);
+        controller.onTaskComplete(task, null);
 
         verify(mediator).updateTaskStatus(task, true);
     }
 
-    // Verifies that onTaskComplete() with success=false calls mediator.updateTaskStatus(task, false).
+    // Verifies that onTaskComplete() with a non-null exception calls mediator.updateTaskStatus(task, false).
     @Test
     void onTaskComplete_failure_calls_mediator_updateTaskStatus_with_false() {
         Task task = new Task(new File("a.pdf"), new File[0]);
 
-        controller.onTaskComplete(task, false);
+        controller.onTaskComplete(task, new RuntimeException("test error"));
 
         verify(mediator).updateTaskStatus(task, false);
+    }
+
+    // Verifies that onBatchError() forwards the error to mediator.showError().
+    @Test
+    void onBatchError_calls_mediator_showError() {
+        controller.onBatchError("Test Title", "Test Message");
+
+        verify(mediator).showError("Test Title", "Test Message");
     }
 }

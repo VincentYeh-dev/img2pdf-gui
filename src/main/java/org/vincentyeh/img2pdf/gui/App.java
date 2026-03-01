@@ -8,6 +8,7 @@ import org.vincentyeh.img2pdf.gui.view.View;
 import javax.swing.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.logging.Level;
 
 /**
  * Application entry point for img2pdf-gui.
@@ -24,24 +25,35 @@ public class App {
      * @param args command-line arguments (not used)
      */
     public static void main(String[] args) {
-        FlatDarkLaf.setup();
+        try {
+            FlatDarkLaf.setup();
 
-        JFrame frame = new JFrame(Constants.APP_TITLE);
-        frame.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                super.windowClosing(e);
-                frame.dispose();
-                System.exit(0);
-            }
-        });
+            JFrame frame = new JFrame(Constants.APP_TITLE);
+            frame.addWindowListener(new WindowAdapter() {
+                @Override
+                public void windowClosing(WindowEvent e) {
+                    super.windowClosing(e);
+                    frame.dispose();
+                    System.exit(0);
+                }
+            });
 
-        Model model = new Model();
-        View view = new View();
-        new Controller(model, view.getUIMediator());
+            Model model = new Model();
+            View view = new View();
+            new Controller(model, view.getUIMediator());
 
-        frame.setContentPane(view.getRootPanel());
-        frame.pack();
-        frame.setVisible(true);
+            frame.setContentPane(view.getRootPanel());
+            frame.pack();
+            frame.setVisible(true);
+
+        } catch (Exception e) {
+            AppLogger.get().log(Level.SEVERE, "Fatal error during application startup", e);
+            JOptionPane.showMessageDialog(
+                    null,
+                    "Application failed to start:\n" + e.getMessage(),
+                    "Fatal Error",
+                    JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
+        }
     }
 }

@@ -147,10 +147,10 @@ class ModelTest {
         assertFalse(dir.exists());
     }
 
-    // Verifies that convert() throws IllegalArgumentException synchronously when the
-    // destination path points to an existing file rather than a directory.
+    // Verifies that convert() calls listener.onBatchError() when the destination path
+    // points to an existing file, and does NOT start the conversion thread.
     @Test
-    void convert_throws_illegal_argument_when_destination_is_a_file(@TempDir Path tempDir) throws IOException {
+    void convert_calls_onBatchError_when_destination_is_a_file(@TempDir Path tempDir) throws IOException {
         File existingFile = tempDir.resolve("output.txt").toFile();
         existingFile.createNewFile();
 
@@ -162,7 +162,10 @@ class ModelTest {
                 null, null, null, null, null, false
         );
 
-        assertThrows(IllegalArgumentException.class, () -> model.convert(config));
+        model.convert(config);
+
+        verify(listener).onBatchError(anyString(), anyString());
+        verify(listener, never()).onBatchStart();
     }
 
     // Verifies that convert() calls onBatchStart() and then onBatchComplete() on the listener

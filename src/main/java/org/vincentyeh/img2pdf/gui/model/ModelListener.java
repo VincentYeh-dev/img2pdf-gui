@@ -41,10 +41,22 @@ public interface ModelListener{
     /**
      * Called after each individual task finishes, regardless of success or failure.
      *
-     * @param task    the task that has just completed
-     * @param success {@code true} if the PDF was created successfully; {@code false} on error
+     * @param task  the task that has just completed
+     * @param error {@code null} if the PDF was created successfully;
+     *              the exception that caused the failure otherwise
      */
-    void onTaskComplete(Task task, boolean success);
+    void onTaskComplete(Task task, Exception error);
 
+    /**
+     * Called when a pre-conversion validation step fails (e.g. the output folder
+     * cannot be created or is not a directory).
+     * <p>
+     * This callback is always invoked on the Event Dispatch Thread.
+     * </p>
+     *
+     * @param title   a short, human-readable error title
+     * @param message a detailed description of the error suitable for display to the user
+     */
+    void onBatchError(String title, String message);
 
 }
