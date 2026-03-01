@@ -60,6 +60,12 @@ public class JUIMediator implements UIMediator {
     /** Side length (in pixels) of the thumbnail icons shown in the source tree. */
     private static final int THUMBNAIL_SIZE = 48;
 
+    /** Foreground colour applied to successfully converted task nodes in the tree. */
+    private static final Color SUCCESS_COLOR = new Color(76, 175, 80);
+
+    /** Foreground colour applied to failed task nodes in the tree. */
+    private static final Color FAILURE_COLOR = new Color(244, 67, 54);
+
     /** Cache of scaled thumbnail icons keyed by the first image file of each task. */
     private final Map<File, ImageIcon> thumbnailCache = new HashMap<>();
 
@@ -186,24 +192,11 @@ public class JUIMediator implements UIMediator {
         public void linkOwnerPasswordField(JPasswordField passwordField) {
             passwordField.setName("ownerPasswordField");
             mediator.ownerPasswordField = passwordField;
-            mediator.ownerPasswordField.getDocument().addDocumentListener(new DocumentListener() {
-                @Override
-                public void insertUpdate(DocumentEvent e) {
+            mediator.ownerPasswordField.getDocument().addDocumentListener(
+                simpleDocumentListener(() -> {
                     String text = new String(mediator.ownerPasswordField.getPassword());
                     mediator.notifyUI("owner_password_change", text);
-                }
-
-                @Override
-                public void removeUpdate(DocumentEvent e) {
-                    String text = new String(mediator.ownerPasswordField.getPassword());
-                    mediator.notifyUI("owner_password_change", text);
-                }
-
-                @Override
-                public void changedUpdate(DocumentEvent e) {
-
-                }
-            });
+                }));
         }
 
         /**
@@ -214,24 +207,11 @@ public class JUIMediator implements UIMediator {
         public void linkUserPasswordField(JPasswordField passwordField) {
             passwordField.setName("userPasswordField");
             mediator.userPasswordField = passwordField;
-            mediator.userPasswordField.getDocument().addDocumentListener(new DocumentListener() {
-                @Override
-                public void insertUpdate(DocumentEvent e) {
+            mediator.userPasswordField.getDocument().addDocumentListener(
+                simpleDocumentListener(() -> {
                     String text = new String(mediator.userPasswordField.getPassword());
                     mediator.notifyUI("user_password_change", text);
-                }
-
-                @Override
-                public void removeUpdate(DocumentEvent e) {
-                    String text = new String(mediator.userPasswordField.getPassword());
-                    mediator.notifyUI("user_password_change", text);
-                }
-
-                @Override
-                public void changedUpdate(DocumentEvent e) {
-
-                }
-            });
+                }));
         }
 
         /**
@@ -351,9 +331,9 @@ public class JUIMediator implements UIMediator {
                                 tree, value, sel, expanded, leaf, row, hasFocus);
                         if (!sel) {
                             if (status == TaskStatus.SUCCESS)
-                                c.setForeground(new Color(76, 175, 80));
+                                c.setForeground(SUCCESS_COLOR);
                             else if (status == TaskStatus.FAILED)
-                                c.setForeground(new Color(244, 67, 54));
+                                c.setForeground(FAILURE_COLOR);
                         }
                         if (task.files != null && task.files.length > 0) {
                             ImageIcon icon = mediator.thumbnailCache.get(task.files[0]);
@@ -561,24 +541,11 @@ public class JUIMediator implements UIMediator {
             textField.setName("outputFolderField");
             textField.setEditable(false);
             mediator.outputFolderField = textField;
-            mediator.outputFolderField.getDocument().addDocumentListener(new DocumentListener() {
-                @Override
-                public void insertUpdate(DocumentEvent e) {
+            mediator.outputFolderField.getDocument().addDocumentListener(
+                simpleDocumentListener(() -> {
                     String text = mediator.outputFolderField.getText();
                     mediator.notifyUI("output_folder_change", text);
-                }
-
-                @Override
-                public void removeUpdate(DocumentEvent e) {
-                    String text = mediator.outputFolderField.getText();
-                    mediator.notifyUI("output_folder_change", text);
-                }
-
-                @Override
-                public void changedUpdate(DocumentEvent e) {
-
-                }
-            });
+                }));
         }
 
         /**
@@ -826,7 +793,7 @@ public class JUIMediator implements UIMediator {
      *
      * @param tasks the current list of tasks to display in the tree
      */
-    public void updateSourceTree(List<Task> tasks) {
+    private void updateSourceTree(List<Task> tasks) {
         DefaultTreeModel model = (DefaultTreeModel) sourceTree.getModel();
         DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
         root.removeAllChildren();
@@ -1022,6 +989,25 @@ public class JUIMediator implements UIMediator {
                 }
             }
         }.execute();
+    }
+
+    /**
+     * Creates a {@link DocumentListener} that invokes {@code action} on both
+     * {@code insertUpdate} and {@code removeUpdate} events, with a no-op
+     * {@code changedUpdate}.
+     *
+     * @param action the callback to invoke whenever the document content changes
+     * @return the configured listener
+     */
+    private static DocumentListener simpleDocumentListener(Runnable action) {
+        return new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) { action.run(); }
+            @Override
+            public void removeUpdate(DocumentEvent e) { action.run(); }
+            @Override
+            public void changedUpdate(DocumentEvent e) {}
+        };
     }
 
 }

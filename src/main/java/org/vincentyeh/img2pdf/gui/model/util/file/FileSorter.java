@@ -81,13 +81,13 @@ public class FileSorter implements Comparator<File> {
      * @param OStr    the name of the second file
      * @return a negative integer, zero, or positive integer under numeric ordering
      */
-    private int compareNumeric(String ThisStr, String OStr) {
-        String noNumThis = ThisStr.replaceAll("[0-9]+", "*");
-        String noNumO = OStr.replaceAll("[0-9]+", "*");
+    private int compareNumeric(String thisStr, String otherStr) {
+        String noNumThis = thisStr.replaceAll("[0-9]+", "*");
+        String noNumO = otherStr.replaceAll("[0-9]+", "*");
 
         if (noNumThis.equals(noNumO)) {
-            int[] a = getNumber(ThisStr);
-            int[] b = getNumber(OStr);
+            int[] a = getNumber(thisStr);
+            int[] b = getNumber(otherStr);
             for (int i = 0; i < a.length; i++) {
                 int r = a[i] - b[i];
                 if (r != 0) {
@@ -96,7 +96,7 @@ public class FileSorter implements Comparator<File> {
             }
             return 0;
         } else {
-            return ThisStr.compareTo(OStr);
+            return thisStr.compareTo(otherStr);
         }
     }
 

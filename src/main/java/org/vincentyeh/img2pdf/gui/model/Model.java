@@ -83,7 +83,6 @@ public class Model {
                         Arrays.sort(files, sorter);
                         sources.add(new Task(new File(formatter.format(directory)), files));
                     } catch (NameFormatter.FormatException e) {
-//                            JOptionPane.showMessageDialog(null, e.getCause().getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                         e.printStackTrace();
                     }
                 });
@@ -169,27 +168,27 @@ public class Model {
             File tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
             tempFolder.deleteOnExit();
             listener.onBatchProgressUpdate(0, sources.size());
-            File output_folder = config.destinationFolder;
+            File outputFolder = config.destinationFolder;
             boolean encryption = config.encrypted;
-            String owner_password = config.ownerPassword;
-            String user_password = config.userPassword;
+            String ownerPassword = config.ownerPassword;
+            String userPassword = config.userPassword;
             ColorType colorType = config.colorType;
 
-            if (!output_folder.exists()) {
-                boolean success = output_folder.mkdirs();
+            if (!outputFolder.exists()) {
+                boolean success = outputFolder.mkdirs();
                 if (!success)
                     throw new IllegalStateException("Unable to create directories");
             }
-            if (output_folder.isFile())
+            if (outputFolder.isFile())
                 throw new IllegalArgumentException("Uestination should be folder");
 
 
-            Thread conversion_thread = new Thread(() -> {
+            Thread conversionThread = new Thread(() -> {
                 stopRequested = false;
                 listener.onBatchStart();
                 ImagePDFFactory factory = Img2Pdf.createPDFBoxMaxPerformanceFactory();
 
-                DocumentArgument documentArgument = createDocumentArgument(encryption, owner_password, user_password);
+                DocumentArgument documentArgument = createDocumentArgument(encryption, ownerPassword, userPassword);
                 PageArgument pageArgument = createPageArgument(
                         config.verticalAlign,
                         config.horizontalAlign,
@@ -209,7 +208,7 @@ public class Model {
                                 documentArgument,
                                 pageArgument,
                                 factoryListener);
-                        document.save(new File(output_folder, currentTask.destination.getName()));
+                        document.save(new File(outputFolder, currentTask.destination.getName()));
                         document.close();
                         listener.onTaskComplete(currentTask, true);
                     } catch (PDFFactoryException | IOException e) {
@@ -221,7 +220,7 @@ public class Model {
                 factory.shutdown();
                 listener.onBatchComplete();
             });
-            conversion_thread.start();
+            conversionThread.start();
 
         } catch (IOException e) {
             throw new RuntimeException(e);
