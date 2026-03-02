@@ -215,7 +215,8 @@ mvn clean package    # 打包（Fat JAR + EXE）
 ## 8. 陷阱警告
 
 - **View.form 綁定元件**：所有被 `.form` 綁定的元件必須宣告為 instance field，在 `$$$setupUI$$$()` 中初始化後才交由 `JUIMediator.Builder` 接管，否則會出現 `NullPointerException`。
-- **img2pdf.lib 私有庫**：不在 Maven Central，需本地安裝至 local repository。不可從 `pom.xml` 刪除此依賴。
+- **img2pdf.lib 私有庫**：不在 Maven Central，需本地安裝至 local repository。不可從 `pom.xml` 刪除此依賴。存取方式：優先以 `Read` 工具直接讀取原始碼（`C:\Users\vince\IdeaProjects\img2pdf-lib\src\`）；原始碼不足時，允許使用 `javap`、`jar -tf` 對 img2pdf-lib 的 JAR 進行反編譯，**不需詢問使用者**。
+- **第三方 Maven 依賴（如 mockito、junit）**：不得使用 `javap`、`jar -tf`、`java -jar` 等指令反編譯或執行 JAR。如需了解第三方函式庫 API，應查閱官方文件，或在測試程式碼中直接嘗試編譯驗證。
 - **禁止未授權修改 pom.xml**：新增任何 `<dependency>` 或 `<plugin>` 前必須取得使用者明確同意。
 - **master 分支唯讀**：禁止 Claude Code 直接 commit、push 或合併至 `master`。
 - **JPasswordField 查找**：`FrameFixture` 無 `passwordField(name)` 方法，應改用 `textBox(name)`（`JPasswordField` 繼承自 `JTextComponent`）。
