@@ -116,37 +116,70 @@ mvn clean package    # 打包（Fat JAR + EXE）
 
 ### Vibe Coding 評估流程
 
-採用「實作 → 審查 → 測試 → commit」循環，由主 Agent 依序調用三個 sub-agent：
+依需求類型選擇對應流程，由主 Agent 依序調用三個 sub-agent：
+
+#### 流程 A：新增功能（Feature）
+
+觸發條件：使用者要求新增功能、新增 UI 元件、擴充現有邏輯等。
 
 ```
 使用者描述需求
     ↓
-[developer sub-agent]   實作功能 → mvn compile 驗證（不 commit）
+[主 Agent — Plan 階段]
+  探索程式碼，向使用者詳細詢問需求細節與設計選項
+  （如：架構方式、UI 配置、參數設計等），待使用者確認後繼續
+    ↓
+從 develop 建立 feature/[功能名稱] 分支
+    ↓
+[developer sub-agent]     依確認的需求實作功能 → mvn compile 驗證（不 commit）
     ↓
 [code-reviewer sub-agent] 唯讀審查（MVC / SOLID / 執行緒 / 邏輯 / Style / UI/UX）
     ↓
-[tester sub-agent]      撰寫 Edge-case 測試 → mvn test
+[tester sub-agent]        撰寫 Edge-case 測試 → mvn test
     ↓
 全部通過 → 主 Agent 統一 commit（實作 + 測試）
     ↑
 如有 Bug → 回到 developer 修正 → 循環
 ```
 
+#### 流程 B：檢查／修復（Inspect / Fix）
+
+觸發條件：使用者要求「檢查程式」、「找 Bug」、「修復問題」、「重構」等。
+
+```
+使用者描述需求
+    ↓
+[code-reviewer sub-agent] 唯讀審查，列出所有問題（Major / Minor 分級）
+    ↓
+[主 Agent — 決策階段]
+  將審查結果整理後呈現給使用者，詢問哪些問題需要修復
+  （可提供選項讓使用者逐一決定），待使用者確認修復範圍後繼續
+    ↓
+[developer sub-agent]     依使用者確認的修復範圍修正問題 → mvn compile 驗證（不 commit）
+    ↓
+[tester sub-agent]        針對修復點撰寫 Edge-case 測試 → mvn test
+    ↓
+全部通過 → 主 Agent 統一 commit（修復 + 測試）
+    ↑
+如有新問題 → 回到 developer 修正 → 循環
+```
+
 #### Sub-agent 職責分工
 
 | Sub-agent | 工具 | 職責 | 禁止 |
 |-----------|------|------|------|
-| `developer` | Read, Edit, Write, Bash(`mvn compile`), Glob, Grep | 依需求實作功能或修復 Bug | `mvn test`、任何 git 指令 |
-| `code-reviewer` | Read, Grep, Glob | 唯讀審查 MVC / SOLID / 執行緒 / 邏輯 / Style / UI/UX | 修改任何檔案 |
-| `tester` | Read, Edit, Write, Bash(`mvn compile`/`test`), Glob, Grep | Edge-case 破壞性測試（GUI + 單元） | 修改 production code、任何 git 指令 |
+| `developer` | Read, Edit, Write, Bash(`mvn compile`), Glob, Grep | 依需求實作功能或修復 Bug；**所有程式碼註解必須使用英文** | `mvn test`、任何 git 寫入指令（`git add/commit/checkout/merge` 等，唯讀如 `git log/diff/status` 可用） |
+| `code-reviewer` | Read, Grep, Glob | 唯讀審查 MVC / SOLID / 執行緒 / 邏輯 / Style / UI/UX；**審查時標記非英文註解** | 修改任何檔案；任何 git 寫入指令 |
+| `tester` | Read, Edit, Write, Bash(`mvn compile`/`test`), Glob, Grep | Edge-case 破壞性測試（GUI + 單元）；**所有測試程式碼的註解必須使用英文** | 修改 production code；任何 git 寫入指令（`git add/commit/checkout/merge` 等，唯讀如 `git log/diff/status` 可用） |
 
 #### 主 Agent 調用規則
 
-1. **收到需求後，先調用 `developer` sub-agent** 實作功能。
-2. **`developer` 完成後，調用 `code-reviewer` sub-agent** 進行唯讀審查。
-3. **`code-reviewer` 完成後，調用 `tester` sub-agent** 執行 Edge-case 測試。
-4. **全部通過後，由主 Agent 執行 commit**（包含實作與測試）。
-5. 若任一環節回報 Bug 或審查問題 → **回到 `developer` sub-agent 修正** → 重新循環。
+1. **收到需求後，先判斷流程類型**：
+   - 新增功能 → 流程 A：探索程式碼後向使用者詢問需求細節與選項，確認後從 `develop` 建立 `feature/[功能名稱]` 新分支，再調用 `developer`。
+   - 檢查／修復 → 流程 B：保持在目前所在分支，先調用 `code-reviewer`，審查完成後將結果呈現給使用者並詢問修復範圍，確認後再調用 `developer`。
+2. 依對應流程順序調用 sub-agent。
+3. **全部通過後，由主 Agent 執行 commit**（包含實作與測試）。
+4. 若任一環節回報 Bug 或審查問題 → **回到 `developer` sub-agent 修正** → 重新循環。
 
 #### 評估結果
 
@@ -190,3 +223,4 @@ mvn clean package    # 打包（Fat JAR + EXE）
 - **測試套件包名**：GUI 測試必須放在 `org.vincentyeh.img2pdf.gui.view` 套件，才能存取 `UIState.resetForTesting()`（package-private）。
 - **元件命名**：`JUIMediator.Builder` 的每個 `link*()` 方法必須呼叫 `setName()`，AssertJ Swing 才能透過名稱找到元件。
 - **`$$$setupUI$$$()` 為自動產生，禁止手動編輯**：IntelliJ GUI Designer 設定為「form 儲存時產生 Java 原始碼」，`$$$setupUI$$$()` 由 IntelliJ 自動寫入 `View.java`。手動修改 `$$$setupUI$$$()` 將在下次儲存 `View.form` 時被覆蓋。修改 UI 佈局時，**必須同步更改 `View.form` 與 `View.java`**：`View.form` 負責佈局定義（IntelliJ 儲存時自動同步 `$$$setupUI$$$()`），`View.java` 仍需手動維護：instance field 宣告、`JUIMediator.Builder` 的 `link*()` 呼叫。
+- **程式碼註解語言**：所有 Java 原始碼（production code 與 test code）的註解（`//`、`/* */`、`/** */` Javadoc）**只能使用英文**。非英文註解屬 Coding Style 違規，code-reviewer 應標記為 Minor 問題。
