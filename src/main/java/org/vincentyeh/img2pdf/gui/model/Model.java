@@ -223,6 +223,11 @@ public class Model {
         String userPassword = config.userPassword;
         ColorType colorType = config.colorType;
 
+        // Take a snapshot of the task list on the EDT before starting the background thread.
+        // The background thread reads only this snapshot, avoiding concurrent modification
+        // of sources by setTask(), removeTask(), or setSortOrder() on the EDT.
+        final List<Task> snapshot = new ArrayList<>(sources);
+
         Thread conversionThread = new Thread(() -> {
             stopRequested = false;
             if (listener != null) listener.onBatchStart();
@@ -238,8 +243,8 @@ public class Model {
             );
 
             try {
-                for (int i = 0; i < sources.size(); i++) {
-                    Task currentTask = sources.get(i);
+                for (int i = 0; i < snapshot.size(); i++) {
+                    Task currentTask = snapshot.get(i);
                     if (stopRequested) break;
                     try {
                         IDocument document = factory.start(
@@ -264,7 +269,7 @@ public class Model {
                     } catch (PDFFactoryException | IOException e) {
                         if (listener != null) listener.onTaskComplete(currentTask, e);
                     } finally {
-                        if (listener != null) listener.onBatchProgressUpdate(i + 1, sources.size());
+                        if (listener != null) listener.onBatchProgressUpdate(i + 1, snapshot.size());
                     }
                 }
             } finally {
