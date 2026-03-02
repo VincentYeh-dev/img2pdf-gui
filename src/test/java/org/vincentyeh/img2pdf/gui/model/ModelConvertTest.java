@@ -2,6 +2,8 @@ package org.vincentyeh.img2pdf.gui.model;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import org.vincentyeh.img2pdf.lib.image.ColorType;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.PageAlign;
@@ -10,6 +12,9 @@ import org.vincentyeh.img2pdf.lib.pdf.parameter.PageSize;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -171,5 +176,33 @@ class ModelConvertTest {
 
         assertThrows(IOException.class, () -> model.removeTaskFromDisk(task));
         assertFalse(model.getTasks().isEmpty(), "task should still be in list after IOException");
+    }
+
+    // 資料夾內有被鎖定的檔案（Windows 專用）→ 拋出 IOException，且任務仍留在清單中
+    // On Windows, Files.delete() cannot delete a file that has an exclusive FileLock held
+    // by another FileChannel in the same JVM process; this triggers UncheckedIOException
+    // which removeTaskFromDisk() must re-throw as IOException.
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    void removeTaskFromDisk_when_file_is_locked_throws_IOException_and_keeps_task(
+            @TempDir Path tempDir) throws IOException {
+        File dir = tempDir.resolve("locked_album").toFile();
+        dir.mkdirs();
+        File lockedFile = new File(dir, "locked.jpg");
+        lockedFile.createNewFile();
+
+        Task task = new Task(new File("locked_album.pdf"), new File[]{lockedFile});
+        model.setTask(Collections.singletonList(task));
+
+        // Hold an exclusive file lock so that Files.delete() on Windows will fail
+        try (RandomAccessFile raf = new RandomAccessFile(lockedFile, "rw");
+             FileChannel channel = raf.getChannel();
+             FileLock lock = channel.lock()) {
+
+            assertThrows(IOException.class, () -> model.removeTaskFromDisk(task));
+            assertFalse(model.getTasks().isEmpty(),
+                    "task should still be in list after IOException caused by file lock");
+        }
+        // After lock is released, cleanup is handled by @TempDir
     }
 }

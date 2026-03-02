@@ -105,7 +105,8 @@ mvn clean package    # 打包（Fat JAR + EXE）
 ### Commit 規則
 - 使用中文撰寫 commit message，只寫一行摘要，不加描述段落。
 - 禁止對任何分支執行 force push（`--force` / `--force-with-lease`）。
-- 每次任務完成後，主動執行 `mvn compile && mvn test` 驗證，兩者皆通過後直接 commit，無需詢問使用者。
+- Commit 由**主 Agent 統一執行**，時機為 Developer → Code Reviewer → Tester 三個 sub-agent 全部通過後。
+- **Sub-agent（developer、tester）禁止自行 commit**，僅回報結果給主 Agent。
 - 執行任何 git 操作前，必須先確認目前所在的分支是否正確。
 
 ### 合併規則
@@ -115,19 +116,42 @@ mvn clean package    # 打包（Fat JAR + EXE）
 
 ### Vibe Coding 評估流程
 
-採用「先實作、後驗收」循環：
+採用「實作 → 審查 → 測試 → commit」循環，由主 Agent 依序調用三個 sub-agent：
 
-1. **實作（Implement）**
-   依照使用者提供的需求，以自然語言描述給 AI。
-   AI 修改 `View.java` / `JUIMediator.java` / `Controller.java` 等完成功能。
+```
+使用者描述需求
+    ↓
+[developer sub-agent]   實作功能 → mvn compile 驗證（不 commit）
+    ↓
+[code-reviewer sub-agent] 唯讀審查（MVC / SOLID / 執行緒 / 邏輯 / Style / UI/UX）
+    ↓
+[tester sub-agent]      撰寫 Edge-case 測試 → mvn test
+    ↓
+全部通過 → 主 Agent 統一 commit（實作 + 測試）
+    ↑
+如有 Bug → 回到 developer 修正 → 循環
+```
 
-2. **測試（Test）**
-   針對剛完成的實作，在對應測試檔中撰寫 AssertJ Swing 測試驗收期望行為。
-   執行 `mvn test` → 測試應 PASS。
+#### Sub-agent 職責分工
 
-3. **評估（Evaluate）**
-   - PASS：實作正確，可 commit（包含實作與測試）
-   - FAIL：實作有誤，回到步驟 1 修正，不單獨 commit
+| Sub-agent | 工具 | 職責 | 禁止 |
+|-----------|------|------|------|
+| `developer` | Read, Edit, Write, Bash(`mvn compile`), Glob, Grep | 依需求實作功能或修復 Bug | `mvn test`、任何 git 指令 |
+| `code-reviewer` | Read, Grep, Glob | 唯讀審查 MVC / SOLID / 執行緒 / 邏輯 / Style / UI/UX | 修改任何檔案 |
+| `tester` | Read, Edit, Write, Bash(`mvn compile`/`test`), Glob, Grep | Edge-case 破壞性測試（GUI + 單元） | 修改 production code、任何 git 指令 |
+
+#### 主 Agent 調用規則
+
+1. **收到需求後，先調用 `developer` sub-agent** 實作功能。
+2. **`developer` 完成後，調用 `code-reviewer` sub-agent** 進行唯讀審查。
+3. **`code-reviewer` 完成後，調用 `tester` sub-agent** 執行 Edge-case 測試。
+4. **全部通過後，由主 Agent 執行 commit**（包含實作與測試）。
+5. 若任一環節回報 Bug 或審查問題 → **回到 `developer` sub-agent 修正** → 重新循環。
+
+#### 評估結果
+
+- **PASS**：Developer + Reviewer + Tester 全部通過 → 主 Agent commit
+- **FAIL**：任一失敗 → 主 Agent 回到 Developer 修正，不單獨 commit
 
 ### 依賴管理
 **嚴禁**在未經使用者明確允許的情況下，於 `pom.xml` 新增任何 Maven 套件（`<dependency>`）或 Maven Plugin（`<plugin>`）。

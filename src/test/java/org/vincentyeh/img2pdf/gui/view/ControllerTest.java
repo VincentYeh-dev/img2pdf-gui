@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
+import org.vincentyeh.img2pdf.gui.AppLogger;
 import org.vincentyeh.img2pdf.gui.controller.Controller;
 import org.vincentyeh.img2pdf.gui.model.ConversionConfig;
 import org.vincentyeh.img2pdf.gui.model.Model;
@@ -17,9 +18,14 @@ import org.vincentyeh.img2pdf.lib.pdf.parameter.PageSize;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -250,5 +256,110 @@ class ControllerTest {
         controller.onBatchError("Test Title", "Test Message");
 
         verify(mediator).showError("Test Title", "Test Message");
+    }
+
+    // Verifies that onTaskComplete() with a non-null error logs exactly one WARNING
+    // record that contains the task's destination file name.
+    // [White-box] Installs a custom java.util.logging.Handler on AppLogger.get() to
+    // capture log records.
+    // Justification: there is no public API to observe what was logged; direct Handler
+    // capture is the only reliable way to assert Logger output without external libraries.
+    @Test
+    void onTaskComplete_failure_logs_warning_with_task_name() {
+        Logger appLogger = AppLogger.get();
+        List<LogRecord> records = new ArrayList<>();
+        Handler captureHandler = new Handler() {
+            @Override public void publish(LogRecord record) { records.add(record); }
+            @Override public void flush() {}
+            @Override public void close() {}
+        };
+        captureHandler.setLevel(Level.ALL);
+        appLogger.addHandler(captureHandler);
+
+        try {
+            Task task = new Task(new File("failed_task.pdf"), new File[0]);
+            controller.onTaskComplete(task, new RuntimeException("conversion error"));
+
+            long warnings = records.stream()
+                    .filter(r -> r.getLevel() == Level.WARNING)
+                    .count();
+            assertEquals(1, warnings, "Expected exactly one WARNING log record");
+
+            boolean containsName = records.stream()
+                    .filter(r -> r.getLevel() == Level.WARNING)
+                    .anyMatch(r -> r.getMessage().contains("failed_task.pdf"));
+            assertTrue(containsName, "WARNING message should contain the task destination file name");
+        } finally {
+            appLogger.removeHandler(captureHandler);
+        }
+    }
+
+    // Verifies that onTaskComplete() with error=null does NOT produce any WARNING log record.
+    // [White-box] Installs a custom java.util.logging.Handler on AppLogger.get() to
+    // capture log records.
+    // Justification: successful completion should be silent; verifying absence of WARNING
+    // records requires direct Handler capture.
+    @Test
+    void onTaskComplete_success_does_not_log_warning() {
+        Logger appLogger = AppLogger.get();
+        List<LogRecord> records = new ArrayList<>();
+        Handler captureHandler = new Handler() {
+            @Override public void publish(LogRecord record) { records.add(record); }
+            @Override public void flush() {}
+            @Override public void close() {}
+        };
+        captureHandler.setLevel(Level.ALL);
+        appLogger.addHandler(captureHandler);
+
+        try {
+            Task task = new Task(new File("success_task.pdf"), new File[0]);
+            controller.onTaskComplete(task, null);
+
+            long warnings = records.stream()
+                    .filter(r -> r.getLevel() == Level.WARNING)
+                    .count();
+            assertEquals(0, warnings, "No WARNING log record should be emitted on success");
+        } finally {
+            appLogger.removeHandler(captureHandler);
+        }
+    }
+
+    // Verifies that onBatchError() logs a WARNING record whose message contains
+    // both the title and message arguments passed to the method.
+    // [White-box] Installs a custom java.util.logging.Handler on AppLogger.get() to
+    // capture log records.
+    // Justification: the log message format "Batch error [title]: message" is not
+    // observable through any public API; Handler capture is necessary.
+    @Test
+    void onBatchError_logs_warning_with_title_and_message() {
+        Logger appLogger = AppLogger.get();
+        List<LogRecord> records = new ArrayList<>();
+        Handler captureHandler = new Handler() {
+            @Override public void publish(LogRecord record) { records.add(record); }
+            @Override public void flush() {}
+            @Override public void close() {}
+        };
+        captureHandler.setLevel(Level.ALL);
+        appLogger.addHandler(captureHandler);
+
+        try {
+            controller.onBatchError("ErrorTitle", "ErrorMessage");
+
+            long warnings = records.stream()
+                    .filter(r -> r.getLevel() == Level.WARNING)
+                    .count();
+            assertEquals(1, warnings, "Expected exactly one WARNING log record for onBatchError");
+
+            boolean containsTitle = records.stream()
+                    .filter(r -> r.getLevel() == Level.WARNING)
+                    .anyMatch(r -> r.getMessage().contains("ErrorTitle"));
+            boolean containsMessage = records.stream()
+                    .filter(r -> r.getLevel() == Level.WARNING)
+                    .anyMatch(r -> r.getMessage().contains("ErrorMessage"));
+            assertTrue(containsTitle,   "WARNING message should contain the error title");
+            assertTrue(containsMessage, "WARNING message should contain the error message");
+        } finally {
+            appLogger.removeHandler(captureHandler);
+        }
     }
 }

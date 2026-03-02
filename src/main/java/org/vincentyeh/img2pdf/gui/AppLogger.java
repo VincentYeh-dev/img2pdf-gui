@@ -52,7 +52,7 @@ public final class AppLogger {
             LOGGER.addHandler(fileHandler);
             fileLoggingActive = true;
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE,
+            LOGGER.log(Level.WARNING,
                     "Cannot open log file for writing; logging to console only. Path: " + LOG_FILE_PATH, e);
         }
 

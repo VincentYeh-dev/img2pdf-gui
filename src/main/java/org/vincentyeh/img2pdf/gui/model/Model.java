@@ -147,10 +147,19 @@ public class Model {
     public void removeTaskFromDisk(Task task) throws IOException {
         if (task.files != null && task.files.length > 0) {
             File folder = task.files[0].getParentFile();
-            Files.walk(folder.toPath())
-                    .sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
+            try {
+                Files.walk(folder.toPath())
+                        .sorted(Comparator.reverseOrder())
+                        .forEach(p -> {
+                            try {
+                                Files.delete(p);
+                            } catch (IOException e) {
+                                throw new java.io.UncheckedIOException(e);
+                            }
+                        });
+            } catch (java.io.UncheckedIOException e) {
+                throw e.getCause();
+            }
         }
         this.sources.remove(task);
     }
@@ -241,8 +250,6 @@ public class Model {
                         document.close();
                         if (listener != null) listener.onTaskComplete(currentTask, null);
                     } catch (PDFFactoryException | IOException e) {
-                        AppLogger.get().log(Level.WARNING,
-                                "Task failed: " + currentTask.destination.getName(), e);
                         if (listener != null) listener.onTaskComplete(currentTask, e);
                     } finally {
                         if (listener != null) listener.onBatchProgressUpdate(i + 1, sources.size());
@@ -311,14 +318,14 @@ public class Model {
      * Builds a {@code DocumentArgument}, optionally including encryption settings.
      *
      * @param encryption     whether the PDF should be encrypted
-     * @param owner_password the owner (permissions) password; used only when {@code encryption} is {@code true}
-     * @param user_password  the user (open) password; used only when {@code encryption} is {@code true}
+     * @param ownerPassword the owner (permissions) password; used only when {@code encryption} is {@code true}
+     * @param userPassword  the user (open) password; used only when {@code encryption} is {@code true}
      * @return the constructed {@code DocumentArgument}
      */
-    private DocumentArgument createDocumentArgument(boolean encryption, String owner_password, String user_password) {
+    private DocumentArgument createDocumentArgument(boolean encryption, String ownerPassword, String userPassword) {
         DocumentArgument documentArgument = new DocumentArgument();
         if (encryption) {
-            documentArgument.setEncryption(owner_password, user_password, new Permission());
+            documentArgument.setEncryption(ownerPassword, userPassword, new Permission());
         }
         return documentArgument;
     }

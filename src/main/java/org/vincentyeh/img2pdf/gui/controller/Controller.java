@@ -229,8 +229,7 @@ public class Controller implements MediatorListener, ModelListener {
      */
     @Override
     public void onBatchError(String title, String message) {
-        AppLogger.get().log(Level.WARNING, "Batch error [{0}]: {1}",
-                new Object[]{title, message});
+        AppLogger.get().log(Level.WARNING, "Batch error [" + title + "]: " + message);
         mediator.showError(title, message);
     }
 }

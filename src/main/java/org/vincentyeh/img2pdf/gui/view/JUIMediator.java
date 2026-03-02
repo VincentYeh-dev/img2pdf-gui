@@ -759,21 +759,23 @@ public class JUIMediator implements UIMediator {
 
     @Override
     public void setRunningState(boolean running) {
-        if (running) {
-            taskStatusMap.clear();
-            sourceTree.repaint();
-            convertButton.setEnabled(false);
-            stopButton.setEnabled(true);
-            clearAllButton.setEnabled(false);
-            sourceBrowseButton.setEnabled(false);
-            outputFolderBrowseButton.setEnabled(false);
-        } else {
-            stopButton.setEnabled(false);
-            clearAllButton.setEnabled(true);
-            sourceBrowseButton.setEnabled(true);
-            outputFolderBrowseButton.setEnabled(true);
-            refreshConvertButton();
-        }
+        SwingUtilities.invokeLater(() -> {
+            if (running) {
+                taskStatusMap.clear();
+                sourceTree.repaint();
+                convertButton.setEnabled(false);
+                stopButton.setEnabled(true);
+                clearAllButton.setEnabled(false);
+                sourceBrowseButton.setEnabled(false);
+                outputFolderBrowseButton.setEnabled(false);
+            } else {
+                stopButton.setEnabled(false);
+                clearAllButton.setEnabled(true);
+                sourceBrowseButton.setEnabled(true);
+                outputFolderBrowseButton.setEnabled(true);
+                refreshConvertButton();
+            }
+        });
     }
 
 
@@ -830,22 +832,28 @@ public class JUIMediator implements UIMediator {
     }
 
     public void setBatchProgress(int progress, int total) {
-        totalConversionProgressBar.setMaximum(total);
-        totalConversionProgressBar.setValue(progress);
-        totalConversionLabel.setText(progress + "/" + total);
+        SwingUtilities.invokeLater(() -> {
+            totalConversionProgressBar.setMaximum(total);
+            totalConversionProgressBar.setValue(progress);
+            totalConversionLabel.setText(progress + "/" + total);
+        });
     }
 
     @Override
     public void setConversionProgress(int progress, int total) {
-        pageConversionProgressBar.setMaximum(total);
-        pageConversionProgressBar.setValue(progress);
-        pageConversionLabel.setText(progress + "/" + total);
+        SwingUtilities.invokeLater(() -> {
+            pageConversionProgressBar.setMaximum(total);
+            pageConversionProgressBar.setValue(progress);
+            pageConversionLabel.setText(progress + "/" + total);
+        });
     }
 
     @Override
     public void showError(String title, String message) {
         SwingUtilities.invokeLater(() ->
-                JOptionPane.showMessageDialog(null, message, title, JOptionPane.ERROR_MESSAGE));
+                JOptionPane.showMessageDialog(
+                        SwingUtilities.getWindowAncestor(sourceTree),
+                        message, title, JOptionPane.ERROR_MESSAGE));
     }
 
     public void setListener(MediatorListener listener) {
