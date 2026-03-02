@@ -15,7 +15,9 @@ import org.vincentyeh.img2pdf.lib.pdf.parameter.*;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -246,8 +248,18 @@ public class Model {
                                 documentArgument,
                                 pageArgument,
                                 factoryListener);
-                        document.save(new File(outputFolder, currentTask.destination.getName()));
-                        document.close();
+                        // BUG-01 fix: use try-finally to guarantee document.close() is always called.
+                        // BUG-05 fix: manage FileOutputStream ourselves with try-with-resources so the
+                        //             file handle is always closed even when save() throws, preventing
+                        //             the output PDF from being locked on Windows.
+                        try {
+                            File destination = new File(outputFolder, currentTask.destination.getName());
+                            try (OutputStream out = new FileOutputStream(destination)) {
+                                document.save(out);
+                            }
+                        } finally {
+                            document.close();
+                        }
                         if (listener != null) listener.onTaskComplete(currentTask, null);
                     } catch (PDFFactoryException | IOException e) {
                         if (listener != null) listener.onTaskComplete(currentTask, e);
