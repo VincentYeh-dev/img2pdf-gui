@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /c/Users/vince/IdeaProjects/img2pdf-gui*)",
+      "Bash(mvn compile*)",
+      "Bash(mvn test*)",
+      "Bash(mvn clean package*)",
+      "Bash(git commit*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git checkout*)",
+      "Bash(git merge*)",
+      "Bash(git branch*)",
+      "Bash(grep*)",
+      "Bash(find C:/Users/vince/IdeaProjects/*)",
+      "Bash(find C:/Users/vince/.m2/repository/*)",
+      "Bash(cat*)",
+      "Bash(javap*)",
+      "Bash(jar -tf*)",
+      "Glob(C:/Users/vince/IdeaProjects/**)",
+      "Glob(C:/Users/vince/.m2/repository/**)",
+      "Grep(*)",
+      "Read(C:/Users/vince/.m2/repository/**)",
+      "Search(C:/Users/vince/IdeaProjects/**)",
+      "Search(C:/Users/vince/.m2/repository/**)",
+      "Find(C:/Users/vince/.m2/repository/**)"
+
+    ],
+    "deny": [
+      "Bash(java -jar*)",
+      "Bash(git push*)",
+      "Bash(git reset --hard*)",
+      "Bash(git branch -D*)",
+      "Bash(rm -rf*)"
+    ]
+  }
+}

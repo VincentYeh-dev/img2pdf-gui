@@ -390,7 +390,11 @@ public class JUIMediator implements UIMediator {
                         removeFromDiskItem.addActionListener(ev -> {
                             StringBuilder sb = new StringBuilder();
                             for (Task t : selectedTasks) {
-                                sb.append(t.files[0].getParentFile().getAbsolutePath()).append("\n");
+                                if (t.files != null && t.files.length > 0 && t.files[0] != null) {
+                                    sb.append(t.files[0].getParentFile().getAbsolutePath()).append("\n");
+                                } else {
+                                    sb.append("[unknown folder]").append("\n");
+                                }
                             }
                             Object[] options = {"Delete", "Cancel"};
                             int confirm = JOptionPane.showOptionDialog(
@@ -755,22 +759,23 @@ public class JUIMediator implements UIMediator {
 
     @Override
     public void setRunningState(boolean running) {
-        if (running) {
-            taskStatusMap.clear();
-            sourceTree.repaint();
-            convertButton.setEnabled(false);
-            stopButton.setEnabled(true);
-            clearAllButton.setEnabled(false);
-            sourceBrowseButton.setEnabled(false);
-            outputFolderBrowseButton.setEnabled(false);
-        } else {
-            convertButton.setEnabled(true);
-            stopButton.setEnabled(false);
-            clearAllButton.setEnabled(true);
-            sourceBrowseButton.setEnabled(true);
-            outputFolderBrowseButton.setEnabled(true);
-
-        }
+        SwingUtilities.invokeLater(() -> {
+            if (running) {
+                taskStatusMap.clear();
+                sourceTree.repaint();
+                convertButton.setEnabled(false);
+                stopButton.setEnabled(true);
+                clearAllButton.setEnabled(false);
+                sourceBrowseButton.setEnabled(false);
+                outputFolderBrowseButton.setEnabled(false);
+            } else {
+                stopButton.setEnabled(false);
+                clearAllButton.setEnabled(true);
+                sourceBrowseButton.setEnabled(true);
+                outputFolderBrowseButton.setEnabled(true);
+                refreshConvertButton();
+            }
+        });
     }
 
 
@@ -827,16 +832,28 @@ public class JUIMediator implements UIMediator {
     }
 
     public void setBatchProgress(int progress, int total) {
-        totalConversionProgressBar.setMaximum(total);
-        totalConversionProgressBar.setValue(progress);
-        totalConversionLabel.setText(progress + "/" + total);
+        SwingUtilities.invokeLater(() -> {
+            totalConversionProgressBar.setMaximum(total);
+            totalConversionProgressBar.setValue(progress);
+            totalConversionLabel.setText(progress + "/" + total);
+        });
     }
 
     @Override
     public void setConversionProgress(int progress, int total) {
-        pageConversionProgressBar.setMaximum(total);
-        pageConversionProgressBar.setValue(progress);
-        pageConversionLabel.setText(progress + "/" + total);
+        SwingUtilities.invokeLater(() -> {
+            pageConversionProgressBar.setMaximum(total);
+            pageConversionProgressBar.setValue(progress);
+            pageConversionLabel.setText(progress + "/" + total);
+        });
+    }
+
+    @Override
+    public void showError(String title, String message) {
+        SwingUtilities.invokeLater(() ->
+                JOptionPane.showMessageDialog(
+                        SwingUtilities.getWindowAncestor(sourceTree),
+                        message, title, JOptionPane.ERROR_MESSAGE));
     }
 
     public void setListener(MediatorListener listener) {

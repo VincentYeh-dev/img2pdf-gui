@@ -79,4 +79,15 @@ public interface UIMediator {
      */
     void updateTaskStatus(Task task, boolean success);
 
+    /**
+     * Displays a modal error dialog to the user.
+     * <p>
+     * Must be called on (or dispatched to) the Event Dispatch Thread.
+     * </p>
+     *
+     * @param title   the dialog window title
+     * @param message the error description shown inside the dialog
+     */
+    void showError(String title, String message);
+
 }

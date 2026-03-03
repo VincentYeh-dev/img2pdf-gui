@@ -2,7 +2,6 @@ package org.vincentyeh.img2pdf.gui.model.util.file;
 
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -12,6 +11,9 @@ import java.util.regex.Pattern;
  * date, or numeric filename value, in either ascending or descending order.
  */
 public class FileSorter implements Comparator<File> {
+
+    /** Pre-compiled pattern for one or more consecutive ASCII digits. */
+    private static final Pattern DIGITS = Pattern.compile("[0-9]+");
     private final Sortby sortby;
     private final Sequence sequence;
 
@@ -82,8 +84,8 @@ public class FileSorter implements Comparator<File> {
      * @return a negative integer, zero, or positive integer under numeric ordering
      */
     private int compareNumeric(String thisStr, String otherStr) {
-        String noNumThis = thisStr.replaceAll("[0-9]+", "*");
-        String noNumO = otherStr.replaceAll("[0-9]+", "*");
+        String noNumThis = DIGITS.matcher(thisStr).replaceAll("*");
+        String noNumO = DIGITS.matcher(otherStr).replaceAll("*");
 
         if (noNumThis.equals(noNumO)) {
             int[] a = getNumber(thisStr);
@@ -107,19 +109,21 @@ public class FileSorter implements Comparator<File> {
      * @return an array of integers found in the string, in order of occurrence
      */
     private int[] getNumber(String str) {
-        Pattern pattern = Pattern.compile("[0-9]+");
-        Matcher matcher = pattern.matcher(str);
-        ArrayList<Integer> buf = new ArrayList<>();
-        while (matcher.find()) {
-            buf.add(Integer.valueOf(matcher.group()));
+        // First pass: count the number of digit groups to allocate a right-sized array.
+        Matcher counter = DIGITS.matcher(str);
+        int count = 0;
+        while (counter.find()) {
+            count++;
         }
-        Integer[] result = new Integer[buf.size()];
-        buf.toArray(result);
-        int[] ints = new int[result.length];
-        for (int i = 0; i < ints.length; i++) {
-            ints[i] = result[i];
+
+        // Second pass: fill the pre-allocated int[] directly, avoiding boxing.
+        int[] result = new int[count];
+        Matcher filler = DIGITS.matcher(str);
+        int index = 0;
+        while (filler.find()) {
+            result[index++] = Integer.parseInt(filler.group());
         }
-        return ints;
+        return result;
     }
 
     /**

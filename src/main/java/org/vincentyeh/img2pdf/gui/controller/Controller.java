@@ -1,5 +1,6 @@
 package org.vincentyeh.img2pdf.gui.controller;
 
+import org.vincentyeh.img2pdf.gui.AppLogger;
 import org.vincentyeh.img2pdf.gui.model.ConversionConfig;
 import org.vincentyeh.img2pdf.gui.model.Model;
 import org.vincentyeh.img2pdf.gui.model.ModelListener;
@@ -10,7 +11,9 @@ import org.vincentyeh.img2pdf.gui.view.UIMediator;
 import org.vincentyeh.img2pdf.gui.view.UIState;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
+import java.util.logging.Level;
 
 /**
  * The controller in the MVC + Mediator architecture.
@@ -73,6 +76,10 @@ public class Controller implements MediatorListener, ModelListener {
     /**
      * Responds to the Convert button click by building a {@link ConversionConfig}
      * from the current UI state and starting the batch conversion via the model.
+     * <p>
+     * Any unexpected runtime error that escapes from {@link Model#convert} is caught,
+     * logged as {@code SEVERE}, and presented to the user as an error dialog.
+     * </p>
      *
      * @param mediator the mediator that fired the event
      * @param state    the current UI state containing all conversion parameters
@@ -91,7 +98,13 @@ public class Controller implements MediatorListener, ModelListener {
                 state.getHorizontalAlign(),
                 state.isAutoRotate()
         );
-        model.convert(config);
+        try {
+            model.convert(config);
+        } catch (RuntimeException e) {
+            AppLogger.get().log(Level.SEVERE, "Unexpected error during convert() setup", e);
+            mediator.showError("Unexpected Error",
+                    "An unexpected error occurred while starting the conversion:\n" + e.getMessage());
+        }
     }
 
     /**
@@ -121,13 +134,29 @@ public class Controller implements MediatorListener, ModelListener {
     /**
      * Responds to a disk-deletion request by deleting each task's source folder
      * from disk via the model and refreshing the UI task list.
+     * <p>
+     * If deletion of a specific folder fails, an error dialog is shown for that
+     * task and processing continues with the remaining tasks.
+     * </p>
      *
      * @param mediator the mediator that fired the event
      * @param tasks    the tasks whose source directories should be deleted
      */
     @Override
     public void onTaskRemoveFromDisk(UIMediator mediator, List<Task> tasks) {
-        for (Task task : tasks) model.removeTaskFromDisk(task);
+        for (Task task : tasks) {
+            try {
+                model.removeTaskFromDisk(task);
+            } catch (IOException e) {
+                String folderPath = (task.files != null && task.files.length > 0)
+                        ? task.files[0].getParentFile().getAbsolutePath()
+                        : "unknown";
+                AppLogger.get().log(Level.WARNING,
+                        "Failed to delete source folder: " + folderPath, e);
+                mediator.showError("Delete Failed",
+                        "Cannot delete source folder:\n" + folderPath);
+            }
+        }
         mediator.updateTasks(model.getTasks());
     }
 
@@ -174,12 +203,33 @@ public class Controller implements MediatorListener, ModelListener {
     /**
      * Forwards the per-task completion result to the UI mediator to update the
      * task status indicator in the tree.
+     * <p>
+     * A non-{@code null} {@code error} is logged at {@code WARNING} level; the
+     * user sees the task marked as failed in the tree rather than a dialog.
+     * </p>
      *
-     * @param task    the task that has just completed
-     * @param success {@code true} if the PDF was created successfully; {@code false} on error
+     * @param task  the task that has just completed
+     * @param error {@code null} on success; the causing exception on failure
      */
     @Override
-    public void onTaskComplete(Task task, boolean success) {
-        mediator.updateTaskStatus(task, success);
+    public void onTaskComplete(Task task, Exception error) {
+        if (error != null) {
+            AppLogger.get().log(Level.WARNING,
+                    "Task failed: " + task.destination.getName(), error);
+        }
+        mediator.updateTaskStatus(task, error == null);
+    }
+
+    /**
+     * Displays a user-visible error dialog for pre-conversion validation failures
+     * and logs the event at {@code WARNING} level.
+     *
+     * @param title   a short, human-readable error title
+     * @param message a detailed description of the error
+     */
+    @Override
+    public void onBatchError(String title, String message) {
+        AppLogger.get().log(Level.WARNING, "Batch error [" + title + "]: " + message);
+        mediator.showError(title, message);
     }
 }
