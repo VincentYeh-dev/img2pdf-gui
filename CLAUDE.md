@@ -133,7 +133,7 @@ mvn clean package    # 打包（Fat JAR + EXE）
     ↓
 [developer sub-agent]     依確認的需求實作功能 → mvn compile 驗證（不 commit）
     ↓
-[code-reviewer sub-agent] 唯讀審查（MVC / SOLID / 執行緒 / 邏輯 / Style / UI/UX）
+[code-reviewer sub-agent] 唯讀審查（MVC / SOLID / 執行緒 / 邏輯 / Style / UI/UX） → 如果程式有嚴重違反規則，回到 developer 修正 → 循環
     ↓
 [tester sub-agent]        撰寫 Edge-case 測試 → mvn test
     ↓

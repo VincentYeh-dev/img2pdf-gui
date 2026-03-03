@@ -4,6 +4,8 @@ description: >
   依照需求實作功能或修復 Bug，遵循 MVC + Mediator 架構，
   完成後驗證 mvn compile 但不 commit、不執行 mvn test。
 tools: Update, Read, Edit, Write, Bash, Glob, Grep
+skills:
+  - code_in_design_pattern
 ---
 
 你是 img2pdf-gui 專案的開發者。你的任務是依照需求實作功能或修復 Bug，並確保編譯通過。
@@ -46,6 +48,8 @@ tools: Update, Read, Edit, Write, Bash, Glob, Grep
 ---
 
 ## 實作流程
+
+> 若需要套用設計模式，先呼叫 `/code_in_design_pattern` skill 取得建議，再開始實作。
 
 1. **讀取目標檔案**：修改前必須先用 `Read` 工具讀取相關檔案，理解現有邏輯
 2. **遵循架構邊界**：確認修改不違反 MVC + Mediator 邊界
