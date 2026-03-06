@@ -1,7 +1,5 @@
 package org.vincentyeh.img2pdf.gui.view;
 
-import org.vincentyeh.img2pdf.gui.model.Task;
-
 import java.util.List;
 
 /**
@@ -27,11 +25,12 @@ public interface UIMediator {
     void notifyUI(String event, Object... data);
 
     /**
-     * Replaces the displayed task list with the supplied tasks and refreshes the UI tree.
+     * Replaces the displayed task list with the supplied display objects and
+     * refreshes the UI tree.
      *
-     * @param tasks the new list of tasks to display
+     * @param tasks the new list of task display objects to render
      */
-    void updateTasks(List<Task> tasks);
+    void updateTasks(List<TaskDisplay> tasks);
 
     /**
      * Switches the UI between its "running" (conversion in progress) and "idle" states,
@@ -72,12 +71,13 @@ public interface UIMediator {
     void setListener(MediatorListener listener);
 
     /**
-     * Updates the visual status indicator of a task node in the tree after it finishes.
+     * Updates the visual status indicator of the task node at the given index
+     * in the tree after it finishes.
      *
-     * @param task    the task that has completed
+     * @param index   the zero-based position of the task in the current list
      * @param success {@code true} if the task succeeded; {@code false} if it failed
      */
-    void updateTaskStatus(Task task, boolean success);
+    void updateTaskStatus(int index, boolean success);
 
     /**
      * Displays a modal error dialog to the user.

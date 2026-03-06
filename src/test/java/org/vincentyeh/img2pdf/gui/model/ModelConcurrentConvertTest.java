@@ -8,8 +8,10 @@ import org.vincentyeh.img2pdf.lib.pdf.parameter.PageDirection;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.PageSize;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -22,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * Focus: verifies that the snapshot taken before the background thread starts
  * prevents ConcurrentModificationException / IndexOutOfBoundsException when
- * removeTask() is called from another thread (simulating EDT) while the
+ * removeTasks() is called from another thread (simulating EDT) while the
  * conversion thread is running.
  */
 class ModelConcurrentConvertTest {
@@ -47,16 +49,24 @@ class ModelConcurrentConvertTest {
     }
 
     /**
-     * Creates a Task whose files array is empty (no real images).
-     * The conversion of this task will fail gracefully via onTaskComplete(task, exception),
-     * but the batch will still call onBatchComplete() at the end.
+     * Returns a ModelListener that captures tasks on every onTasksUpdate call.
+     * All other callbacks are no-ops.
      */
-    private Task emptyTask(File destination) {
-        return new Task(destination, new File[0]);
+    private ModelListener listenerCapturing(List<Task> list) {
+        return new ModelListener() {
+            @Override public void onBatchStart() {}
+            @Override public void onBatchComplete() {}
+            @Override public void onBatchProgressUpdate(int p, int t) {}
+            @Override public void onConversionProgressUpdate(int p, int t) {}
+            @Override public void onTaskComplete(Task task, Exception e) {}
+            @Override public void onBatchError(String title, String msg) {}
+            @Override public void onTasksUpdate(List<Task> tasks) { list.clear(); list.addAll(tasks); }
+            @Override public void onTaskDiskRemovalError(Task task, IOException e) {}
+        };
     }
 
     /**
-     * Verifies that calling removeTask() concurrently while convert() is running
+     * Verifies that calling removeTasks() concurrently while convert() is running
      * does not throw ConcurrentModificationException or IndexOutOfBoundsException,
      * and that onBatchComplete() is eventually called.
      *
@@ -71,15 +81,18 @@ class ModelConcurrentConvertTest {
         File outputFolder = tempDir.resolve("output").toFile();
         outputFolder.mkdirs();
 
-        // Prepare several empty tasks (no real image files; each will fail conversion,
-        // but the batch completes without ConcurrentModificationException)
-        List<Task> tasks = new ArrayList<>();
-        for (int i = 0; i < 5; i++) {
-            tasks.add(emptyTask(new File(outputFolder, "out" + i + ".pdf")));
-        }
-
+        // Create 5 empty source directories → tasks with empty files[]
         Model model = new Model();
-        model.setTask(tasks);
+        List<Task> capturedTasks = new ArrayList<>();
+        model.setModelListener(listenerCapturing(capturedTasks));
+
+        File[] srcDirs = new File[5];
+        for (int i = 0; i < 5; i++) {
+            srcDirs[i] = tempDir.resolve("src" + i).toFile();
+            srcDirs[i].mkdirs();
+        }
+        model.importSources(srcDirs);
+        assertEquals(5, capturedTasks.size());
 
         // Latch: released when onBatchStart fires, so we know the background thread is running
         CountDownLatch batchStartLatch = new CountDownLatch(1);
@@ -127,6 +140,14 @@ class ModelConcurrentConvertTest {
                 unexpectedError.compareAndSet(null,
                         new AssertionError("Unexpected onBatchError: " + title + " — " + message));
             }
+
+            @Override
+            public void onTasksUpdate(List<Task> tasks) {
+                // fired by removeTasks() from EDT simulator — no action needed
+            }
+
+            @Override
+            public void onTaskDiskRemovalError(Task task, IOException e) {}
         });
 
         // Start conversion (launches background thread internally)
@@ -140,9 +161,9 @@ class ModelConcurrentConvertTest {
         // Before the snapshot fix, this would cause ConcurrentModificationException.
         Thread edtSimulator = new Thread(() -> {
             try {
-                List<Task> snapshot = new ArrayList<>(tasks);
+                List<Task> snapshot = new ArrayList<>(capturedTasks);
                 for (Task t : snapshot) {
-                    model.removeTask(t);
+                    model.removeTasks(Collections.singletonList(t));
                     // Small yield to interleave with conversion thread
                     Thread.yield();
                 }
@@ -158,14 +179,14 @@ class ModelConcurrentConvertTest {
 
         // Assert no concurrent-modification error occurred
         assertNull(unexpectedError.get(),
-                "Unexpected exception during concurrent removeTask: " + unexpectedError.get());
+                "Unexpected exception during concurrent removeTasks: " + unexpectedError.get());
 
         // Assert batch actually completed (not silently stuck)
         assertTrue(completed, "onBatchComplete was not called within timeout");
     }
 
     /**
-     * Verifies that when removeTask() drains the sources list completely before
+     * Verifies that when removeTasks() drains the sources list completely before
      * convert() takes its snapshot (race where sources is empty at snapshot time),
      * the batch still completes without error and onBatchComplete() is called.
      */
@@ -176,46 +197,39 @@ class ModelConcurrentConvertTest {
         File outputFolder = tempDir.resolve("output2").toFile();
         outputFolder.mkdirs();
 
-        // Add a few tasks
-        List<Task> tasks = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
-            tasks.add(emptyTask(new File(outputFolder, "out" + i + ".pdf")));
-        }
-
         Model model = new Model();
-        model.setTask(tasks);
+        List<Task> capturedTasks = new ArrayList<>();
+        model.setModelListener(listenerCapturing(capturedTasks));
+
+        File[] srcDirs = new File[3];
+        for (int i = 0; i < 3; i++) {
+            srcDirs[i] = tempDir.resolve("src" + i).toFile();
+            srcDirs[i].mkdirs();
+        }
+        model.importSources(srcDirs);
+        assertEquals(3, capturedTasks.size());
 
         CountDownLatch batchCompleteLatch = new CountDownLatch(1);
         AtomicReference<Throwable> unexpectedError = new AtomicReference<>();
 
         model.setModelListener(new ModelListener() {
-            @Override
-            public void onBatchStart() { }
-
-            @Override
-            public void onBatchComplete() {
-                batchCompleteLatch.countDown();
-            }
-
-            @Override
-            public void onBatchProgressUpdate(int progress, int total) { }
-
-            @Override
-            public void onConversionProgressUpdate(int progress, int total) { }
-
-            @Override
-            public void onTaskComplete(Task task, Exception error) { }
-
-            @Override
-            public void onBatchError(String title, String message) {
+            @Override public void onBatchStart() { }
+            @Override public void onBatchComplete() { batchCompleteLatch.countDown(); }
+            @Override public void onBatchProgressUpdate(int progress, int total) { }
+            @Override public void onConversionProgressUpdate(int progress, int total) { }
+            @Override public void onTaskComplete(Task task, Exception error) { }
+            @Override public void onBatchError(String title, String message) {
                 unexpectedError.compareAndSet(null,
                         new AssertionError("Unexpected onBatchError: " + title + " — " + message));
             }
+            @Override public void onTasksUpdate(List<Task> tasks) {}
+            @Override public void onTaskDiskRemovalError(Task task, IOException e) {}
         });
 
         // Remove all tasks BEFORE calling convert() — snapshot will capture 0 tasks
-        for (Task t : tasks) {
-            model.removeTask(t);
+        List<Task> snapshot = new ArrayList<>(capturedTasks);
+        for (Task t : snapshot) {
+            model.removeTasks(Collections.singletonList(t));
         }
 
         // convert() with an empty sources list should still call onBatchComplete()
@@ -230,11 +244,11 @@ class ModelConcurrentConvertTest {
     }
 
     /**
-     * Verifies that rapid, repeated removeTask() calls from multiple threads
+     * Verifies that rapid, repeated removeTasks() calls from multiple threads
      * during an active conversion do not produce IndexOutOfBoundsException
      * from the background conversion loop.
      *
-     * This is a stress variant of the single-thread removeTask test.
+     * This is a stress variant of the single-thread removeTasks test.
      */
     @Test
     void convert_multipleThreadsRemovingTasksConcurrently_noIndexOutOfBounds(@TempDir Path tempDir)
@@ -243,43 +257,34 @@ class ModelConcurrentConvertTest {
         File outputFolder = tempDir.resolve("output3").toFile();
         outputFolder.mkdirs();
 
-        List<Task> tasks = new ArrayList<>();
-        for (int i = 0; i < 8; i++) {
-            tasks.add(emptyTask(new File(outputFolder, "out" + i + ".pdf")));
-        }
-
         Model model = new Model();
-        model.setTask(tasks);
+        List<Task> capturedTasks = new ArrayList<>();
+        model.setModelListener(listenerCapturing(capturedTasks));
+
+        File[] srcDirs = new File[8];
+        for (int i = 0; i < 8; i++) {
+            srcDirs[i] = tempDir.resolve("src" + i).toFile();
+            srcDirs[i].mkdirs();
+        }
+        model.importSources(srcDirs);
+        assertEquals(8, capturedTasks.size());
 
         CountDownLatch batchStartLatch = new CountDownLatch(1);
         CountDownLatch batchCompleteLatch = new CountDownLatch(1);
         AtomicReference<Throwable> unexpectedError = new AtomicReference<>();
 
         model.setModelListener(new ModelListener() {
-            @Override
-            public void onBatchStart() {
-                batchStartLatch.countDown();
-            }
-
-            @Override
-            public void onBatchComplete() {
-                batchCompleteLatch.countDown();
-            }
-
-            @Override
-            public void onBatchProgressUpdate(int progress, int total) { }
-
-            @Override
-            public void onConversionProgressUpdate(int progress, int total) { }
-
-            @Override
-            public void onTaskComplete(Task task, Exception error) { }
-
-            @Override
-            public void onBatchError(String title, String message) {
+            @Override public void onBatchStart() { batchStartLatch.countDown(); }
+            @Override public void onBatchComplete() { batchCompleteLatch.countDown(); }
+            @Override public void onBatchProgressUpdate(int progress, int total) { }
+            @Override public void onConversionProgressUpdate(int progress, int total) { }
+            @Override public void onTaskComplete(Task task, Exception error) { }
+            @Override public void onBatchError(String title, String message) {
                 unexpectedError.compareAndSet(null,
                         new AssertionError("Unexpected onBatchError: " + title + " — " + message));
             }
+            @Override public void onTasksUpdate(List<Task> tasks) {}
+            @Override public void onTaskDiskRemovalError(Task task, IOException e) {}
         });
 
         model.convert(buildConfig(outputFolder));
@@ -290,14 +295,16 @@ class ModelConcurrentConvertTest {
 
         // Spawn multiple threads that each try to remove tasks concurrently
         int threadCount = 4;
+        // Take a stable snapshot of the task list for the remover threads
+        List<Task> taskSnapshot = new ArrayList<>(capturedTasks);
         Thread[] removers = new Thread[threadCount];
         for (int t = 0; t < threadCount; t++) {
             final int idx = t;
             removers[t] = new Thread(() -> {
                 try {
                     // Each thread removes a subset of tasks
-                    for (int i = idx; i < tasks.size(); i += threadCount) {
-                        model.removeTask(tasks.get(i));
+                    for (int i = idx; i < taskSnapshot.size(); i += threadCount) {
+                        model.removeTasks(Collections.singletonList(taskSnapshot.get(i)));
                         Thread.yield();
                     }
                 } catch (Exception e) {
@@ -311,7 +318,7 @@ class ModelConcurrentConvertTest {
         boolean completed = batchCompleteLatch.await(60, TimeUnit.SECONDS);
 
         assertNull(unexpectedError.get(),
-                "Exception during multi-thread removeTask: " + unexpectedError.get());
+                "Exception during multi-thread removeTasks: " + unexpectedError.get());
         assertTrue(completed, "onBatchComplete was not called within timeout");
     }
 }

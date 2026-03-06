@@ -1,6 +1,5 @@
 package org.vincentyeh.img2pdf.gui.view;
 
-import org.vincentyeh.img2pdf.gui.model.Task;
 import org.vincentyeh.img2pdf.gui.model.TaskSortOrder;
 
 import java.util.List;
@@ -47,18 +46,18 @@ public interface MediatorListener {
      * (files on disk are kept).
      *
      * @param mediator the mediator that fired the event
-     * @param tasks    the list of tasks selected for removal
+     * @param indices  the zero-based positions of the selected tasks in the current list
      */
-    void onTaskRemove(UIMediator mediator, List<Task> tasks);
+    void onTaskRemove(UIMediator mediator, List<Integer> indices);
 
     /**
      * Called when the user requests deletion of selected tasks together with their
      * source files on disk.
      *
      * @param mediator the mediator that fired the event
-     * @param tasks    the list of tasks whose source directories should be deleted
+     * @param indices  the zero-based positions of the selected tasks in the current list
      */
-    void onTaskRemoveFromDisk(UIMediator mediator, List<Task> tasks);
+    void onTaskRemoveFromDisk(UIMediator mediator, List<Integer> indices);
 
     /**
      * Called when the user selects a new sort order for the task list.

@@ -7,7 +7,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -25,124 +25,174 @@ class ModelTest {
         model = new Model();
     }
 
-    // Verifies that getTasks() returns the exact list provided to setTask().
-    @Test
-    void setTask_stores_provided_tasks() {
-        Task t1 = new Task(new File("a.pdf"), new File[0]);
-        Task t2 = new Task(new File("b.pdf"), new File[0]);
-
-        model.setTask(Arrays.asList(t1, t2));
-
-        assertEquals(2, model.getTasks().size());
-        assertTrue(model.getTasks().contains(t1));
-        assertTrue(model.getTasks().contains(t2));
+    // Returns a ModelListener that clears and repopulates the given list on each onTasksUpdate.
+    private ModelListener listenerCapturing(List<Task> list) {
+        return new ModelListener() {
+            @Override public void onBatchStart() {}
+            @Override public void onBatchComplete() {}
+            @Override public void onBatchProgressUpdate(int p, int t) {}
+            @Override public void onConversionProgressUpdate(int p, int t) {}
+            @Override public void onTaskComplete(Task task, Exception e) {}
+            @Override public void onBatchError(String title, String msg) {}
+            @Override public void onTasksUpdate(List<Task> tasks) { list.clear(); list.addAll(tasks); }
+            @Override public void onTaskDiskRemovalError(Task task, IOException e) {}
+        };
     }
 
-    // Verifies that setTask() applies the default NAME_ASC sort order immediately.
+    // Verifies that importSources() creates one task per directory and fires onTasksUpdate.
     @Test
-    void setTask_sorts_tasks_by_default_name_asc() {
-        Task tz = new Task(new File("z.pdf"), new File[0]);
-        Task ta = new Task(new File("a.pdf"), new File[0]);
+    void importSources_stores_tasks_from_directories(@TempDir Path tempDir) throws Exception {
+        File dir1 = tempDir.resolve("a").toFile(); dir1.mkdirs();
+        File dir2 = tempDir.resolve("b").toFile(); dir2.mkdirs();
+        new File(dir1, "1.jpg").createNewFile();
+        new File(dir2, "2.jpg").createNewFile();
 
-        model.setTask(Arrays.asList(tz, ta));
+        List<Task> captured = new ArrayList<>();
+        model.setModelListener(listenerCapturing(captured));
+        model.importSources(new File[]{dir1, dir2});
 
-        List<Task> tasks = model.getTasks();
-        assertEquals("a.pdf", tasks.get(0).destination.getName());
-        assertEquals("z.pdf", tasks.get(1).destination.getName());
+        assertEquals(2, captured.size());
+    }
+
+    // Verifies that importSources() applies the default NAME_ASC sort order immediately.
+    @Test
+    void importSources_sorts_tasks_by_default_name_asc(@TempDir Path tempDir) throws Exception {
+        File tz = tempDir.resolve("z").toFile(); tz.mkdirs();
+        File ta = tempDir.resolve("a").toFile(); ta.mkdirs();
+
+        List<Task> captured = new ArrayList<>();
+        model.setModelListener(listenerCapturing(captured));
+        model.importSources(new File[]{tz, ta});
+
+        assertEquals("a.pdf", captured.get(0).destination.getName());
+        assertEquals("z.pdf", captured.get(1).destination.getName());
     }
 
     // Verifies that setSortOrder(NAME_DESC) re-sorts an existing task list in reverse name order.
     @Test
-    void setSortOrder_name_desc_reverses_name_order() {
-        Task ta = new Task(new File("a.pdf"), new File[0]);
-        Task tz = new Task(new File("z.pdf"), new File[0]);
-        model.setTask(Arrays.asList(ta, tz));
+    void setSortOrder_name_desc_reverses_name_order(@TempDir Path tempDir) throws Exception {
+        File ta = tempDir.resolve("a").toFile(); ta.mkdirs();
+        File tz = tempDir.resolve("z").toFile(); tz.mkdirs();
+
+        List<Task> captured = new ArrayList<>();
+        model.setModelListener(listenerCapturing(captured));
+        model.importSources(new File[]{ta, tz});
 
         model.setSortOrder(TaskSortOrder.NAME_DESC);
 
-        List<Task> tasks = model.getTasks();
-        assertEquals("z.pdf", tasks.get(0).destination.getName());
-        assertEquals("a.pdf", tasks.get(1).destination.getName());
+        assertEquals("z.pdf", captured.get(0).destination.getName());
+        assertEquals("a.pdf", captured.get(1).destination.getName());
     }
 
     // Verifies that setSortOrder(COUNT_DESC) places the task with more files first.
     @Test
-    void setSortOrder_count_desc_orders_by_file_count_desc() {
-        Task few  = new Task(new File("few.pdf"),  new File[]{new File("1.jpg")});
-        Task many = new Task(new File("many.pdf"), new File[]{new File("1.jpg"), new File("2.jpg"), new File("3.jpg")});
-        model.setTask(Arrays.asList(few, many));
+    void setSortOrder_count_desc_orders_by_file_count_desc(@TempDir Path tempDir) throws Exception {
+        File fewDir = tempDir.resolve("few").toFile(); fewDir.mkdirs();
+        new File(fewDir, "1.jpg").createNewFile();
+
+        File manyDir = tempDir.resolve("many").toFile(); manyDir.mkdirs();
+        new File(manyDir, "1.jpg").createNewFile();
+        new File(manyDir, "2.jpg").createNewFile();
+        new File(manyDir, "3.jpg").createNewFile();
+
+        List<Task> captured = new ArrayList<>();
+        model.setModelListener(listenerCapturing(captured));
+        model.importSources(new File[]{fewDir, manyDir});
 
         model.setSortOrder(TaskSortOrder.COUNT_DESC);
 
-        List<Task> tasks = model.getTasks();
-        assertEquals("many.pdf", tasks.get(0).destination.getName());
-        assertEquals("few.pdf",  tasks.get(1).destination.getName());
+        assertEquals("many.pdf", captured.get(0).destination.getName());
+        assertEquals("few.pdf",  captured.get(1).destination.getName());
     }
 
     // Verifies that setSortOrder() takes effect immediately on the already-stored task list.
     @Test
-    void setSortOrder_immediately_resorts_existing_tasks() {
-        Task ta = new Task(new File("a.pdf"), new File[0]);
-        Task tz = new Task(new File("z.pdf"), new File[0]);
-        model.setTask(Arrays.asList(ta, tz));
-        assertEquals("a.pdf", model.getTasks().get(0).destination.getName());
+    void setSortOrder_immediately_resorts_existing_tasks(@TempDir Path tempDir) throws Exception {
+        File ta = tempDir.resolve("a").toFile(); ta.mkdirs();
+        File tz = tempDir.resolve("z").toFile(); tz.mkdirs();
+
+        List<Task> captured = new ArrayList<>();
+        model.setModelListener(listenerCapturing(captured));
+        model.importSources(new File[]{ta, tz});
+        assertEquals("a.pdf", captured.get(0).destination.getName()); // NAME_ASC default
 
         model.setSortOrder(TaskSortOrder.NAME_DESC);
 
-        assertEquals("z.pdf", model.getTasks().get(0).destination.getName());
+        assertEquals("z.pdf", captured.get(0).destination.getName());
     }
 
-    // Verifies that removeTask() eliminates the target task from the list.
+    // Verifies that removeTasks() eliminates the target task from the list.
     @Test
-    void removeTask_removes_specified_task_from_list() {
-        Task t1 = new Task(new File("a.pdf"), new File[0]);
-        Task t2 = new Task(new File("b.pdf"), new File[0]);
-        model.setTask(Arrays.asList(t1, t2));
+    void removeTasks_removes_specified_task_from_list(@TempDir Path tempDir) throws Exception {
+        File dir1 = tempDir.resolve("a").toFile(); dir1.mkdirs();
+        File dir2 = tempDir.resolve("b").toFile(); dir2.mkdirs();
+        new File(dir1, "1.jpg").createNewFile();
+        new File(dir2, "2.jpg").createNewFile();
 
-        model.removeTask(t1);
+        List<Task> captured = new ArrayList<>();
+        model.setModelListener(listenerCapturing(captured));
+        model.importSources(new File[]{dir1, dir2});
+        // captured = [a.pdf, b.pdf]
 
-        assertFalse(model.getTasks().contains(t1));
+        Task toRemove = captured.get(0);
+        model.removeTasks(Collections.singletonList(toRemove));
+
+        assertEquals(1, captured.size());
+        assertFalse(captured.stream().anyMatch(t -> t == toRemove));
     }
 
-    // Verifies that removeTask() leaves all other tasks untouched.
+    // Verifies that removeTasks() leaves all other tasks untouched.
     @Test
-    void removeTask_does_not_affect_other_tasks() {
-        Task t1 = new Task(new File("a.pdf"), new File[0]);
-        Task t2 = new Task(new File("b.pdf"), new File[0]);
-        model.setTask(Arrays.asList(t1, t2));
+    void removeTasks_does_not_affect_other_tasks(@TempDir Path tempDir) throws Exception {
+        File dir1 = tempDir.resolve("a").toFile(); dir1.mkdirs();
+        File dir2 = tempDir.resolve("b").toFile(); dir2.mkdirs();
+        new File(dir1, "1.jpg").createNewFile();
+        new File(dir2, "2.jpg").createNewFile();
 
-        model.removeTask(t1);
+        List<Task> captured = new ArrayList<>();
+        model.setModelListener(listenerCapturing(captured));
+        model.importSources(new File[]{dir1, dir2});
 
-        assertTrue(model.getTasks().contains(t2));
-        assertEquals(1, model.getTasks().size());
+        Task toRemove = captured.get(0); // "a.pdf"
+        model.removeTasks(Collections.singletonList(toRemove));
+
+        assertEquals(1, captured.size());
+        assertEquals("b.pdf", captured.get(0).destination.getName());
     }
 
-    // Verifies that removeTaskFromDisk() also removes the task from the in-memory list.
+    // Verifies that removeTasksFromDisk() also removes the task from the in-memory list.
     @Test
-    void removeTaskFromDisk_removes_task_from_in_memory_list(@TempDir Path tempDir) throws IOException {
+    void removeTasksFromDisk_removes_task_from_in_memory_list(@TempDir Path tempDir) throws Exception {
         File dir = tempDir.resolve("album").toFile();
         dir.mkdirs();
-        File img = new File(dir, "1.jpg");
-        img.createNewFile();
-        Task task = new Task(new File("album.pdf"), new File[]{img});
-        model.setTask(Collections.singletonList(task));
+        new File(dir, "1.jpg").createNewFile();
 
-        model.removeTaskFromDisk(task);
+        List<Task> captured = new ArrayList<>();
+        model.setModelListener(listenerCapturing(captured));
+        model.importSources(new File[]{dir});
+        assertEquals(1, captured.size());
 
-        assertFalse(model.getTasks().contains(task));
+        Task task = captured.get(0);
+        model.removeTasksFromDisk(Collections.singletonList(task));
+
+        assertTrue(captured.isEmpty());
     }
 
-    // Verifies that removeTaskFromDisk() physically deletes the source folder and its contents.
+    // Verifies that removeTasksFromDisk() physically deletes the source folder and its contents.
     @Test
-    void removeTaskFromDisk_deletes_source_folder_on_disk(@TempDir Path tempDir) throws IOException {
+    void removeTasksFromDisk_deletes_source_folder_on_disk(@TempDir Path tempDir) throws Exception {
         File dir = tempDir.resolve("to_delete").toFile();
         dir.mkdirs();
         File img = new File(dir, "photo.jpg");
         img.createNewFile();
-        Task task = new Task(new File("to_delete.pdf"), new File[]{img});
-        model.setTask(Collections.singletonList(task));
 
-        model.removeTaskFromDisk(task);
+        List<Task> captured = new ArrayList<>();
+        model.setModelListener(listenerCapturing(captured));
+        model.importSources(new File[]{dir});
+        assertEquals(1, captured.size());
+
+        Task task = captured.get(0);
+        model.removeTasksFromDisk(Collections.singletonList(task));
 
         assertFalse(dir.exists());
     }
@@ -182,7 +232,7 @@ class ModelTest {
         ModelListener listener = mock(ModelListener.class);
         doAnswer(inv -> { latch.countDown(); return null; }).when(listener).onBatchComplete();
         model.setModelListener(listener);
-        model.setTask(Collections.emptyList());
+        // model starts with empty task list — no setTask needed
 
         File outDir = tempDir.resolve("output").toFile();
         ConversionConfig config = new ConversionConfig(

@@ -7,13 +7,16 @@ import org.vincentyeh.img2pdf.gui.model.ModelListener;
 import org.vincentyeh.img2pdf.gui.model.Task;
 import org.vincentyeh.img2pdf.gui.model.TaskSortOrder;
 import org.vincentyeh.img2pdf.gui.view.MediatorListener;
+import org.vincentyeh.img2pdf.gui.view.TaskDisplay;
 import org.vincentyeh.img2pdf.gui.view.UIMediator;
 import org.vincentyeh.img2pdf.gui.view.UIState;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * The controller in the MVC + Mediator architecture.
@@ -26,6 +29,9 @@ import java.util.logging.Level;
 public class Controller implements MediatorListener, ModelListener {
     private final Model model;
     private final UIMediator mediator;
+
+    /** Local snapshot of the current task list, updated by {@link #onTasksUpdate}. */
+    private List<Task> currentTasks = new ArrayList<>();
 
     /**
      * Constructs the controller, wiring itself as the listener for both the
@@ -54,15 +60,13 @@ public class Controller implements MediatorListener, ModelListener {
         File[] sources = state.getSourceFiles();
         if (sources == null)
             return;
-
-        List<Task> tasks = Model.parseSourceFiles(sources);
-        model.setTask(tasks);
-        mediator.updateTasks(model.getTasks());
+        // importSources() internally calls parseSourceFiles() and fires onTasksUpdate
+        model.importSources(sources);
     }
 
     /**
-     * Responds to a sort-order change by updating the model's sort order and
-     * refreshing the task list display in the UI.
+     * Responds to a sort-order change by updating the model's sort order.
+     * The model fires {@link #onTasksUpdate} automatically after re-sorting.
      *
      * @param mediator the mediator that fired the event
      * @param order    the newly selected sort order
@@ -70,7 +74,6 @@ public class Controller implements MediatorListener, ModelListener {
     @Override
     public void onSortOrderChange(UIMediator mediator, TaskSortOrder order) {
         model.setSortOrder(order);
-        mediator.updateTasks(model.getTasks());
     }
 
     /**
@@ -119,45 +122,38 @@ public class Controller implements MediatorListener, ModelListener {
     }
 
     /**
-     * Responds to a task-removal request by removing each selected task from the
-     * model and refreshing the UI task list.
+     * Responds to a task-removal request by translating indices to Task objects
+     * and delegating to the model. The model fires {@link #onTasksUpdate} once
+     * after all removals.
      *
      * @param mediator the mediator that fired the event
-     * @param tasks    the tasks to remove from the in-memory list
+     * @param indices  the zero-based positions of tasks to remove
      */
     @Override
-    public void onTaskRemove(UIMediator mediator, List<Task> tasks) {
-        for (Task task : tasks) model.removeTask(task);
-        mediator.updateTasks(model.getTasks());
+    public void onTaskRemove(UIMediator mediator, List<Integer> indices) {
+        List<Task> toRemove = indices.stream()
+                .filter(i -> i >= 0 && i < currentTasks.size())
+                .map(currentTasks::get)
+                .collect(Collectors.toList());
+        model.removeTasks(toRemove);
     }
 
     /**
-     * Responds to a disk-deletion request by deleting each task's source folder
-     * from disk via the model and refreshing the UI task list.
-     * <p>
-     * If deletion of a specific folder fails, an error dialog is shown for that
-     * task and processing continues with the remaining tasks.
-     * </p>
+     * Responds to a disk-deletion request by translating indices to Task objects
+     * and delegating to the model. Per-task errors are reported via
+     * {@link #onTaskDiskRemovalError}; a single {@link #onTasksUpdate} is fired at
+     * the end.
      *
      * @param mediator the mediator that fired the event
-     * @param tasks    the tasks whose source directories should be deleted
+     * @param indices  the zero-based positions of tasks to delete from disk
      */
     @Override
-    public void onTaskRemoveFromDisk(UIMediator mediator, List<Task> tasks) {
-        for (Task task : tasks) {
-            try {
-                model.removeTaskFromDisk(task);
-            } catch (IOException e) {
-                String folderPath = (task.files != null && task.files.length > 0)
-                        ? task.files[0].getParentFile().getAbsolutePath()
-                        : "unknown";
-                AppLogger.get().log(Level.WARNING,
-                        "Failed to delete source folder: " + folderPath, e);
-                mediator.showError("Delete Failed",
-                        "Cannot delete source folder:\n" + folderPath);
-            }
-        }
-        mediator.updateTasks(model.getTasks());
+    public void onTaskRemoveFromDisk(UIMediator mediator, List<Integer> indices) {
+        List<Task> toRemove = indices.stream()
+                .filter(i -> i >= 0 && i < currentTasks.size())
+                .map(currentTasks::get)
+                .collect(Collectors.toList());
+        model.removeTasksFromDisk(toRemove);
     }
 
     /**
@@ -217,7 +213,39 @@ public class Controller implements MediatorListener, ModelListener {
             AppLogger.get().log(Level.WARNING,
                     "Task failed: " + task.destination.getName(), error);
         }
-        mediator.updateTaskStatus(task, error == null);
+        int index = currentTasks.indexOf(task);
+        if (index >= 0) mediator.updateTaskStatus(index, error == null);
+    }
+
+    /**
+     * Receives the updated task list from the model and pushes a converted
+     * {@link TaskDisplay} list to the UI mediator.
+     *
+     * @param tasks an unmodifiable snapshot of the current task list
+     */
+    @Override
+    public void onTasksUpdate(List<Task> tasks) {
+        currentTasks = new ArrayList<>(tasks);
+        List<TaskDisplay> displays = tasks.stream()
+                .map(t -> new TaskDisplay(t.destination.getName(), t.files))
+                .collect(Collectors.toList());
+        mediator.updateTasks(displays);
+    }
+
+    /**
+     * Shows an error dialog when a disk-removal operation fails for a specific task.
+     *
+     * @param task  the task whose source folder could not be deleted
+     * @param error the underlying IO failure
+     */
+    @Override
+    public void onTaskDiskRemovalError(Task task, IOException error) {
+        String folderPath = (task.files != null && task.files.length > 0)
+                ? task.files[0].getParentFile().getAbsolutePath()
+                : "unknown";
+        AppLogger.get().log(Level.WARNING,
+                "Failed to delete source folder: " + folderPath, error);
+        mediator.showError("Delete Failed", "Cannot delete source folder:\n" + folderPath);
     }
 
     /**

@@ -41,7 +41,6 @@ class ControllerTest {
         UIState.resetForTesting();
         model    = mock(Model.class);
         mediator = mock(UIMediator.class);
-        when(model.getTasks()).thenReturn(Collections.emptyList());
         controller = new Controller(model, mediator);
     }
 
@@ -80,7 +79,7 @@ class ControllerTest {
 
         controller.onSourcesUpdate(mediator, state);
 
-        verify(model, never()).setTask(any());
+        verify(model, never()).importSources(any());
     }
 
     // Verifies that onSourcesUpdate() calls model.setTask() and mediator.updateTasks()
@@ -97,8 +96,7 @@ class ControllerTest {
 
         controller.onSourcesUpdate(mediator, state);
 
-        verify(model).setTask(argThat(list -> !list.isEmpty()));
-        verify(mediator, atLeastOnce()).updateTasks(any());
+        verify(model).importSources(any());
     }
 
     // Verifies that onSortOrderChange() updates the model sort order and refreshes the UI.
@@ -107,7 +105,6 @@ class ControllerTest {
         controller.onSortOrderChange(mediator, TaskSortOrder.NAME_DESC);
 
         verify(model).setSortOrder(TaskSortOrder.NAME_DESC);
-        verify(mediator, atLeastOnce()).updateTasks(any());
     }
 
     // Verifies that onConvertButtonClick() builds a ConversionConfig from UIState values
@@ -153,49 +150,40 @@ class ControllerTest {
         verify(model).requestStop();
     }
 
-    // Verifies that onTaskRemove() calls model.removeTask() for each task in the list
-    // and then calls mediator.updateTasks() exactly once.
+    // Verifies that onTaskRemove() translates indices to tasks and calls model.removeTasks().
     @Test
-    void onTaskRemove_calls_removeTask_for_each_task_and_updates_mediator() {
+    void onTaskRemove_calls_model_removeTasks_with_correct_tasks() {
         Task t1 = new Task(new File("a.pdf"), new File[0]);
         Task t2 = new Task(new File("b.pdf"), new File[0]);
-        List<Task> toRemove = Arrays.asList(t1, t2);
+        // Populate controller's currentTasks via onTasksUpdate callback
+        controller.onTasksUpdate(Arrays.asList(t1, t2));
 
-        controller.onTaskRemove(mediator, toRemove);
+        controller.onTaskRemove(mediator, Arrays.asList(0, 1));
 
-        verify(model).removeTask(t1);
-        verify(model).removeTask(t2);
-        verify(mediator, atLeastOnce()).updateTasks(any());
+        verify(model).removeTasks(argThat(list -> list.size() == 2 && list.contains(t1) && list.contains(t2)));
     }
 
-    // Verifies that onTaskRemoveFromDisk() calls model.removeTaskFromDisk() for each task
-    // and then calls mediator.updateTasks() exactly once.
+    // Verifies that onTaskRemoveFromDisk() translates indices to tasks and calls model.removeTasksFromDisk().
     @Test
-    void onTaskRemoveFromDisk_calls_removeTaskFromDisk_for_each_and_updates_mediator() throws IOException {
+    void onTaskRemoveFromDisk_calls_model_removeTasksFromDisk_with_correct_tasks() {
         Task t1 = new Task(new File("a.pdf"), new File[0]);
         Task t2 = new Task(new File("b.pdf"), new File[0]);
-        List<Task> toRemove = Arrays.asList(t1, t2);
-        doNothing().when(model).removeTaskFromDisk(any());
+        controller.onTasksUpdate(Arrays.asList(t1, t2));
 
-        controller.onTaskRemoveFromDisk(mediator, toRemove);
+        controller.onTaskRemoveFromDisk(mediator, Arrays.asList(0, 1));
 
-        verify(model).removeTaskFromDisk(t1);
-        verify(model).removeTaskFromDisk(t2);
-        verify(mediator, atLeastOnce()).updateTasks(any());
+        verify(model).removeTasksFromDisk(argThat(list -> list.size() == 2 && list.contains(t1) && list.contains(t2)));
     }
 
-    // Verifies that onTaskRemoveFromDisk() shows an error dialog and keeps the task
-    // when model.removeTaskFromDisk() throws IOException.
+    // Verifies that onTaskDiskRemovalError() shows an error dialog for the failed task.
     @Test
-    void onTaskRemoveFromDisk_when_IOException_calls_showError_and_keeps_other_tasks() throws IOException {
+    void onTaskDiskRemovalError_calls_mediator_showError() {
         File img = new File("folder/1.jpg");
         Task t1 = new Task(new File("a.pdf"), new File[]{img});
-        doThrow(new IOException("disk error")).when(model).removeTaskFromDisk(t1);
 
-        controller.onTaskRemoveFromDisk(mediator, Collections.singletonList(t1));
+        controller.onTaskDiskRemovalError(t1, new IOException("disk error"));
 
         verify(mediator).showError(anyString(), anyString());
-        verify(mediator, atLeastOnce()).updateTasks(any());
     }
 
     // Verifies that onBatchProgressUpdate() forwards both arguments to mediator.setBatchProgress().
@@ -230,24 +218,26 @@ class ControllerTest {
         verify(mediator).setRunningState(false);
     }
 
-    // Verifies that onTaskComplete() with error=null calls mediator.updateTaskStatus(task, true).
+    // Verifies that onTaskComplete() with error=null calls mediator.updateTaskStatus(index, true).
     @Test
     void onTaskComplete_success_calls_mediator_updateTaskStatus_with_true() {
         Task task = new Task(new File("a.pdf"), new File[0]);
+        controller.onTasksUpdate(Collections.singletonList(task));
 
         controller.onTaskComplete(task, null);
 
-        verify(mediator).updateTaskStatus(task, true);
+        verify(mediator).updateTaskStatus(0, true);
     }
 
-    // Verifies that onTaskComplete() with a non-null exception calls mediator.updateTaskStatus(task, false).
+    // Verifies that onTaskComplete() with a non-null exception calls mediator.updateTaskStatus(index, false).
     @Test
     void onTaskComplete_failure_calls_mediator_updateTaskStatus_with_false() {
         Task task = new Task(new File("a.pdf"), new File[0]);
+        controller.onTasksUpdate(Collections.singletonList(task));
 
         controller.onTaskComplete(task, new RuntimeException("test error"));
 
-        verify(mediator).updateTaskStatus(task, false);
+        verify(mediator).updateTaskStatus(0, false);
     }
 
     // Verifies that onBatchError() forwards the error to mediator.showError().

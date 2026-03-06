@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -96,42 +97,67 @@ public class Model {
     }
 
     /**
-     * Replaces the current task list with the given list and re-sorts it by
-     * the current sort order.
+     * Parses the given source directories into tasks, replaces the current task
+     * list, re-sorts by the active sort order, and notifies the listener once.
      *
-     * @param tasks the new list of tasks to store
+     * @param directories the source directories to scan; must not be {@code null}
      */
-    public void setTask(List<Task> tasks) {
+    public void importSources(File[] directories) {
+        List<Task> tasks = parseSourceFiles(directories);
         this.sources = new ArrayList<>(tasks);
         this.sources.sort(sortOrder.getComparator());
+        notifyTasksUpdate();
     }
 
     /**
-     * Returns the current list of tasks held by this model.
-     *
-     * @return the mutable task list (modifications should be made through Model methods)
-     */
-    public List<Task> getTasks() {
-        return sources;
-    }
-
-    /**
-     * Changes the active sort order and immediately re-sorts the task list.
+     * Changes the active sort order, immediately re-sorts the task list, and
+     * notifies the listener once.
      *
      * @param order the new sort order to apply
      */
     public void setSortOrder(TaskSortOrder order) {
         this.sortOrder = order;
         sources.sort(order.getComparator());
+        notifyTasksUpdate();
+    }
+
+    /**
+     * Removes all specified tasks from the in-memory list, then notifies the
+     * listener once. Files on disk are not affected.
+     *
+     * @param tasks the tasks to remove
+     */
+    public void removeTasks(List<Task> tasks) {
+        for (Task task : tasks) {
+            removeTask(task);
+        }
+        notifyTasksUpdate();
+    }
+
+    /**
+     * Deletes the source folder of each task from disk and removes it from the
+     * in-memory list. A single {@link #onTasksUpdate} notification is sent at the
+     * end. Per-task failures are reported via
+     * {@link ModelListener#onTaskDiskRemovalError} before the final notification.
+     *
+     * @param tasks the tasks whose source directories should be deleted
+     */
+    public void removeTasksFromDisk(List<Task> tasks) {
+        for (Task task : tasks) {
+            try {
+                removeTaskFromDisk(task);
+            } catch (IOException e) {
+                if (listener != null) listener.onTaskDiskRemovalError(task, e);
+            }
+        }
+        notifyTasksUpdate();
     }
 
     /**
      * Removes the specified task from the in-memory task list.
      * The corresponding files on disk are not affected.
-     *
-     * @param task the task to remove
      */
-    public void removeTask(Task task) {
+    private void removeTask(Task task) {
         this.sources.remove(task);
     }
 
@@ -142,11 +168,8 @@ public class Model {
      * If an {@link IOException} occurs the task is <em>not</em> removed from the
      * in-memory list and the exception is propagated to the caller.
      * </p>
-     *
-     * @param task the task whose source directory should be deleted
-     * @throws IOException if the source folder cannot be walked or deleted
      */
-    public void removeTaskFromDisk(Task task) throws IOException {
+    private void removeTaskFromDisk(Task task) throws IOException {
         if (task.files != null && task.files.length > 0) {
             File folder = task.files[0].getParentFile();
             try {
@@ -301,6 +324,14 @@ public class Model {
         }
     };
 
+
+    /**
+     * Pushes an unmodifiable snapshot of the current task list to the listener.
+     * No-op when no listener is registered.
+     */
+    private void notifyTasksUpdate() {
+        if (listener != null) listener.onTasksUpdate(Collections.unmodifiableList(sources));
+    }
 
     /**
      * Registers the listener that will receive progress and lifecycle events from
