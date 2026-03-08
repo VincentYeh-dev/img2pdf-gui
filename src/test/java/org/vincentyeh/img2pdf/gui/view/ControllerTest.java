@@ -71,32 +71,33 @@ class ControllerTest {
         verify(model).setModelListener(controller);
     }
 
-    // Verifies that onSourcesUpdate() does nothing when UIState.sourceFiles is null.
+    // Verifies that onSourcesAdded() does nothing when the sources list is null.
     @Test
-    void onSourcesUpdate_with_null_sources_does_not_call_model_setTask() {
-        UIState state = UIState.getInstance();
-        // sourceFiles is null by default after reset
+    void onSourcesAdded_with_null_sources_does_not_call_model_addSources() {
+        controller.onSourcesAdded(mediator, null);
 
-        controller.onSourcesUpdate(mediator, state);
-
-        verify(model, never()).importSources(any());
+        verify(model, never()).addSources(any());
     }
 
-    // Verifies that onSourcesUpdate() calls model.setTask() and mediator.updateTasks()
-    // when UIState contains valid source directories.
+    // Verifies that onSourcesAdded() calls model.addSources() with the supplied directories.
     @Test
-    void onSourcesUpdate_with_valid_sources_calls_setTask_and_mediator_updateTasks(
+    void onSourcesAdded_with_valid_sources_calls_model_addSources(
             @TempDir Path tempDir) throws Exception {
         File dir = tempDir.resolve("album").toFile();
         dir.mkdirs();
         new File(dir, "photo.jpg").createNewFile();
 
-        UIState state = UIState.getInstance();
-        state.setSourceFiles(new File[]{dir});
+        controller.onSourcesAdded(mediator, Collections.singletonList(dir));
 
-        controller.onSourcesUpdate(mediator, state);
+        verify(model).addSources(any());
+    }
 
-        verify(model).importSources(any());
+    // Verifies that onTaskClear() delegates to model.clearTasks().
+    @Test
+    void onTaskClear_calls_model_clearTasks() {
+        controller.onTaskClear(mediator);
+
+        verify(model).clearTasks();
     }
 
     // Verifies that onSortOrderChange() updates the model sort order and refreshes the UI.

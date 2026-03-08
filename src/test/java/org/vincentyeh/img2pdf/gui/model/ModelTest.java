@@ -39,9 +39,9 @@ class ModelTest {
         };
     }
 
-    // Verifies that importSources() creates one task per directory and fires onTasksUpdate.
+    // Verifies that addSources() creates one task per directory and fires onTasksUpdate.
     @Test
-    void importSources_stores_tasks_from_directories(@TempDir Path tempDir) throws Exception {
+    void addSources_stores_tasks_from_directories(@TempDir Path tempDir) throws Exception {
         File dir1 = tempDir.resolve("a").toFile(); dir1.mkdirs();
         File dir2 = tempDir.resolve("b").toFile(); dir2.mkdirs();
         new File(dir1, "1.jpg").createNewFile();
@@ -49,20 +49,20 @@ class ModelTest {
 
         List<Task> captured = new ArrayList<>();
         model.setModelListener(listenerCapturing(captured));
-        model.importSources(new File[]{dir1, dir2});
+        model.addSources(new File[]{dir1, dir2});
 
         assertEquals(2, captured.size());
     }
 
-    // Verifies that importSources() applies the default NAME_ASC sort order immediately.
+    // Verifies that addSources() applies the default NAME_ASC sort order immediately.
     @Test
-    void importSources_sorts_tasks_by_default_name_asc(@TempDir Path tempDir) throws Exception {
+    void addSources_sorts_tasks_by_default_name_asc(@TempDir Path tempDir) throws Exception {
         File tz = tempDir.resolve("z").toFile(); tz.mkdirs();
         File ta = tempDir.resolve("a").toFile(); ta.mkdirs();
 
         List<Task> captured = new ArrayList<>();
         model.setModelListener(listenerCapturing(captured));
-        model.importSources(new File[]{tz, ta});
+        model.addSources(new File[]{tz, ta});
 
         assertEquals("a.pdf", captured.get(0).destination.getName());
         assertEquals("z.pdf", captured.get(1).destination.getName());
@@ -76,7 +76,7 @@ class ModelTest {
 
         List<Task> captured = new ArrayList<>();
         model.setModelListener(listenerCapturing(captured));
-        model.importSources(new File[]{ta, tz});
+        model.addSources(new File[]{ta, tz});
 
         model.setSortOrder(TaskSortOrder.NAME_DESC);
 
@@ -97,7 +97,7 @@ class ModelTest {
 
         List<Task> captured = new ArrayList<>();
         model.setModelListener(listenerCapturing(captured));
-        model.importSources(new File[]{fewDir, manyDir});
+        model.addSources(new File[]{fewDir, manyDir});
 
         model.setSortOrder(TaskSortOrder.COUNT_DESC);
 
@@ -113,7 +113,7 @@ class ModelTest {
 
         List<Task> captured = new ArrayList<>();
         model.setModelListener(listenerCapturing(captured));
-        model.importSources(new File[]{ta, tz});
+        model.addSources(new File[]{ta, tz});
         assertEquals("a.pdf", captured.get(0).destination.getName()); // NAME_ASC default
 
         model.setSortOrder(TaskSortOrder.NAME_DESC);
@@ -131,7 +131,7 @@ class ModelTest {
 
         List<Task> captured = new ArrayList<>();
         model.setModelListener(listenerCapturing(captured));
-        model.importSources(new File[]{dir1, dir2});
+        model.addSources(new File[]{dir1, dir2});
         // captured = [a.pdf, b.pdf]
 
         Task toRemove = captured.get(0);
@@ -151,7 +151,7 @@ class ModelTest {
 
         List<Task> captured = new ArrayList<>();
         model.setModelListener(listenerCapturing(captured));
-        model.importSources(new File[]{dir1, dir2});
+        model.addSources(new File[]{dir1, dir2});
 
         model.removeTasks(Collections.singletonList(0));
 
@@ -168,7 +168,7 @@ class ModelTest {
 
         List<Task> captured = new ArrayList<>();
         model.setModelListener(listenerCapturing(captured));
-        model.importSources(new File[]{dir});
+        model.addSources(new File[]{dir});
         assertEquals(1, captured.size());
 
         model.removeTasksFromDisk(Collections.singletonList(0));
@@ -186,7 +186,7 @@ class ModelTest {
 
         List<Task> captured = new ArrayList<>();
         model.setModelListener(listenerCapturing(captured));
-        model.importSources(new File[]{dir});
+        model.addSources(new File[]{dir});
         assertEquals(1, captured.size());
 
         model.removeTasksFromDisk(Collections.singletonList(0));

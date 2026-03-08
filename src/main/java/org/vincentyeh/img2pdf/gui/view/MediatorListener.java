@@ -2,6 +2,7 @@ package org.vincentyeh.img2pdf.gui.view;
 
 import org.vincentyeh.img2pdf.gui.model.TaskSortOrder;
 
+import java.io.File;
 import java.util.List;
 
 /**
@@ -17,13 +18,14 @@ import java.util.List;
 public interface MediatorListener {
 
     /**
-     * Called when the user changes the source directory selection, triggering a
-     * re-scan and rebuild of the task list.
+     * Called when the user adds one or more source directories (via the file
+     * browser or drag-and-drop). The supplied directories are appended to the
+     * existing task list rather than replacing it.
      *
      * @param mediator the mediator that fired the event
-     * @param state    the current UI state containing the updated source files
+     * @param sources  the newly added source directories; never {@code null}
      */
-    void onSourcesUpdate(UIMediator mediator, UIState state);
+    void onSourcesAdded(UIMediator mediator, List<File> sources);
 
     /**
      * Called when the user clicks the Convert button to start PDF conversion.
@@ -66,4 +68,11 @@ public interface MediatorListener {
      * @param order    the newly selected sort order
      */
     void onSortOrderChange(UIMediator mediator, TaskSortOrder order);
+
+    /**
+     * Called when the user requests to clear the entire task list.
+     *
+     * @param mediator the mediator that fired the event
+     */
+    void onTaskClear(UIMediator mediator);
 }

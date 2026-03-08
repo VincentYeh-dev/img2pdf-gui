@@ -19,7 +19,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -98,14 +97,14 @@ public class Model {
     }
 
     /**
-     * Parses the given source directories into tasks, replaces the current task
-     * list, re-sorts by the active sort order, and notifies the listener once.
+     * Parses the given source directories into tasks, appends them to the current
+     * task list, re-sorts by the active sort order, and notifies the listener once.
      *
      * @param directories the source directories to scan; must not be {@code null}
      */
-    public void importSources(File[] directories) {
-        List<Task> tasks = parseSourceFiles(directories);
-        this.sources = new ArrayList<>(tasks);
+    public void addSources(File[] directories) {
+        List<Task> tasksToAdd = parseSourceFiles(directories);
+        this.sources.addAll(tasksToAdd);
         this.sources.sort(sortOrder.getComparator());
         notifyTasksUpdate();
     }
@@ -134,6 +133,14 @@ public class Model {
                 .filter(i -> i >= 0 && i < sources.size())
                 .sorted(Comparator.reverseOrder())
                 .forEach(i -> sources.remove((int) i));
+        notifyTasksUpdate();
+    }
+
+    /**
+     * Removes all tasks from the in-memory list and notifies the listener once.
+     */
+    public void clearTasks(){
+        sources.clear();
         notifyTasksUpdate();
     }
 

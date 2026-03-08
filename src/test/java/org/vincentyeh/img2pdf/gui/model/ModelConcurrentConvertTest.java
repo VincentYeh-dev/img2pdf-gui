@@ -91,7 +91,7 @@ class ModelConcurrentConvertTest {
             srcDirs[i] = tempDir.resolve("src" + i).toFile();
             srcDirs[i].mkdirs();
         }
-        model.importSources(srcDirs);
+        model.addSources(srcDirs);
         assertEquals(5, capturedTasks.size());
 
         // Latch: released when onBatchStart fires, so we know the background thread is running
@@ -205,7 +205,7 @@ class ModelConcurrentConvertTest {
             srcDirs[i] = tempDir.resolve("src" + i).toFile();
             srcDirs[i].mkdirs();
         }
-        model.importSources(srcDirs);
+        model.addSources(srcDirs);
         assertEquals(3, capturedTasks.size());
 
         CountDownLatch batchCompleteLatch = new CountDownLatch(1);
@@ -265,7 +265,7 @@ class ModelConcurrentConvertTest {
             srcDirs[i] = tempDir.resolve("src" + i).toFile();
             srcDirs[i].mkdirs();
         }
-        model.importSources(srcDirs);
+        model.addSources(srcDirs);
         assertEquals(8, capturedTasks.size());
 
         CountDownLatch batchStartLatch = new CountDownLatch(1);

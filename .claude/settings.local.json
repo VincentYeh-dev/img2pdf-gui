@@ -25,8 +25,8 @@
       "Read(C:/Users/vince/.m2/repository/**)",
       "Search(C:/Users/vince/IdeaProjects/**)",
       "Search(C:/Users/vince/.m2/repository/**)",
-      "Find(C:/Users/vince/.m2/repository/**)"
-
+      "Find(C:/Users/vince/.m2/repository/**)",
+      "Skill(unit-test)"
     ],
     "deny": [
       "Bash(java -jar*)",

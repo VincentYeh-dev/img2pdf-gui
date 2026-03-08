@@ -447,15 +447,8 @@ public class JUIMediator implements UIMediator {
                                 .collect(Collectors.toList());
                         if (dirs.isEmpty()) return false;
 
-                        File[] existing = mediator.state.getSourceFiles();
-                        List<File> merged = new ArrayList<>();
-                        if (existing != null) merged.addAll(Arrays.asList(existing));
-                        for (File dir : dirs) {
-                            if (!merged.contains(dir)) merged.add(dir);
-                        }
-                        mediator.state.setSourceFiles(merged.toArray(new File[0]));
                         if (mediator.listener != null)
-                            mediator.listener.onSourcesUpdate(mediator, mediator.state);
+                            mediator.listener.onSourcesAdded(mediator,dirs);
                         return true;
                     } catch (Exception ex) {
                         return false;
@@ -697,9 +690,8 @@ public class JUIMediator implements UIMediator {
                 listener.onConvertButtonClick(this, state);
         }
         if (event.equals("clear_all_button_click")) {
-            state.setSourceFiles(new File[]{});
             if (listener != null)
-                listener.onSourcesUpdate(this, state);
+                listener.onTaskClear(this);
         }
         if (event.equals("stop_button_click")) {
             if (listener != null) listener.onStopButtonClick(this);
@@ -936,8 +928,7 @@ public class JUIMediator implements UIMediator {
         JFileChooser sourceFilesChooser = createSourceFilesChooser();
         if (sourceFilesChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
             if (listener != null) {
-                state.setSourceFiles(sourceFilesChooser.getSelectedFiles());
-                listener.onSourcesUpdate(this, state);
+                listener.onSourcesAdded(this, Arrays.asList(sourceFilesChooser.getSelectedFiles()));
             }
         }
     }

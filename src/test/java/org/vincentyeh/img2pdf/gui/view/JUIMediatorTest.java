@@ -754,15 +754,15 @@ class JUIMediatorTest {
     // the fired event requires access to the concrete JUIMediator implementation.
     @Test
     void M2_sortComboBox_change_to_NAME_DESC_fires_onSortOrderChange() {
-        // 設置 mock listener，驗證 onSortOrderChange 被呼叫且傳入正確的 order
         TaskSortOrder[] captured = {null};
         MediatorListener mockListener = new MediatorListener() {
-            @Override public void onSourcesUpdate(UIMediator m, UIState s) {}
+            @Override public void onSourcesAdded(UIMediator m, List<File> sources) {}
             @Override public void onConvertButtonClick(UIMediator m, UIState s) {}
             @Override public void onStopButtonClick(UIMediator m) {}
             @Override public void onTaskRemove(UIMediator m, List<Integer> t) {}
             @Override public void onTaskRemoveFromDisk(UIMediator m, List<Integer> t) {}
             @Override public void onSortOrderChange(UIMediator m, TaskSortOrder order) { captured[0] = order; }
+            @Override public void onTaskClear(UIMediator m) {}
         };
         GuiActionRunner.execute(() -> ((JUIMediator) mediator).setListener(mockListener));
 
@@ -841,12 +841,13 @@ class JUIMediatorTest {
     void N1_click_stopButton_while_running_notifies_listener_onStopButtonClick() {
         int[] callCount = {0};
         MediatorListener mockListener = new MediatorListener() {
-            @Override public void onSourcesUpdate(UIMediator m, UIState s) {}
+            @Override public void onSourcesAdded(UIMediator m, List<File> sources) {}
             @Override public void onConvertButtonClick(UIMediator m, UIState s) {}
             @Override public void onStopButtonClick(UIMediator m) { callCount[0]++; }
             @Override public void onTaskRemove(UIMediator m, List<Integer> t) {}
             @Override public void onTaskRemoveFromDisk(UIMediator m, List<Integer> t) {}
             @Override public void onSortOrderChange(UIMediator m, TaskSortOrder order) {}
+            @Override public void onTaskClear(UIMediator m) {}
         };
         GuiActionRunner.execute(() -> ((JUIMediator) mediator).setListener(mockListener));
         GuiActionRunner.execute(() -> mediator.setRunningState(true));

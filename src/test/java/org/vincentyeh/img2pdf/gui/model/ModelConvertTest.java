@@ -175,7 +175,7 @@ class ModelConvertTest {
             @Override public void onTasksUpdate(List<Task> tasks) { captured.clear(); captured.addAll(tasks); }
             @Override public void onTaskDiskRemovalError(Task task, IOException e) { diskErrorCalled[0] = true; }
         });
-        model.importSources(new File[]{dir});
+        model.addSources(new File[]{dir});
         assertEquals(1, captured.size());
 
         model.removeTasksFromDisk(Collections.singletonList(0));
@@ -205,7 +205,7 @@ class ModelConvertTest {
             @Override public void onTasksUpdate(List<Task> tasks) { captured.clear(); captured.addAll(tasks); }
             @Override public void onTaskDiskRemovalError(Task task, IOException e) { diskErrorCalled[0] = true; }
         });
-        model.importSources(new File[]{dir});
+        model.addSources(new File[]{dir});
         assertEquals(1, captured.size());
 
         // Delete image and directory so that Files.walk() fails with NoSuchFileException
@@ -240,7 +240,7 @@ class ModelConvertTest {
             @Override public void onTasksUpdate(List<Task> tasks) { captured.clear(); captured.addAll(tasks); }
             @Override public void onTaskDiskRemovalError(Task task, IOException e) { diskErrorCalled[0] = true; }
         });
-        model.importSources(new File[]{dir});
+        model.addSources(new File[]{dir});
         assertEquals(1, captured.size());
 
         // Hold an exclusive file lock so that Files.delete() on Windows will fail
@@ -286,7 +286,7 @@ class ModelConvertTest {
         listener.latch = latch;
         model.setModelListener(listener);
 
-        model.importSources(new File[]{srcDir});
+        model.addSources(new File[]{srcDir});
 
         model.convert(defaultConfig(outputFolder));
         boolean completed = latch.await(30, TimeUnit.SECONDS);
@@ -344,7 +344,7 @@ class ModelConvertTest {
         };
         model.setModelListener(listener);
 
-        model.importSources(new File[]{srcDir});
+        model.addSources(new File[]{srcDir});
 
         model.convert(defaultConfig(outputFolder));
         boolean completed = latch.await(30, TimeUnit.SECONDS);
@@ -400,8 +400,8 @@ class ModelConvertTest {
         };
         model.setModelListener(listener);
 
-        // importSources creates tasks in NAME_ASC order: album1 first, album2 second
-        model.importSources(new File[]{srcDir1, srcDir2});
+        // addSources creates tasks in NAME_ASC order: album1 first, album2 second
+        model.addSources(new File[]{srcDir1, srcDir2});
 
         model.convert(defaultConfig(outputFolder));
         boolean completed = latch.await(30, TimeUnit.SECONDS);

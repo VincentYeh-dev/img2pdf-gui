@@ -45,22 +45,6 @@ public class Controller implements MediatorListener, ModelListener {
     }
 
     /**
-     * Responds to a source-directory selection change by re-scanning the directories
-     * and updating the task list in both the model and the UI.
-     *
-     * @param mediator the mediator that fired the event
-     * @param state    the current UI state containing the updated source directories
-     */
-    @Override
-    public void onSourcesUpdate(UIMediator mediator, UIState state) {
-        File[] sources = state.getSourceFiles();
-        if (sources == null)
-            return;
-        // importSources() internally calls parseSourceFiles() and fires onTasksUpdate
-        model.importSources(sources);
-    }
-
-    /**
      * Responds to a sort-order change by updating the model's sort order.
      * The model fires {@link #onTasksUpdate} automatically after re-sorting.
      *
@@ -70,6 +54,34 @@ public class Controller implements MediatorListener, ModelListener {
     @Override
     public void onSortOrderChange(UIMediator mediator, TaskSortOrder order) {
         model.setSortOrder(order);
+    }
+
+    /**
+     * Responds to the user requesting to clear all tasks by delegating to the model.
+     * The model fires {@link #onTasksUpdate} automatically with an empty list.
+     *
+     * @param mediator the mediator that fired the event
+     */
+    @Override
+    public void onTaskClear(UIMediator mediator) {
+        model.clearTasks();
+    }
+
+
+    /**
+     * Responds to the user adding source directories by appending the parsed tasks
+     * to the model. The model fires {@link #onTasksUpdate} automatically after the update.
+     *
+     * @param mediator the mediator that fired the event
+     * @param sources  the newly added source directories; ignored if {@code null}
+     */
+    @Override
+    public void onSourcesAdded(UIMediator mediator, List<File> sources) {
+        if (sources == null)
+            return;
+        // addSources() internally calls parseSourceFiles() and fires onTasksUpdate
+        model.addSources(sources.toArray(new File[0]));
+
     }
 
     /**
