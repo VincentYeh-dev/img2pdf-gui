@@ -65,7 +65,7 @@ class ModelConvertTest {
         }
 
         @Override
-        public void onTaskComplete(Task task, Exception error) {
+        public void onTaskComplete(Task task, int currentIndex, Exception error) {
             calls.add("onTaskComplete");
         }
 
@@ -170,7 +170,7 @@ class ModelConvertTest {
             @Override public void onBatchComplete() {}
             @Override public void onBatchProgressUpdate(int p, int t) {}
             @Override public void onConversionProgressUpdate(int p, int t) {}
-            @Override public void onTaskComplete(Task task, Exception e) {}
+            @Override public void onTaskComplete(Task task, int currentIndex, Exception e) {}
             @Override public void onBatchError(String title, String msg) {}
             @Override public void onTasksUpdate(List<Task> tasks) { captured.clear(); captured.addAll(tasks); }
             @Override public void onTaskDiskRemovalError(Task task, IOException e) { diskErrorCalled[0] = true; }
@@ -178,7 +178,7 @@ class ModelConvertTest {
         model.importSources(new File[]{dir});
         assertEquals(1, captured.size());
 
-        model.removeTasksFromDisk(new ArrayList<>(captured));
+        model.removeTasksFromDisk(Collections.singletonList(0));
 
         assertFalse(diskErrorCalled[0], "onTaskDiskRemovalError should not be called for empty files");
         assertTrue(captured.isEmpty(), "task should be removed");
@@ -200,7 +200,7 @@ class ModelConvertTest {
             @Override public void onBatchComplete() {}
             @Override public void onBatchProgressUpdate(int p, int t) {}
             @Override public void onConversionProgressUpdate(int p, int t) {}
-            @Override public void onTaskComplete(Task task, Exception e) {}
+            @Override public void onTaskComplete(Task task, int currentIndex, Exception e) {}
             @Override public void onBatchError(String title, String msg) {}
             @Override public void onTasksUpdate(List<Task> tasks) { captured.clear(); captured.addAll(tasks); }
             @Override public void onTaskDiskRemovalError(Task task, IOException e) { diskErrorCalled[0] = true; }
@@ -212,8 +212,7 @@ class ModelConvertTest {
         img.delete();
         dir.delete();
 
-        Task task = captured.get(0);
-        model.removeTasksFromDisk(Collections.singletonList(task));
+        model.removeTasksFromDisk(Collections.singletonList(0));
 
         assertTrue(diskErrorCalled[0], "onTaskDiskRemovalError should be called");
         assertEquals(1, captured.size(), "task should still be in list after IOException");
@@ -236,7 +235,7 @@ class ModelConvertTest {
             @Override public void onBatchComplete() {}
             @Override public void onBatchProgressUpdate(int p, int t) {}
             @Override public void onConversionProgressUpdate(int p, int t) {}
-            @Override public void onTaskComplete(Task task, Exception e) {}
+            @Override public void onTaskComplete(Task task, int currentIndex, Exception e) {}
             @Override public void onBatchError(String title, String msg) {}
             @Override public void onTasksUpdate(List<Task> tasks) { captured.clear(); captured.addAll(tasks); }
             @Override public void onTaskDiskRemovalError(Task task, IOException e) { diskErrorCalled[0] = true; }
@@ -244,12 +243,11 @@ class ModelConvertTest {
         model.importSources(new File[]{dir});
         assertEquals(1, captured.size());
 
-        Task task = captured.get(0);
         // Hold an exclusive file lock so that Files.delete() on Windows will fail
         try (RandomAccessFile raf = new RandomAccessFile(lockedFile, "rw");
              FileChannel channel = raf.getChannel();
              FileLock lock = channel.lock()) {
-            model.removeTasksFromDisk(Collections.singletonList(task));
+            model.removeTasksFromDisk(Collections.singletonList(0));
             assertTrue(diskErrorCalled[0], "onTaskDiskRemovalError should be called when file is locked");
             assertEquals(1, captured.size(), "task should still be in list after IOException");
         }
@@ -337,7 +335,7 @@ class ModelConvertTest {
             @Override public void onBatchComplete() { latch.countDown(); }
             @Override public void onBatchProgressUpdate(int progress, int total) {}
             @Override public void onConversionProgressUpdate(int progress, int total) {}
-            @Override public void onTaskComplete(Task task, Exception error) {
+            @Override public void onTaskComplete(Task task, int currentIndex, Exception error) {
                 capturedError.set(error);
             }
             @Override public void onBatchError(String title, String message) {}
@@ -393,7 +391,7 @@ class ModelConvertTest {
             @Override public void onBatchComplete() { latch.countDown(); }
             @Override public void onBatchProgressUpdate(int progress, int total) {}
             @Override public void onConversionProgressUpdate(int progress, int total) {}
-            @Override public void onTaskComplete(Task task, Exception error) {
+            @Override public void onTaskComplete(Task task, int currentIndex, Exception error) {
                 errors.add(error); // null means success, non-null means failure
             }
             @Override public void onBatchError(String title, String message) {}

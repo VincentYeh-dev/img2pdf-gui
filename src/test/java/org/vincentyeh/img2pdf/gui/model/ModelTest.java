@@ -32,7 +32,7 @@ class ModelTest {
             @Override public void onBatchComplete() {}
             @Override public void onBatchProgressUpdate(int p, int t) {}
             @Override public void onConversionProgressUpdate(int p, int t) {}
-            @Override public void onTaskComplete(Task task, Exception e) {}
+            @Override public void onTaskComplete(Task task, int currentIndex, Exception e) {}
             @Override public void onBatchError(String title, String msg) {}
             @Override public void onTasksUpdate(List<Task> tasks) { list.clear(); list.addAll(tasks); }
             @Override public void onTaskDiskRemovalError(Task task, IOException e) {}
@@ -135,7 +135,7 @@ class ModelTest {
         // captured = [a.pdf, b.pdf]
 
         Task toRemove = captured.get(0);
-        model.removeTasks(Collections.singletonList(toRemove));
+        model.removeTasks(Collections.singletonList(0));
 
         assertEquals(1, captured.size());
         assertFalse(captured.stream().anyMatch(t -> t == toRemove));
@@ -153,8 +153,7 @@ class ModelTest {
         model.setModelListener(listenerCapturing(captured));
         model.importSources(new File[]{dir1, dir2});
 
-        Task toRemove = captured.get(0); // "a.pdf"
-        model.removeTasks(Collections.singletonList(toRemove));
+        model.removeTasks(Collections.singletonList(0));
 
         assertEquals(1, captured.size());
         assertEquals("b.pdf", captured.get(0).destination.getName());
@@ -172,8 +171,7 @@ class ModelTest {
         model.importSources(new File[]{dir});
         assertEquals(1, captured.size());
 
-        Task task = captured.get(0);
-        model.removeTasksFromDisk(Collections.singletonList(task));
+        model.removeTasksFromDisk(Collections.singletonList(0));
 
         assertTrue(captured.isEmpty());
     }
@@ -191,8 +189,7 @@ class ModelTest {
         model.importSources(new File[]{dir});
         assertEquals(1, captured.size());
 
-        Task task = captured.get(0);
-        model.removeTasksFromDisk(Collections.singletonList(task));
+        model.removeTasksFromDisk(Collections.singletonList(0));
 
         assertFalse(dir.exists());
     }

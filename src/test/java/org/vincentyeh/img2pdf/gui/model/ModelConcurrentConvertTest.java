@@ -58,7 +58,7 @@ class ModelConcurrentConvertTest {
             @Override public void onBatchComplete() {}
             @Override public void onBatchProgressUpdate(int p, int t) {}
             @Override public void onConversionProgressUpdate(int p, int t) {}
-            @Override public void onTaskComplete(Task task, Exception e) {}
+            @Override public void onTaskComplete(Task task, int currentIndex, Exception e) {}
             @Override public void onBatchError(String title, String msg) {}
             @Override public void onTasksUpdate(List<Task> tasks) { list.clear(); list.addAll(tasks); }
             @Override public void onTaskDiskRemovalError(Task task, IOException e) {}
@@ -124,7 +124,7 @@ class ModelConcurrentConvertTest {
             }
 
             @Override
-            public void onTaskComplete(Task task, Exception error) {
+            public void onTaskComplete(Task task, int currentIndex, Exception error) {
                 // Empty-file tasks are expected to produce a conversion error;
                 // capture only unexpected runtime exceptions (not PDFFactoryException/IOException).
                 if (error != null
@@ -161,9 +161,8 @@ class ModelConcurrentConvertTest {
         // Before the snapshot fix, this would cause ConcurrentModificationException.
         Thread edtSimulator = new Thread(() -> {
             try {
-                List<Task> snapshot = new ArrayList<>(capturedTasks);
-                for (Task t : snapshot) {
-                    model.removeTasks(Collections.singletonList(t));
+                for (int i = 0; i < capturedTasks.size(); i++) {
+                    model.removeTasks(Collections.singletonList(0));
                     // Small yield to interleave with conversion thread
                     Thread.yield();
                 }
@@ -217,7 +216,7 @@ class ModelConcurrentConvertTest {
             @Override public void onBatchComplete() { batchCompleteLatch.countDown(); }
             @Override public void onBatchProgressUpdate(int progress, int total) { }
             @Override public void onConversionProgressUpdate(int progress, int total) { }
-            @Override public void onTaskComplete(Task task, Exception error) { }
+            @Override public void onTaskComplete(Task task, int currentIndex, Exception error) { }
             @Override public void onBatchError(String title, String message) {
                 unexpectedError.compareAndSet(null,
                         new AssertionError("Unexpected onBatchError: " + title + " — " + message));
@@ -227,9 +226,9 @@ class ModelConcurrentConvertTest {
         });
 
         // Remove all tasks BEFORE calling convert() — snapshot will capture 0 tasks
-        List<Task> snapshot = new ArrayList<>(capturedTasks);
-        for (Task t : snapshot) {
-            model.removeTasks(Collections.singletonList(t));
+        int taskCount = capturedTasks.size();
+        for (int i = 0; i < taskCount; i++) {
+            model.removeTasks(Collections.singletonList(0));
         }
 
         // convert() with an empty sources list should still call onBatchComplete()
@@ -278,7 +277,7 @@ class ModelConcurrentConvertTest {
             @Override public void onBatchComplete() { batchCompleteLatch.countDown(); }
             @Override public void onBatchProgressUpdate(int progress, int total) { }
             @Override public void onConversionProgressUpdate(int progress, int total) { }
-            @Override public void onTaskComplete(Task task, Exception error) { }
+            @Override public void onTaskComplete(Task task, int currentIndex, Exception error) { }
             @Override public void onBatchError(String title, String message) {
                 unexpectedError.compareAndSet(null,
                         new AssertionError("Unexpected onBatchError: " + title + " — " + message));
@@ -295,16 +294,14 @@ class ModelConcurrentConvertTest {
 
         // Spawn multiple threads that each try to remove tasks concurrently
         int threadCount = 4;
-        // Take a stable snapshot of the task list for the remover threads
-        List<Task> taskSnapshot = new ArrayList<>(capturedTasks);
+        int totalTasks = capturedTasks.size();
         Thread[] removers = new Thread[threadCount];
         for (int t = 0; t < threadCount; t++) {
-            final int idx = t;
             removers[t] = new Thread(() -> {
                 try {
-                    // Each thread removes a subset of tasks
-                    for (int i = idx; i < taskSnapshot.size(); i += threadCount) {
-                        model.removeTasks(Collections.singletonList(taskSnapshot.get(i)));
+                    // Each thread repeatedly removes index 0 to stress concurrent removal
+                    for (int i = 0; i < totalTasks / threadCount; i++) {
+                        model.removeTasks(Collections.singletonList(0));
                         Thread.yield();
                     }
                 } catch (Exception e) {

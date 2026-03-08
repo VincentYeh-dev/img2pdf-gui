@@ -13,7 +13,6 @@ import org.vincentyeh.img2pdf.gui.view.UIState;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -29,9 +28,6 @@ import java.util.stream.Collectors;
 public class Controller implements MediatorListener, ModelListener {
     private final Model model;
     private final UIMediator mediator;
-
-    /** Local snapshot of the current task list, updated by {@link #onTasksUpdate}. */
-    private List<Task> currentTasks = new ArrayList<>();
 
     /**
      * Constructs the controller, wiring itself as the listener for both the
@@ -122,38 +118,28 @@ public class Controller implements MediatorListener, ModelListener {
     }
 
     /**
-     * Responds to a task-removal request by translating indices to Task objects
-     * and delegating to the model. The model fires {@link #onTasksUpdate} once
-     * after all removals.
+     * Responds to a task-removal request by forwarding indices directly to the model.
+     * The model fires {@link #onTasksUpdate} once after all removals.
      *
      * @param mediator the mediator that fired the event
      * @param indices  the zero-based positions of tasks to remove
      */
     @Override
     public void onTaskRemove(UIMediator mediator, List<Integer> indices) {
-        List<Task> toRemove = indices.stream()
-                .filter(i -> i >= 0 && i < currentTasks.size())
-                .map(currentTasks::get)
-                .collect(Collectors.toList());
-        model.removeTasks(toRemove);
+        model.removeTasks(indices);
     }
 
     /**
-     * Responds to a disk-deletion request by translating indices to Task objects
-     * and delegating to the model. Per-task errors are reported via
-     * {@link #onTaskDiskRemovalError}; a single {@link #onTasksUpdate} is fired at
-     * the end.
+     * Responds to a disk-deletion request by forwarding indices directly to the model.
+     * Per-task errors are reported via {@link #onTaskDiskRemovalError}; a single
+     * {@link #onTasksUpdate} is fired at the end.
      *
      * @param mediator the mediator that fired the event
      * @param indices  the zero-based positions of tasks to delete from disk
      */
     @Override
     public void onTaskRemoveFromDisk(UIMediator mediator, List<Integer> indices) {
-        List<Task> toRemove = indices.stream()
-                .filter(i -> i >= 0 && i < currentTasks.size())
-                .map(currentTasks::get)
-                .collect(Collectors.toList());
-        model.removeTasksFromDisk(toRemove);
+        model.removeTasksFromDisk(indices);
     }
 
     /**
@@ -204,17 +190,18 @@ public class Controller implements MediatorListener, ModelListener {
      * user sees the task marked as failed in the tree rather than a dialog.
      * </p>
      *
-     * @param task  the task that has just completed
-     * @param error {@code null} on success; the causing exception on failure
+     * @param task         the task that has just completed
+     * @param currentIndex the zero-based index of the task in the model's sources list;
+     *                     {@code -1} if the task was removed before completion
+     * @param error        {@code null} on success; the causing exception on failure
      */
     @Override
-    public void onTaskComplete(Task task, Exception error) {
+    public void onTaskComplete(Task task, int currentIndex, Exception error) {
         if (error != null) {
             AppLogger.get().log(Level.WARNING,
                     "Task failed: " + task.destination.getName(), error);
         }
-        int index = currentTasks.indexOf(task);
-        if (index >= 0) mediator.updateTaskStatus(index, error == null);
+        if (currentIndex >= 0) mediator.updateTaskStatus(currentIndex, error == null);
     }
 
     /**
@@ -225,7 +212,6 @@ public class Controller implements MediatorListener, ModelListener {
      */
     @Override
     public void onTasksUpdate(List<Task> tasks) {
-        currentTasks = new ArrayList<>(tasks);
         List<TaskDisplay> displays = tasks.stream()
                 .map(t -> new TaskDisplay(t.destination.getName(), t.files))
                 .collect(Collectors.toList());

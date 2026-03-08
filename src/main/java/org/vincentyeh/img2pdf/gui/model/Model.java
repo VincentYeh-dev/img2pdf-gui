@@ -27,6 +27,7 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * Core business-logic layer of the MVC architecture.
@@ -122,71 +123,59 @@ public class Model {
     }
 
     /**
-     * Removes all specified tasks from the in-memory list, then notifies the
-     * listener once. Files on disk are not affected.
+     * Removes tasks at the specified indices from the in-memory list, then notifies
+     * the listener once. Files on disk are not affected.
+     * Indices are processed in reverse order to preserve correctness during removal.
      *
-     * @param tasks the tasks to remove
+     * @param indices the zero-based positions of tasks to remove
      */
-    public void removeTasks(List<Task> tasks) {
-        for (Task task : tasks) {
-            removeTask(task);
-        }
+    public void removeTasks(List<Integer> indices) {
+        indices.stream()
+                .filter(i -> i >= 0 && i < sources.size())
+                .sorted(Comparator.reverseOrder())
+                .forEach(i -> sources.remove((int) i));
         notifyTasksUpdate();
     }
 
     /**
-     * Deletes the source folder of each task from disk and removes it from the
-     * in-memory list. A single {@link #onTasksUpdate} notification is sent at the
-     * end. Per-task failures are reported via
+     * Deletes the source folder of each task at the specified indices from disk
+     * and removes it from the in-memory list. A single {@link #onTasksUpdate}
+     * notification is sent at the end. Per-task failures are reported via
      * {@link ModelListener#onTaskDiskRemovalError} before the final notification.
+     * Indices are processed in reverse order to preserve correctness during removal.
      *
-     * @param tasks the tasks whose source directories should be deleted
+     * @param indices the zero-based positions of tasks whose source directories should be deleted
      */
-    public void removeTasksFromDisk(List<Task> tasks) {
-        for (Task task : tasks) {
+    public void removeTasksFromDisk(List<Integer> indices) {
+        List<Integer> valid = indices.stream()
+                .filter(i -> i >= 0 && i < sources.size())
+                .sorted(Comparator.reverseOrder())
+                .collect(Collectors.toList());
+        for (int i : valid) {
+            Task task = sources.get(i);
             try {
-                removeTaskFromDisk(task);
+                if (task.files != null && task.files.length > 0) {
+                    File folder = task.files[0].getParentFile();
+                    try {
+                        Files.walk(folder.toPath())
+                                .sorted(Comparator.reverseOrder())
+                                .forEach(p -> {
+                                    try {
+                                        Files.delete(p);
+                                    } catch (IOException e) {
+                                        throw new java.io.UncheckedIOException(e);
+                                    }
+                                });
+                    } catch (java.io.UncheckedIOException e) {
+                        throw e.getCause();
+                    }
+                }
+                sources.remove(i);
             } catch (IOException e) {
                 if (listener != null) listener.onTaskDiskRemovalError(task, e);
             }
         }
         notifyTasksUpdate();
-    }
-
-    /**
-     * Removes the specified task from the in-memory task list.
-     * The corresponding files on disk are not affected.
-     */
-    private void removeTask(Task task) {
-        this.sources.remove(task);
-    }
-
-    /**
-     * Deletes the source folder (and all its contents) associated with the task
-     * from disk, then removes the task from the in-memory list.
-     * <p>
-     * If an {@link IOException} occurs the task is <em>not</em> removed from the
-     * in-memory list and the exception is propagated to the caller.
-     * </p>
-     */
-    private void removeTaskFromDisk(Task task) throws IOException {
-        if (task.files != null && task.files.length > 0) {
-            File folder = task.files[0].getParentFile();
-            try {
-                Files.walk(folder.toPath())
-                        .sorted(Comparator.reverseOrder())
-                        .forEach(p -> {
-                            try {
-                                Files.delete(p);
-                            } catch (IOException e) {
-                                throw new java.io.UncheckedIOException(e);
-                            }
-                        });
-            } catch (java.io.UncheckedIOException e) {
-                throw e.getCause();
-            }
-        }
-        this.sources.remove(task);
     }
 
 
@@ -288,9 +277,11 @@ public class Model {
                         } finally {
                             document.close();
                         }
-                        if (listener != null) listener.onTaskComplete(currentTask, null);
+                        int currentIndex = sources.indexOf(currentTask);
+                        if (listener != null) listener.onTaskComplete(currentTask, currentIndex, null);
                     } catch (PDFFactoryException | IOException e) {
-                        if (listener != null) listener.onTaskComplete(currentTask, e);
+                        int currentIndex = sources.indexOf(currentTask);
+                        if (listener != null) listener.onTaskComplete(currentTask, currentIndex, e);
                     } finally {
                         if (listener != null) listener.onBatchProgressUpdate(i + 1, snapshot.size());
                     }

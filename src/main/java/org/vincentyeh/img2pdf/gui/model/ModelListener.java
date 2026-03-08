@@ -61,11 +61,13 @@ public interface ModelListener{
     /**
      * Called after each individual task finishes, regardless of success or failure.
      *
-     * @param task  the task that has just completed
-     * @param error {@code null} if the PDF was created successfully;
-     *              the exception that caused the failure otherwise
+     * @param task         the task that has just completed
+     * @param currentIndex the zero-based index of the task in the current sources list
+     *                     at the time of completion; {@code -1} if the task is no longer present
+     * @param error        {@code null} if the PDF was created successfully;
+     *                     the exception that caused the failure otherwise
      */
-    void onTaskComplete(Task task, Exception error);
+    void onTaskComplete(Task task, int currentIndex, Exception error);
 
     /**
      * Called when a pre-conversion validation step fails (e.g. the output folder

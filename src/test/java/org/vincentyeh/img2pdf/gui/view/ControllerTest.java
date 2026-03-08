@@ -150,29 +150,24 @@ class ControllerTest {
         verify(model).requestStop();
     }
 
-    // Verifies that onTaskRemove() translates indices to tasks and calls model.removeTasks().
+    // Verifies that onTaskRemove() forwards indices directly to model.removeTasks().
     @Test
-    void onTaskRemove_calls_model_removeTasks_with_correct_tasks() {
-        Task t1 = new Task(new File("a.pdf"), new File[0]);
-        Task t2 = new Task(new File("b.pdf"), new File[0]);
-        // Populate controller's currentTasks via onTasksUpdate callback
-        controller.onTasksUpdate(Arrays.asList(t1, t2));
+    void onTaskRemove_calls_model_removeTasks_with_correct_indices() {
+        List<Integer> indices = Arrays.asList(0, 1);
 
-        controller.onTaskRemove(mediator, Arrays.asList(0, 1));
+        controller.onTaskRemove(mediator, indices);
 
-        verify(model).removeTasks(argThat(list -> list.size() == 2 && list.contains(t1) && list.contains(t2)));
+        verify(model).removeTasks(argThat(list -> list.size() == 2 && list.contains(0) && list.contains(1)));
     }
 
-    // Verifies that onTaskRemoveFromDisk() translates indices to tasks and calls model.removeTasksFromDisk().
+    // Verifies that onTaskRemoveFromDisk() forwards indices directly to model.removeTasksFromDisk().
     @Test
-    void onTaskRemoveFromDisk_calls_model_removeTasksFromDisk_with_correct_tasks() {
-        Task t1 = new Task(new File("a.pdf"), new File[0]);
-        Task t2 = new Task(new File("b.pdf"), new File[0]);
-        controller.onTasksUpdate(Arrays.asList(t1, t2));
+    void onTaskRemoveFromDisk_calls_model_removeTasksFromDisk_with_correct_indices() {
+        List<Integer> indices = Arrays.asList(0, 1);
 
-        controller.onTaskRemoveFromDisk(mediator, Arrays.asList(0, 1));
+        controller.onTaskRemoveFromDisk(mediator, indices);
 
-        verify(model).removeTasksFromDisk(argThat(list -> list.size() == 2 && list.contains(t1) && list.contains(t2)));
+        verify(model).removeTasksFromDisk(argThat(list -> list.size() == 2 && list.contains(0) && list.contains(1)));
     }
 
     // Verifies that onTaskDiskRemovalError() shows an error dialog for the failed task.
@@ -222,9 +217,8 @@ class ControllerTest {
     @Test
     void onTaskComplete_success_calls_mediator_updateTaskStatus_with_true() {
         Task task = new Task(new File("a.pdf"), new File[0]);
-        controller.onTasksUpdate(Collections.singletonList(task));
 
-        controller.onTaskComplete(task, null);
+        controller.onTaskComplete(task, 0, null);
 
         verify(mediator).updateTaskStatus(0, true);
     }
@@ -233,9 +227,8 @@ class ControllerTest {
     @Test
     void onTaskComplete_failure_calls_mediator_updateTaskStatus_with_false() {
         Task task = new Task(new File("a.pdf"), new File[0]);
-        controller.onTasksUpdate(Collections.singletonList(task));
 
-        controller.onTaskComplete(task, new RuntimeException("test error"));
+        controller.onTaskComplete(task, 0, new RuntimeException("test error"));
 
         verify(mediator).updateTaskStatus(0, false);
     }
@@ -268,7 +261,7 @@ class ControllerTest {
 
         try {
             Task task = new Task(new File("failed_task.pdf"), new File[0]);
-            controller.onTaskComplete(task, new RuntimeException("conversion error"));
+            controller.onTaskComplete(task, 0, new RuntimeException("conversion error"));
 
             long warnings = records.stream()
                     .filter(r -> r.getLevel() == Level.WARNING)
@@ -303,7 +296,7 @@ class ControllerTest {
 
         try {
             Task task = new Task(new File("success_task.pdf"), new File[0]);
-            controller.onTaskComplete(task, null);
+            controller.onTaskComplete(task, 0, null);
 
             long warnings = records.stream()
                     .filter(r -> r.getLevel() == Level.WARNING)
