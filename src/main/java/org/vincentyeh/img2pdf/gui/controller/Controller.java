@@ -48,22 +48,19 @@ public class Controller implements MediatorListener, ModelListener {
      * Responds to a sort-order change by updating the model's sort order.
      * The model fires {@link #onTasksUpdate} automatically after re-sorting.
      *
-     * @param mediator the mediator that fired the event
-     * @param order    the newly selected sort order
+     * @param order the newly selected sort order
      */
     @Override
-    public void onSortOrderChange(UIMediator mediator, TaskSortOrder order) {
+    public void onSortOrderChangeRequested(TaskSortOrder order) {
         model.setSortOrder(order);
     }
 
     /**
      * Responds to the user requesting to clear all tasks by delegating to the model.
      * The model fires {@link #onTasksUpdate} automatically with an empty list.
-     *
-     * @param mediator the mediator that fired the event
      */
     @Override
-    public void onTaskClear(UIMediator mediator) {
+    public void onTaskClearRequested() {
         model.clearTasks();
     }
 
@@ -72,11 +69,10 @@ public class Controller implements MediatorListener, ModelListener {
      * Responds to the user adding source directories by appending the parsed tasks
      * to the model. The model fires {@link #onTasksUpdate} automatically after the update.
      *
-     * @param mediator the mediator that fired the event
-     * @param sources  the newly added source directories; ignored if {@code null}
+     * @param sources the newly added source directories; ignored if {@code null}
      */
     @Override
-    public void onSourcesAdded(UIMediator mediator, List<File> sources) {
+    public void onAddSourcesRequested(List<File> sources) {
         if (sources == null)
             return;
         // addSources() internally calls parseSourceFiles() and fires onTasksUpdate
@@ -96,7 +92,7 @@ public class Controller implements MediatorListener, ModelListener {
      * @param state    the current UI state containing all conversion parameters
      */
     @Override
-    public void onConvertButtonClick(UIMediator mediator, UIState state) {
+    public void onConvertRequested(UIMediator mediator, UIState state) {
         ConversionConfig config = new ConversionConfig(
                 state.getDestinationFolder(),
                 state.isEncrypted(),
@@ -121,11 +117,9 @@ public class Controller implements MediatorListener, ModelListener {
     /**
      * Responds to the Stop button click by requesting the model to halt the
      * conversion after the current task finishes.
-     *
-     * @param mediator the mediator that fired the event
      */
     @Override
-    public void onStopButtonClick(UIMediator mediator) {
+    public void onStopButtonRequested() {
         model.requestStop();
     }
 
@@ -133,11 +127,10 @@ public class Controller implements MediatorListener, ModelListener {
      * Responds to a task-removal request by forwarding indices directly to the model.
      * The model fires {@link #onTasksUpdate} once after all removals.
      *
-     * @param mediator the mediator that fired the event
-     * @param indices  the zero-based positions of tasks to remove
+     * @param indices the zero-based positions of tasks to remove
      */
     @Override
-    public void onTaskRemove(UIMediator mediator, List<Integer> indices) {
+    public void onTaskRemoveRequested(List<Integer> indices) {
         model.removeTasks(indices);
     }
 
@@ -146,11 +139,10 @@ public class Controller implements MediatorListener, ModelListener {
      * Per-task errors are reported via {@link #onTaskDiskRemovalError}; a single
      * {@link #onTasksUpdate} is fired at the end.
      *
-     * @param mediator the mediator that fired the event
-     * @param indices  the zero-based positions of tasks to delete from disk
+     * @param indices the zero-based positions of tasks to delete from disk
      */
     @Override
-    public void onTaskRemoveFromDisk(UIMediator mediator, List<Integer> indices) {
+    public void onTaskRemoveFromDiskRequest(List<Integer> indices) {
         model.removeTasksFromDisk(indices);
     }
 

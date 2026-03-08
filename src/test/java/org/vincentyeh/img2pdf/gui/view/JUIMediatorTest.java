@@ -748,7 +748,7 @@ class JUIMediatorTest {
         assertThat(names).containsExactly("a.pdf", "b.pdf", "c.pdf");
     }
 
-    // Verifies that changing the sort combo box to NAME_DESC fires onSortOrderChange with the correct order.
+    // Verifies that changing the sort combo box to NAME_DESC fires onSortOrderChangeRequested with the correct order.
     // [White-box] Casts mediator to JUIMediator to call setListener() and inject a test listener.
     // Justification: UIMediator interface does not define setListener(); injecting a listener to capture
     // the fired event requires access to the concrete JUIMediator implementation.
@@ -756,13 +756,13 @@ class JUIMediatorTest {
     void M2_sortComboBox_change_to_NAME_DESC_fires_onSortOrderChange() {
         TaskSortOrder[] captured = {null};
         MediatorListener mockListener = new MediatorListener() {
-            @Override public void onSourcesAdded(UIMediator m, List<File> sources) {}
-            @Override public void onConvertButtonClick(UIMediator m, UIState s) {}
-            @Override public void onStopButtonClick(UIMediator m) {}
-            @Override public void onTaskRemove(UIMediator m, List<Integer> t) {}
-            @Override public void onTaskRemoveFromDisk(UIMediator m, List<Integer> t) {}
-            @Override public void onSortOrderChange(UIMediator m, TaskSortOrder order) { captured[0] = order; }
-            @Override public void onTaskClear(UIMediator m) {}
+            @Override public void onAddSourcesRequested(List<File> sources) {}
+            @Override public void onConvertRequested(UIMediator m, UIState s) {}
+            @Override public void onStopButtonRequested() {}
+            @Override public void onTaskRemoveRequested(List<Integer> t) {}
+            @Override public void onTaskRemoveFromDiskRequest(List<Integer> t) {}
+            @Override public void onSortOrderChangeRequested(TaskSortOrder order) { captured[0] = order; }
+            @Override public void onTaskClearRequested() {}
         };
         GuiActionRunner.execute(() -> ((JUIMediator) mediator).setListener(mockListener));
 
@@ -833,7 +833,7 @@ class JUIMediatorTest {
 
     // ===== N. StopButton 點擊通知 Listener =====
 
-    // Verifies that clicking the stop button while running fires onStopButtonClick on the listener exactly once.
+    // Verifies that clicking the stop button while running fires onStopButtonRequested on the listener exactly once.
     // [White-box] Casts mediator to JUIMediator to call setListener() and inject a test listener.
     // Justification: UIMediator interface does not define setListener(); injecting a listener to capture
     // the fired event requires access to the concrete JUIMediator implementation.
@@ -841,13 +841,13 @@ class JUIMediatorTest {
     void N1_click_stopButton_while_running_notifies_listener_onStopButtonClick() {
         int[] callCount = {0};
         MediatorListener mockListener = new MediatorListener() {
-            @Override public void onSourcesAdded(UIMediator m, List<File> sources) {}
-            @Override public void onConvertButtonClick(UIMediator m, UIState s) {}
-            @Override public void onStopButtonClick(UIMediator m) { callCount[0]++; }
-            @Override public void onTaskRemove(UIMediator m, List<Integer> t) {}
-            @Override public void onTaskRemoveFromDisk(UIMediator m, List<Integer> t) {}
-            @Override public void onSortOrderChange(UIMediator m, TaskSortOrder order) {}
-            @Override public void onTaskClear(UIMediator m) {}
+            @Override public void onAddSourcesRequested(List<File> sources) {}
+            @Override public void onConvertRequested(UIMediator m, UIState s) {}
+            @Override public void onStopButtonRequested() { callCount[0]++; }
+            @Override public void onTaskRemoveRequested(List<Integer> t) {}
+            @Override public void onTaskRemoveFromDiskRequest(List<Integer> t) {}
+            @Override public void onSortOrderChangeRequested(TaskSortOrder order) {}
+            @Override public void onTaskClearRequested() {}
         };
         GuiActionRunner.execute(() -> ((JUIMediator) mediator).setListener(mockListener));
         GuiActionRunner.execute(() -> mediator.setRunningState(true));

@@ -71,44 +71,44 @@ class ControllerTest {
         verify(model).setModelListener(controller);
     }
 
-    // Verifies that onSourcesAdded() does nothing when the sources list is null.
+    // Verifies that onAddSourcesRequested() does nothing when the sources list is null.
     @Test
-    void onSourcesAdded_with_null_sources_does_not_call_model_addSources() {
-        controller.onSourcesAdded(mediator, null);
+    void onSourcesAdded_with_null_sources_does_not_call_model_addAddSources() {
+        controller.onAddSourcesRequested(null);
 
         verify(model, never()).addSources(any());
     }
 
-    // Verifies that onSourcesAdded() calls model.addSources() with the supplied directories.
+    // Verifies that onAddSourcesRequested() calls model.addSources() with the supplied directories.
     @Test
-    void onSourcesAdded_with_valid_sources_calls_model_addSources(
+    void onSourcesAdded_with_valid_sources_calls_model_addAddSources(
             @TempDir Path tempDir) throws Exception {
         File dir = tempDir.resolve("album").toFile();
         dir.mkdirs();
         new File(dir, "photo.jpg").createNewFile();
 
-        controller.onSourcesAdded(mediator, Collections.singletonList(dir));
+        controller.onAddSourcesRequested(Collections.singletonList(dir));
 
         verify(model).addSources(any());
     }
 
-    // Verifies that onTaskClear() delegates to model.clearTasks().
+    // Verifies that onTaskClearRequested() delegates to model.clearTasks().
     @Test
-    void onTaskClear_calls_model_clearTasks() {
-        controller.onTaskClear(mediator);
+    void onTaskClear_calls_model_clearRequestedTasks() {
+        controller.onTaskClearRequested();
 
         verify(model).clearTasks();
     }
 
-    // Verifies that onSortOrderChange() updates the model sort order and refreshes the UI.
+    // Verifies that onSortOrderChangeRequested() updates the model sort order and refreshes the UI.
     @Test
-    void onSortOrderChange_calls_model_setSortOrder_and_mediator_updateTasks() {
-        controller.onSortOrderChange(mediator, TaskSortOrder.NAME_DESC);
+    void onSortOrderChange_calls_model_setSortOrder_and_mediator_updateTasksRequested() {
+        controller.onSortOrderChangeRequested(TaskSortOrder.NAME_DESC);
 
         verify(model).setSortOrder(TaskSortOrder.NAME_DESC);
     }
 
-    // Verifies that onConvertButtonClick() builds a ConversionConfig from UIState values
+    // Verifies that onConvertRequested() builds a ConversionConfig from UIState values
     // and passes it to model.convert() with all fields matching the state.
     @Test
     void onConvertButtonClick_builds_config_from_ui_state_and_calls_model_convert(
@@ -126,7 +126,7 @@ class ControllerTest {
         state.setHorizontalAlign(PageAlign.HorizontalAlign.CENTER);
         state.setAutoRotate(true);
 
-        controller.onConvertButtonClick(mediator, state);
+        controller.onConvertRequested(mediator, state);
 
         ArgumentCaptor<ConversionConfig> captor = ArgumentCaptor.forClass(ConversionConfig.class);
         verify(model).convert(captor.capture());
@@ -143,30 +143,30 @@ class ControllerTest {
         assertTrue(cfg.autoRotate);
     }
 
-    // Verifies that onStopButtonClick() delegates to model.requestStop().
+    // Verifies that onStopButtonRequested() delegates to model.requestStop().
     @Test
     void onStopButtonClick_calls_model_requestStop() {
-        controller.onStopButtonClick(mediator);
+        controller.onStopButtonRequested();
 
         verify(model).requestStop();
     }
 
-    // Verifies that onTaskRemove() forwards indices directly to model.removeTasks().
+    // Verifies that onTaskRemoveRequested() forwards indices directly to model.removeTasks().
     @Test
-    void onTaskRemove_calls_model_removeTasks_with_correct_indices() {
+    void onTaskRemove_calls_model_removeRequestedTasks_with_correct_indices() {
         List<Integer> indices = Arrays.asList(0, 1);
 
-        controller.onTaskRemove(mediator, indices);
+        controller.onTaskRemoveRequested(indices);
 
         verify(model).removeTasks(argThat(list -> list.size() == 2 && list.contains(0) && list.contains(1)));
     }
 
-    // Verifies that onTaskRemoveFromDisk() forwards indices directly to model.removeTasksFromDisk().
+    // Verifies that onTaskRemoveFromDiskRequest() forwards indices directly to model.removeTasksFromDisk().
     @Test
-    void onTaskRemoveFromDisk_calls_model_removeTasksFromDisk_with_correct_indices() {
+    void onTaskRemoveFromDisk_calls_model_removeRequestedTasksFromDisk_Request_with_correct_indices() {
         List<Integer> indices = Arrays.asList(0, 1);
 
-        controller.onTaskRemoveFromDisk(mediator, indices);
+        controller.onTaskRemoveFromDiskRequest(indices);
 
         verify(model).removeTasksFromDisk(argThat(list -> list.size() == 2 && list.contains(0) && list.contains(1)));
     }

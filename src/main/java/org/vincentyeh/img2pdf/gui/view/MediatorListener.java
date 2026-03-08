@@ -22,10 +22,9 @@ public interface MediatorListener {
      * browser or drag-and-drop). The supplied directories are appended to the
      * existing task list rather than replacing it.
      *
-     * @param mediator the mediator that fired the event
-     * @param sources  the newly added source directories; never {@code null}
+     * @param sources the newly added source directories; never {@code null}
      */
-    void onSourcesAdded(UIMediator mediator, List<File> sources);
+void onAddSourcesRequested(List<File> sources);
 
     /**
      * Called when the user clicks the Convert button to start PDF conversion.
@@ -33,46 +32,39 @@ public interface MediatorListener {
      * @param mediator the mediator that fired the event
      * @param state    the current UI state containing all conversion parameters
      */
-    void onConvertButtonClick(UIMediator mediator, UIState state);
+    void onConvertRequested(UIMediator mediator, UIState state);
 
     /**
      * Called when the user clicks the Stop button to request early termination of
      * the running conversion batch.
-     *
-     * @param mediator the mediator that fired the event
      */
-    void onStopButtonClick(UIMediator mediator);
+    void onStopButtonRequested();
 
     /**
      * Called when the user requests removal of selected tasks from the task list
      * (files on disk are kept).
      *
-     * @param mediator the mediator that fired the event
-     * @param indices  the zero-based positions of the selected tasks in the current list
+     * @param indices the zero-based positions of the selected tasks in the current list
      */
-    void onTaskRemove(UIMediator mediator, List<Integer> indices);
+    void onTaskRemoveRequested(List<Integer> indices);
 
     /**
      * Called when the user requests deletion of selected tasks together with their
      * source files on disk.
      *
-     * @param mediator the mediator that fired the event
-     * @param indices  the zero-based positions of the selected tasks in the current list
+     * @param indices the zero-based positions of the selected tasks in the current list
      */
-    void onTaskRemoveFromDisk(UIMediator mediator, List<Integer> indices);
+    void onTaskRemoveFromDiskRequest(List<Integer> indices);
 
     /**
      * Called when the user selects a new sort order for the task list.
      *
-     * @param mediator the mediator that fired the event
-     * @param order    the newly selected sort order
+     * @param order the newly selected sort order
      */
-    void onSortOrderChange(UIMediator mediator, TaskSortOrder order);
+    void onSortOrderChangeRequested(TaskSortOrder order);
 
     /**
      * Called when the user requests to clear the entire task list.
-     *
-     * @param mediator the mediator that fired the event
      */
-    void onTaskClear(UIMediator mediator);
+    void onTaskClearRequested();
 }

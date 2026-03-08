@@ -448,7 +448,7 @@ public class JUIMediator implements UIMediator {
                         if (dirs.isEmpty()) return false;
 
                         if (mediator.listener != null)
-                            mediator.listener.onSourcesAdded(mediator,dirs);
+                            mediator.listener.onAddSourcesRequested(dirs);
                         return true;
                     } catch (Exception ex) {
                         return false;
@@ -566,7 +566,7 @@ public class JUIMediator implements UIMediator {
             comboBox.addActionListener(e -> {
                 TaskSortOrder order = (TaskSortOrder) comboBox.getSelectedItem();
                 if (order != null && mediator.listener != null)
-                    mediator.listener.onSortOrderChange(mediator, order);
+                    mediator.listener.onSortOrderChangeRequested(order);
             });
             return this;
         }
@@ -617,8 +617,8 @@ public class JUIMediator implements UIMediator {
      *   <li>{@code "auto_rotate_change"} — toggles auto-rotate and page-direction state</li>
      *   <li>{@code "page_size_change"}, {@code "horizontal_align_change"}, etc. — updates page settings</li>
      *   <li>{@code "source_browse_button_click"} — opens the source-folder chooser</li>
-     *   <li>{@code "convert_button_click"} — delegates to {@link MediatorListener#onConvertButtonClick}</li>
-     *   <li>{@code "stop_button_click"} — delegates to {@link MediatorListener#onStopButtonClick}</li>
+     *   <li>{@code "convert_button_click"} — delegates to {@link MediatorListener#onConvertRequested}</li>
+     *   <li>{@code "stop_button_click"} — delegates to {@link MediatorListener#onStopButtonRequested}</li>
      *   <li>{@code "remove_tasks"} / {@code "remove_tasks_from_disk"} — task removal events</li>
      *   <li>{@code "encryption_change"} — enables/disables encryption and password fields</li>
      * </ul>
@@ -687,26 +687,26 @@ public class JUIMediator implements UIMediator {
         }
         if (event.equals("convert_button_click")) {
             if (listener != null)
-                listener.onConvertButtonClick(this, state);
+                listener.onConvertRequested(this, state);
         }
         if (event.equals("clear_all_button_click")) {
             if (listener != null)
-                listener.onTaskClear(this);
+                listener.onTaskClearRequested();
         }
         if (event.equals("stop_button_click")) {
-            if (listener != null) listener.onStopButtonClick(this);
+            if (listener != null) listener.onStopButtonRequested();
         }
 
         if (event.equals("remove_tasks")) {
             @SuppressWarnings("unchecked")
             List<Integer> indices = (List<Integer>) data[0];
-            if (listener != null) listener.onTaskRemove(this, indices);
+            if (listener != null) listener.onTaskRemoveRequested(indices);
         }
 
         if (event.equals("remove_tasks_from_disk")) {
             @SuppressWarnings("unchecked")
             List<Integer> indices = (List<Integer>) data[0];
-            if (listener != null) listener.onTaskRemoveFromDisk(this, indices);
+            if (listener != null) listener.onTaskRemoveFromDiskRequest(indices);
         }
 
         if(event.equals("encryption_change")){
@@ -928,7 +928,7 @@ public class JUIMediator implements UIMediator {
         JFileChooser sourceFilesChooser = createSourceFilesChooser();
         if (sourceFilesChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
             if (listener != null) {
-                listener.onSourcesAdded(this, Arrays.asList(sourceFilesChooser.getSelectedFiles()));
+                listener.onAddSourcesRequested(Arrays.asList(sourceFilesChooser.getSelectedFiles()));
             }
         }
     }
