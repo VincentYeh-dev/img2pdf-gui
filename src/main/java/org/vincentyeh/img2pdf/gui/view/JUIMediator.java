@@ -84,6 +84,7 @@ public class JUIMediator implements UIMediator {
     private JCheckBox encryptCheckBox;
     private JProgressBar totalConversionProgressBar;
     private JComboBox<ColorType> colorTypeComboBox;
+    private JComboBox<TaskSortOrder> sortComboBox;
     private JTree sourceTree;
     private JLabel totalConversionLabel;
     private JButton clearAllButton;
@@ -560,6 +561,7 @@ public class JUIMediator implements UIMediator {
          */
         public Builder linkSortComboBox(JComboBox<TaskSortOrder> comboBox) {
             comboBox.setName("sortComboBox");
+            mediator.sortComboBox = comboBox;
             for (TaskSortOrder order : TaskSortOrder.values()) {
                 comboBox.addItem(order);
             }
@@ -767,11 +769,36 @@ public class JUIMediator implements UIMediator {
                 clearAllButton.setEnabled(false);
                 sourceBrowseButton.setEnabled(false);
                 outputFolderBrowseButton.setEnabled(false);
+                pageSizeComboBox.setEnabled(false);
+                horizontalAlignComboBox.setEnabled(false);
+                verticalAlignComboBox.setEnabled(false);
+                directionComboBox.setEnabled(false);
+                colorTypeComboBox.setEnabled(false);
+                sortComboBox.setEnabled(false);
+                autoRotateCheckBox.setEnabled(false);
+                encryptCheckBox.setEnabled(false);
+                ownerPasswordField.setEnabled(false);
+                userPasswordField.setEnabled(false);
+                outputFolderField.setEnabled(false);
+                sourceTree.setEnabled(false);
             } else {
                 stopButton.setEnabled(false);
                 clearAllButton.setEnabled(true);
                 sourceBrowseButton.setEnabled(true);
                 outputFolderBrowseButton.setEnabled(true);
+                pageSizeComboBox.setEnabled(true);
+                horizontalAlignComboBox.setEnabled(true);
+                verticalAlignComboBox.setEnabled(true);
+                directionComboBox.setEnabled(true);
+                colorTypeComboBox.setEnabled(true);
+                sortComboBox.setEnabled(true);
+                autoRotateCheckBox.setEnabled(true);
+                encryptCheckBox.setEnabled(true);
+                boolean encrypted = state.isEncrypted();
+                ownerPasswordField.setEnabled(encrypted);
+                userPasswordField.setEnabled(encrypted);
+                outputFolderField.setEnabled(true);
+                sourceTree.setEnabled(true);
                 refreshConvertButton();
             }
         });

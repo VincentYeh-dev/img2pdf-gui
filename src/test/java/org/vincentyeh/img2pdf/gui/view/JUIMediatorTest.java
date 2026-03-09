@@ -255,53 +255,53 @@ class JUIMediatorTest {
         window.textBox("userPasswordField").requireDisabled();
     }
 
-    // Verifies that entering running state does not disable password fields when encryption is enabled.
+    // Verifies that entering running state disables password fields even when encryption is enabled.
     @Test
-    void running_state_does_not_affect_password_fields_when_encryption_on() {
+    void running_state_true_disables_password_fields_even_when_encryption_on() {
         GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", true));
         GuiActionRunner.execute(() -> mediator.setRunningState(true));
-        window.textBox("ownerPasswordField").requireEnabled();
-        window.textBox("userPasswordField").requireEnabled();
+        window.textBox("ownerPasswordField").requireDisabled();
+        window.textBox("userPasswordField").requireDisabled();
     }
 
-    // Verifies that entering running state does not disable alignment combos when page size is not DEPEND_ON_IMG.
+    // Verifies that entering running state disables alignment combos even when page size is not DEPEND_ON_IMG.
     @Test
-    void running_state_does_not_affect_align_combos_when_page_is_a4() {
+    void running_state_true_disables_align_combos_regardless_of_page_size() {
         GuiActionRunner.execute(() -> mediator.setRunningState(true));
-        window.comboBox("horizontalAlignComboBox").requireEnabled();
-        window.comboBox("verticalAlignComboBox").requireEnabled();
+        window.comboBox("horizontalAlignComboBox").requireDisabled();
+        window.comboBox("verticalAlignComboBox").requireDisabled();
     }
 
-    // Verifies that leaving running state does not re-enable alignment combos that were disabled by DEPEND_ON_IMG.
+    // Verifies that leaving running state re-enables alignment combos (even if page size is DEPEND_ON_IMG,
+    // setRunningState(false) restores all combos to enabled unconditionally).
     @Test
-    void set_running_false_does_not_restore_align_combos_disabled_by_depend_on_img() {
+    void set_running_false_re_enables_align_combos_unconditionally() {
         GuiActionRunner.execute(() -> mediator.notifyUI("page_size_change", PageSize.DEPEND_ON_IMG));
         GuiActionRunner.execute(() -> mediator.setRunningState(true));
         window.comboBox("horizontalAlignComboBox").requireDisabled();
         window.comboBox("verticalAlignComboBox").requireDisabled();
-        // 停止後也不應恢復（page size 仍是 DEPEND_ON_IMG）
         GuiActionRunner.execute(() -> mediator.setRunningState(false));
-        window.comboBox("horizontalAlignComboBox").requireDisabled();
-        window.comboBox("verticalAlignComboBox").requireDisabled();
+        window.comboBox("horizontalAlignComboBox").requireEnabled();
+        window.comboBox("verticalAlignComboBox").requireEnabled();
     }
 
-    // Verifies that running state does not affect the direction combo box when auto-rotate is off.
+    // Verifies that entering running state disables the direction combo even when auto-rotate is off.
     @Test
-    void running_state_does_not_affect_direction_combo_when_auto_rotate_off() {
+    void running_state_true_disables_direction_combo_regardless_of_auto_rotate() {
         GuiActionRunner.execute(() -> mediator.setRunningState(true));
-        window.comboBox("directionComboBox").requireEnabled();
+        window.comboBox("directionComboBox").requireDisabled();
         GuiActionRunner.execute(() -> mediator.setRunningState(false));
         window.comboBox("directionComboBox").requireEnabled();
     }
 
-    // Verifies that leaving running state does not re-enable the direction combo that was disabled by auto-rotate.
+    // Verifies that leaving running state re-enables the direction combo unconditionally (even if auto-rotate was on).
     @Test
-    void set_running_false_does_not_restore_direction_combo_disabled_by_auto_rotate() {
+    void set_running_false_re_enables_direction_combo_unconditionally() {
         GuiActionRunner.execute(() -> mediator.notifyUI("auto_rotate_change", true));
         GuiActionRunner.execute(() -> mediator.setRunningState(true));
         window.comboBox("directionComboBox").requireDisabled();
         GuiActionRunner.execute(() -> mediator.setRunningState(false));
-        window.comboBox("directionComboBox").requireDisabled();
+        window.comboBox("directionComboBox").requireEnabled();
     }
 
     // ===== D. 加密邊界條件 =====
@@ -883,6 +883,52 @@ class JUIMediatorTest {
 
         assertThat(jMediator.taskStatusMap.getOrDefault(0, JUIMediator.TaskStatus.PENDING))
                 .isEqualTo(JUIMediator.TaskStatus.PENDING);
+    }
+
+    // ===== P. setRunningState newly-disabled component coverage =====
+
+    // Verifies that setRunningState(true) disables all newly-added components:
+    // option comboboxes, checkboxes, password fields, output folder field, and source tree.
+    @Test
+    void P1_setRunningTrue_disables_all_newly_added_components() {
+        GuiActionRunner.execute(() -> mediator.setRunningState(true));
+        robot.waitForIdle();
+        window.comboBox("pageSizeComboBox").requireDisabled();
+        window.comboBox("horizontalAlignComboBox").requireDisabled();
+        window.comboBox("verticalAlignComboBox").requireDisabled();
+        window.comboBox("directionComboBox").requireDisabled();
+        window.comboBox("colorTypeComboBox").requireDisabled();
+        window.comboBox("sortComboBox").requireDisabled();
+        window.checkBox("autoRotateCheckBox").requireDisabled();
+        window.checkBox("encryptCheckBox").requireDisabled();
+        window.textBox("ownerPasswordField").requireDisabled();
+        window.textBox("userPasswordField").requireDisabled();
+        window.textBox("outputFolderField").requireDisabled();
+        assertThat(window.tree("sourceTree").target().isEnabled()).isFalse();
+    }
+
+    // Verifies that setRunningState(false) re-enables all non-encrypt-gated components
+    // and leaves password fields disabled when encryptCheckBox is unchecked by default.
+    @Test
+    void P2_setRunningFalse_re_enables_non_gated_components_and_keeps_password_disabled_when_encrypt_off() {
+        GuiActionRunner.execute(() -> mediator.setRunningState(true));
+        robot.waitForIdle();
+        GuiActionRunner.execute(() -> mediator.setRunningState(false));
+        robot.waitForIdle();
+        // Non-encrypt-gated components should be re-enabled
+        window.comboBox("pageSizeComboBox").requireEnabled();
+        window.comboBox("horizontalAlignComboBox").requireEnabled();
+        window.comboBox("verticalAlignComboBox").requireEnabled();
+        window.comboBox("directionComboBox").requireEnabled();
+        window.comboBox("colorTypeComboBox").requireEnabled();
+        window.comboBox("sortComboBox").requireEnabled();
+        window.checkBox("autoRotateCheckBox").requireEnabled();
+        window.checkBox("encryptCheckBox").requireEnabled();
+        window.textBox("outputFolderField").requireEnabled();
+        assertThat(window.tree("sourceTree").target().isEnabled()).isTrue();
+        // Password fields stay disabled because encryptCheckBox is unchecked by default
+        window.textBox("ownerPasswordField").requireDisabled();
+        window.textBox("userPasswordField").requireDisabled();
     }
 
     // ===== 輔助方法 =====
