@@ -278,7 +278,14 @@ public class Model {
                                 document.save(out);
                             }
                         } finally {
-                            document.close();
+                            try {
+                                document.close();
+                            } catch (RuntimeException e) {
+                                // PDFBox may throw RuntimeException (e.g. NPE in COSDocument.close)
+                                // during resource cleanup; swallow it so remaining tasks can continue
+                                AppLogger.get().log(Level.WARNING,
+                                        "document.close() threw unexpectedly during cleanup", e);
+                            }
                         }
                         int currentIndex = snapshot.indexOf(currentTask);
                         if (listener != null) listener.onTaskComplete(currentTask, currentIndex, null);
