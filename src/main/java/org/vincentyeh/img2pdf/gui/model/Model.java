@@ -272,10 +272,6 @@ public class Model {
                                 documentArgument,
                                 pageArgument,
                                 factoryListener);
-                        // BUG-01 fix: use try-finally to guarantee document.close() is always called.
-                        // BUG-05 fix: manage FileOutputStream ourselves with try-with-resources so the
-                        //             file handle is always closed even when save() throws, preventing
-                        //             the output PDF from being locked on Windows.
                         try {
                             File destination = new File(outputFolder, currentTask.destination.getName());
                             try (OutputStream out = new FileOutputStream(destination)) {
@@ -284,10 +280,10 @@ public class Model {
                         } finally {
                             document.close();
                         }
-                        int currentIndex = sources.indexOf(currentTask);
+                        int currentIndex = snapshot.indexOf(currentTask);
                         if (listener != null) listener.onTaskComplete(currentTask, currentIndex, null);
                     } catch (PDFFactoryException | IOException e) {
-                        int currentIndex = sources.indexOf(currentTask);
+                        int currentIndex = snapshot.indexOf(currentTask);
                         if (listener != null) listener.onTaskComplete(currentTask, currentIndex, e);
                     } finally {
                         if (listener != null) listener.onBatchProgressUpdate(i + 1, snapshot.size());
