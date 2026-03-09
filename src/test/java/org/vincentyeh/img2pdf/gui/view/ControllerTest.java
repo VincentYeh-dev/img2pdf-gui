@@ -41,7 +41,6 @@ class ControllerTest {
         UIState.resetForTesting();
         model    = mock(Model.class);
         mediator = mock(UIMediator.class);
-        when(model.getTasks()).thenReturn(Collections.emptyList());
         controller = new Controller(model, mediator);
     }
 
@@ -72,45 +71,44 @@ class ControllerTest {
         verify(model).setModelListener(controller);
     }
 
-    // Verifies that onSourcesUpdate() does nothing when UIState.sourceFiles is null.
+    // Verifies that onAddSourcesRequested() does nothing when the sources list is null.
     @Test
-    void onSourcesUpdate_with_null_sources_does_not_call_model_setTask() {
-        UIState state = UIState.getInstance();
-        // sourceFiles is null by default after reset
+    void onSourcesAdded_with_null_sources_does_not_call_model_addAddSources() {
+        controller.onAddSourcesRequested(null);
 
-        controller.onSourcesUpdate(mediator, state);
-
-        verify(model, never()).setTask(any());
+        verify(model, never()).addSources(any());
     }
 
-    // Verifies that onSourcesUpdate() calls model.setTask() and mediator.updateTasks()
-    // when UIState contains valid source directories.
+    // Verifies that onAddSourcesRequested() calls model.addSources() with the supplied directories.
     @Test
-    void onSourcesUpdate_with_valid_sources_calls_setTask_and_mediator_updateTasks(
+    void onSourcesAdded_with_valid_sources_calls_model_addAddSources(
             @TempDir Path tempDir) throws Exception {
         File dir = tempDir.resolve("album").toFile();
         dir.mkdirs();
         new File(dir, "photo.jpg").createNewFile();
 
-        UIState state = UIState.getInstance();
-        state.setSourceFiles(new File[]{dir});
+        controller.onAddSourcesRequested(Collections.singletonList(dir));
 
-        controller.onSourcesUpdate(mediator, state);
-
-        verify(model).setTask(argThat(list -> !list.isEmpty()));
-        verify(mediator, atLeastOnce()).updateTasks(any());
+        verify(model).addSources(any());
     }
 
-    // Verifies that onSortOrderChange() updates the model sort order and refreshes the UI.
+    // Verifies that onTaskClearRequested() delegates to model.clearTasks().
     @Test
-    void onSortOrderChange_calls_model_setSortOrder_and_mediator_updateTasks() {
-        controller.onSortOrderChange(mediator, TaskSortOrder.NAME_DESC);
+    void onTaskClear_calls_model_clearRequestedTasks() {
+        controller.onTaskClearRequested();
+
+        verify(model).clearTasks();
+    }
+
+    // Verifies that onSortOrderChangeRequested() updates the model sort order and refreshes the UI.
+    @Test
+    void onSortOrderChange_calls_model_setSortOrder_and_mediator_updateTasksRequested() {
+        controller.onSortOrderChangeRequested(TaskSortOrder.NAME_DESC);
 
         verify(model).setSortOrder(TaskSortOrder.NAME_DESC);
-        verify(mediator, atLeastOnce()).updateTasks(any());
     }
 
-    // Verifies that onConvertButtonClick() builds a ConversionConfig from UIState values
+    // Verifies that onConvertRequested() builds a ConversionConfig from UIState values
     // and passes it to model.convert() with all fields matching the state.
     @Test
     void onConvertButtonClick_builds_config_from_ui_state_and_calls_model_convert(
@@ -128,7 +126,7 @@ class ControllerTest {
         state.setHorizontalAlign(PageAlign.HorizontalAlign.CENTER);
         state.setAutoRotate(true);
 
-        controller.onConvertButtonClick(mediator, state);
+        controller.onConvertRequested(mediator, state);
 
         ArgumentCaptor<ConversionConfig> captor = ArgumentCaptor.forClass(ConversionConfig.class);
         verify(model).convert(captor.capture());
@@ -145,57 +143,43 @@ class ControllerTest {
         assertTrue(cfg.autoRotate);
     }
 
-    // Verifies that onStopButtonClick() delegates to model.requestStop().
+    // Verifies that onStopButtonRequested() delegates to model.requestStop().
     @Test
     void onStopButtonClick_calls_model_requestStop() {
-        controller.onStopButtonClick(mediator);
+        controller.onStopButtonRequested();
 
         verify(model).requestStop();
     }
 
-    // Verifies that onTaskRemove() calls model.removeTask() for each task in the list
-    // and then calls mediator.updateTasks() exactly once.
+    // Verifies that onTaskRemoveRequested() forwards indices directly to model.removeTasks().
     @Test
-    void onTaskRemove_calls_removeTask_for_each_task_and_updates_mediator() {
-        Task t1 = new Task(new File("a.pdf"), new File[0]);
-        Task t2 = new Task(new File("b.pdf"), new File[0]);
-        List<Task> toRemove = Arrays.asList(t1, t2);
+    void onTaskRemove_calls_model_removeRequestedTasks_with_correct_indices() {
+        List<Integer> indices = Arrays.asList(0, 1);
 
-        controller.onTaskRemove(mediator, toRemove);
+        controller.onTaskRemoveRequested(indices);
 
-        verify(model).removeTask(t1);
-        verify(model).removeTask(t2);
-        verify(mediator, atLeastOnce()).updateTasks(any());
+        verify(model).removeTasks(argThat(list -> list.size() == 2 && list.contains(0) && list.contains(1)));
     }
 
-    // Verifies that onTaskRemoveFromDisk() calls model.removeTaskFromDisk() for each task
-    // and then calls mediator.updateTasks() exactly once.
+    // Verifies that onTaskRemoveFromDiskRequest() forwards indices directly to model.removeTasksFromDisk().
     @Test
-    void onTaskRemoveFromDisk_calls_removeTaskFromDisk_for_each_and_updates_mediator() throws IOException {
-        Task t1 = new Task(new File("a.pdf"), new File[0]);
-        Task t2 = new Task(new File("b.pdf"), new File[0]);
-        List<Task> toRemove = Arrays.asList(t1, t2);
-        doNothing().when(model).removeTaskFromDisk(any());
+    void onTaskRemoveFromDisk_calls_model_removeRequestedTasksFromDisk_Request_with_correct_indices() {
+        List<Integer> indices = Arrays.asList(0, 1);
 
-        controller.onTaskRemoveFromDisk(mediator, toRemove);
+        controller.onTaskRemoveFromDiskRequest(indices);
 
-        verify(model).removeTaskFromDisk(t1);
-        verify(model).removeTaskFromDisk(t2);
-        verify(mediator, atLeastOnce()).updateTasks(any());
+        verify(model).removeTasksFromDisk(argThat(list -> list.size() == 2 && list.contains(0) && list.contains(1)));
     }
 
-    // Verifies that onTaskRemoveFromDisk() shows an error dialog and keeps the task
-    // when model.removeTaskFromDisk() throws IOException.
+    // Verifies that onTaskDiskRemovalError() shows an error dialog for the failed task.
     @Test
-    void onTaskRemoveFromDisk_when_IOException_calls_showError_and_keeps_other_tasks() throws IOException {
+    void onTaskDiskRemovalError_calls_mediator_showError() {
         File img = new File("folder/1.jpg");
         Task t1 = new Task(new File("a.pdf"), new File[]{img});
-        doThrow(new IOException("disk error")).when(model).removeTaskFromDisk(t1);
 
-        controller.onTaskRemoveFromDisk(mediator, Collections.singletonList(t1));
+        controller.onTaskDiskRemovalError(t1, new IOException("disk error"));
 
         verify(mediator).showError(anyString(), anyString());
-        verify(mediator, atLeastOnce()).updateTasks(any());
     }
 
     // Verifies that onBatchProgressUpdate() forwards both arguments to mediator.setBatchProgress().
@@ -230,24 +214,24 @@ class ControllerTest {
         verify(mediator).setRunningState(false);
     }
 
-    // Verifies that onTaskComplete() with error=null calls mediator.updateTaskStatus(task, true).
+    // Verifies that onTaskComplete() with error=null calls mediator.updateTaskStatus(index, true).
     @Test
     void onTaskComplete_success_calls_mediator_updateTaskStatus_with_true() {
         Task task = new Task(new File("a.pdf"), new File[0]);
 
-        controller.onTaskComplete(task, null);
+        controller.onTaskComplete(task, 0, null);
 
-        verify(mediator).updateTaskStatus(task, true);
+        verify(mediator).updateTaskStatus(0, true);
     }
 
-    // Verifies that onTaskComplete() with a non-null exception calls mediator.updateTaskStatus(task, false).
+    // Verifies that onTaskComplete() with a non-null exception calls mediator.updateTaskStatus(index, false).
     @Test
     void onTaskComplete_failure_calls_mediator_updateTaskStatus_with_false() {
         Task task = new Task(new File("a.pdf"), new File[0]);
 
-        controller.onTaskComplete(task, new RuntimeException("test error"));
+        controller.onTaskComplete(task, 0, new RuntimeException("test error"));
 
-        verify(mediator).updateTaskStatus(task, false);
+        verify(mediator).updateTaskStatus(0, false);
     }
 
     // Verifies that onBatchError() forwards the error to mediator.showError().
@@ -278,7 +262,7 @@ class ControllerTest {
 
         try {
             Task task = new Task(new File("failed_task.pdf"), new File[0]);
-            controller.onTaskComplete(task, new RuntimeException("conversion error"));
+            controller.onTaskComplete(task, 0, new RuntimeException("conversion error"));
 
             long warnings = records.stream()
                     .filter(r -> r.getLevel() == Level.WARNING)
@@ -313,7 +297,7 @@ class ControllerTest {
 
         try {
             Task task = new Task(new File("success_task.pdf"), new File[0]);
-            controller.onTaskComplete(task, null);
+            controller.onTaskComplete(task, 0, null);
 
             long warnings = records.stream()
                     .filter(r -> r.getLevel() == Level.WARNING)

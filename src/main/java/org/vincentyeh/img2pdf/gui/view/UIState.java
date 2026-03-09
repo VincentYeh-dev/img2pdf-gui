@@ -34,7 +34,6 @@ public class UIState {
     private String ownerPassword = null;
     private String userPassword = null;
 
-    private File[] sourceFiles = null;
     private File destinationFolder = null;
     private ColorType colorType = null;
     private PageSize pageSize = null;
@@ -116,14 +115,6 @@ public class UIState {
         this.userPassword = userPassword;
     }
 
-    /**
-     * Sets the source directories selected by the user.
-     *
-     * @param sourceFiles the array of selected source directories
-     */
-    public void setSourceFiles(File[] sourceFiles) {
-        this.sourceFiles = sourceFiles;
-    }
 
     /**
      * Sets the output folder where generated PDFs will be saved.
@@ -186,15 +177,6 @@ public class UIState {
      */
     public String getUserPassword() {
         return userPassword;
-    }
-
-    /**
-     * Returns the currently selected source directories.
-     *
-     * @return the source file array, or {@code null} if none selected
-     */
-    public File[] getSourceFiles() {
-        return sourceFiles;
     }
 
     /**

@@ -1,6 +1,5 @@
 package org.vincentyeh.img2pdf.gui.view;
 
-import org.vincentyeh.img2pdf.gui.model.Task;
 import org.vincentyeh.img2pdf.gui.model.TaskSortOrder;
 import org.vincentyeh.img2pdf.lib.image.ColorType;
 import org.vincentyeh.img2pdf.lib.pdf.parameter.PageAlign;
@@ -69,8 +68,8 @@ public class JUIMediator implements UIMediator {
     /** Cache of scaled thumbnail icons keyed by the first image file of each task. */
     private final Map<File, ImageIcon> thumbnailCache = new HashMap<>();
 
-    /** Maps each task to its current display status (visible in the tree). */
-    final Map<Task, TaskStatus> taskStatusMap = new HashMap<>();
+    /** Maps each task's list index to its current display status (visible in the tree). */
+    final Map<Integer, TaskStatus> taskStatusMap = new HashMap<>();
 
     private MediatorListener listener;
     private JButton sourceBrowseButton;
@@ -85,6 +84,7 @@ public class JUIMediator implements UIMediator {
     private JCheckBox encryptCheckBox;
     private JProgressBar totalConversionProgressBar;
     private JComboBox<ColorType> colorTypeComboBox;
+    private JComboBox<TaskSortOrder> sortComboBox;
     private JTree sourceTree;
     private JLabel totalConversionLabel;
     private JButton clearAllButton;
@@ -94,7 +94,7 @@ public class JUIMediator implements UIMediator {
     private JButton outputFolderBrowseButton;
     private JTextField outputFolderField;
 
-    private List<Task> currentTasks = new ArrayList<>();
+    private List<TaskDisplay> currentTasks = new ArrayList<>();
 
     private final UIState state = UIState.getInstance();
 
@@ -314,19 +314,21 @@ public class JUIMediator implements UIMediator {
             tree.setRowHeight(0); // 讓各列根據 renderer 自動計算高度
             tree.getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
 
-            // 4-B: Cell Renderer，讓 Task 節點顯示縮圖、狀態圖示與 destination 名稱
+            // 4-B: Cell renderer showing thumbnail, status icon and destination name
             tree.setCellRenderer(new DefaultTreeCellRenderer() {
                 @Override
                 public Component getTreeCellRendererComponent(
                         JTree tree, Object value, boolean sel, boolean expanded,
                         boolean leaf, int row, boolean hasFocus) {
                     Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
-                    if (userObject instanceof Task) {
-                        Task task = (Task) userObject;
-                        TaskStatus status = mediator.taskStatusMap.getOrDefault(task, TaskStatus.PENDING);
+                    if (userObject instanceof TaskDisplay) {
+                        TaskDisplay display = (TaskDisplay) userObject;
+                        DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
+                        int index = root.getIndex((DefaultMutableTreeNode) value);
+                        TaskStatus status = mediator.taskStatusMap.getOrDefault(index, TaskStatus.PENDING);
                         String prefix = status == TaskStatus.SUCCESS ? "\u2713 " :
                                         status == TaskStatus.FAILED  ? "\u2717 " : "";
-                        value = prefix + task.destination.getName();
+                        value = prefix + display.destinationName;
                         Component c = super.getTreeCellRendererComponent(
                                 tree, value, sel, expanded, leaf, row, hasFocus);
                         if (!sel) {
@@ -335,8 +337,8 @@ public class JUIMediator implements UIMediator {
                             else if (status == TaskStatus.FAILED)
                                 c.setForeground(FAILURE_COLOR);
                         }
-                        if (task.files != null && task.files.length > 0) {
-                            ImageIcon icon = mediator.thumbnailCache.get(task.files[0]);
+                        if (display.sourceFiles != null && display.sourceFiles.length > 0) {
+                            ImageIcon icon = mediator.thumbnailCache.get(display.sourceFiles[0]);
                             if (icon != null) {
                                 setIcon(icon);
                             }
@@ -365,35 +367,41 @@ public class JUIMediator implements UIMediator {
                             tree.setSelectionRow(row);
                         }
 
-                        // 收集所有選中的 Task 節點
+                        // Collect indices of selected top-level task nodes
                         TreePath[] selectionPaths = tree.getSelectionPaths();
                         if (selectionPaths == null) return;
-                        List<Task> selectedTasks = new ArrayList<>();
+                        DefaultMutableTreeNode treeRoot = (DefaultMutableTreeNode)
+                                ((DefaultTreeModel) tree.getModel()).getRoot();
+                        List<Integer> selectedIndices = new ArrayList<>();
                         for (TreePath path : selectionPaths) {
                             Object last = path.getLastPathComponent();
                             if (last instanceof DefaultMutableTreeNode) {
-                                Object userObj = ((DefaultMutableTreeNode) last).getUserObject();
-                                if (userObj instanceof Task) {
-                                    selectedTasks.add((Task) userObj);
+                                DefaultMutableTreeNode node = (DefaultMutableTreeNode) last;
+                                if (node.getParent() == treeRoot) {
+                                    int idx = treeRoot.getIndex(node);
+                                    if (idx >= 0) selectedIndices.add(idx);
                                 }
                             }
                         }
-                        if (selectedTasks.isEmpty()) return;
+                        if (selectedIndices.isEmpty()) return;
 
                         JPopupMenu popup = new JPopupMenu();
 
                         JMenuItem removeItem = new JMenuItem("Remove from list");
-                        removeItem.addActionListener(ev -> mediator.notifyUI("remove_tasks", selectedTasks));
+                        removeItem.addActionListener(ev -> mediator.notifyUI("remove_tasks", selectedIndices));
                         popup.add(removeItem);
 
                         JMenuItem removeFromDiskItem = new JMenuItem("Remove from disk");
                         removeFromDiskItem.addActionListener(ev -> {
                             StringBuilder sb = new StringBuilder();
-                            for (Task t : selectedTasks) {
-                                if (t.files != null && t.files.length > 0 && t.files[0] != null) {
-                                    sb.append(t.files[0].getParentFile().getAbsolutePath()).append("\n");
-                                } else {
-                                    sb.append("[unknown folder]").append("\n");
+                            for (int idx : selectedIndices) {
+                                if (idx < mediator.currentTasks.size()) {
+                                    TaskDisplay d = mediator.currentTasks.get(idx);
+                                    if (d.sourceFiles != null && d.sourceFiles.length > 0 && d.sourceFiles[0] != null) {
+                                        sb.append(d.sourceFiles[0].getParentFile().getAbsolutePath()).append("\n");
+                                    } else {
+                                        sb.append("[unknown folder]").append("\n");
+                                    }
                                 }
                             }
                             Object[] options = {"Delete", "Cancel"};
@@ -410,7 +418,7 @@ public class JUIMediator implements UIMediator {
                                     options[1]
                             );
                             if (confirm == JOptionPane.YES_OPTION) {
-                                mediator.notifyUI("remove_tasks_from_disk", selectedTasks);
+                                mediator.notifyUI("remove_tasks_from_disk", selectedIndices);
                             }
                         });
                         popup.add(removeFromDiskItem);
@@ -440,15 +448,8 @@ public class JUIMediator implements UIMediator {
                                 .collect(Collectors.toList());
                         if (dirs.isEmpty()) return false;
 
-                        File[] existing = mediator.state.getSourceFiles();
-                        List<File> merged = new ArrayList<>();
-                        if (existing != null) merged.addAll(Arrays.asList(existing));
-                        for (File dir : dirs) {
-                            if (!merged.contains(dir)) merged.add(dir);
-                        }
-                        mediator.state.setSourceFiles(merged.toArray(new File[0]));
                         if (mediator.listener != null)
-                            mediator.listener.onSourcesUpdate(mediator, mediator.state);
+                            mediator.listener.onAddSourcesRequested(dirs);
                         return true;
                     } catch (Exception ex) {
                         return false;
@@ -560,13 +561,14 @@ public class JUIMediator implements UIMediator {
          */
         public Builder linkSortComboBox(JComboBox<TaskSortOrder> comboBox) {
             comboBox.setName("sortComboBox");
+            mediator.sortComboBox = comboBox;
             for (TaskSortOrder order : TaskSortOrder.values()) {
                 comboBox.addItem(order);
             }
             comboBox.addActionListener(e -> {
                 TaskSortOrder order = (TaskSortOrder) comboBox.getSelectedItem();
                 if (order != null && mediator.listener != null)
-                    mediator.listener.onSortOrderChange(mediator, order);
+                    mediator.listener.onSortOrderChangeRequested(order);
             });
             return this;
         }
@@ -617,8 +619,8 @@ public class JUIMediator implements UIMediator {
      *   <li>{@code "auto_rotate_change"} — toggles auto-rotate and page-direction state</li>
      *   <li>{@code "page_size_change"}, {@code "horizontal_align_change"}, etc. — updates page settings</li>
      *   <li>{@code "source_browse_button_click"} — opens the source-folder chooser</li>
-     *   <li>{@code "convert_button_click"} — delegates to {@link MediatorListener#onConvertButtonClick}</li>
-     *   <li>{@code "stop_button_click"} — delegates to {@link MediatorListener#onStopButtonClick}</li>
+     *   <li>{@code "convert_button_click"} — delegates to {@link MediatorListener#onConvertRequested}</li>
+     *   <li>{@code "stop_button_click"} — delegates to {@link MediatorListener#onStopButtonRequested}</li>
      *   <li>{@code "remove_tasks"} / {@code "remove_tasks_from_disk"} — task removal events</li>
      *   <li>{@code "encryption_change"} — enables/disables encryption and password fields</li>
      * </ul>
@@ -687,27 +689,26 @@ public class JUIMediator implements UIMediator {
         }
         if (event.equals("convert_button_click")) {
             if (listener != null)
-                listener.onConvertButtonClick(this, state);
+                listener.onConvertRequested(this, state);
         }
         if (event.equals("clear_all_button_click")) {
-            state.setSourceFiles(new File[]{});
             if (listener != null)
-                listener.onSourcesUpdate(this, state);
+                listener.onTaskClearRequested();
         }
         if (event.equals("stop_button_click")) {
-            if (listener != null) listener.onStopButtonClick(this);
+            if (listener != null) listener.onStopButtonRequested();
         }
 
         if (event.equals("remove_tasks")) {
             @SuppressWarnings("unchecked")
-            List<Task> tasks = (List<Task>) data[0];
-            if (listener != null) listener.onTaskRemove(this, tasks);
+            List<Integer> indices = (List<Integer>) data[0];
+            if (listener != null) listener.onTaskRemoveRequested(indices);
         }
 
         if (event.equals("remove_tasks_from_disk")) {
             @SuppressWarnings("unchecked")
-            List<Task> tasks = (List<Task>) data[0];
-            if (listener != null) listener.onTaskRemoveFromDisk(this, tasks);
+            List<Integer> indices = (List<Integer>) data[0];
+            if (listener != null) listener.onTaskRemoveFromDiskRequest(indices);
         }
 
         if(event.equals("encryption_change")){
@@ -727,7 +728,7 @@ public class JUIMediator implements UIMediator {
     }
 
     @Override
-    public void updateTasks(List<Task> tasks) {
+    public void updateTasks(List<TaskDisplay> tasks) {
         currentTasks = new ArrayList<>(tasks);
         taskStatusMap.clear();
         updateSourceTree(currentTasks);
@@ -768,11 +769,36 @@ public class JUIMediator implements UIMediator {
                 clearAllButton.setEnabled(false);
                 sourceBrowseButton.setEnabled(false);
                 outputFolderBrowseButton.setEnabled(false);
+                pageSizeComboBox.setEnabled(false);
+                horizontalAlignComboBox.setEnabled(false);
+                verticalAlignComboBox.setEnabled(false);
+                directionComboBox.setEnabled(false);
+                colorTypeComboBox.setEnabled(false);
+                sortComboBox.setEnabled(false);
+                autoRotateCheckBox.setEnabled(false);
+                encryptCheckBox.setEnabled(false);
+                ownerPasswordField.setEnabled(false);
+                userPasswordField.setEnabled(false);
+                outputFolderField.setEnabled(false);
+                sourceTree.setEnabled(false);
             } else {
                 stopButton.setEnabled(false);
                 clearAllButton.setEnabled(true);
                 sourceBrowseButton.setEnabled(true);
                 outputFolderBrowseButton.setEnabled(true);
+                pageSizeComboBox.setEnabled(true);
+                horizontalAlignComboBox.setEnabled(true);
+                verticalAlignComboBox.setEnabled(true);
+                directionComboBox.setEnabled(true);
+                colorTypeComboBox.setEnabled(true);
+                sortComboBox.setEnabled(true);
+                autoRotateCheckBox.setEnabled(true);
+                encryptCheckBox.setEnabled(true);
+                boolean encrypted = state.isEncrypted();
+                ownerPasswordField.setEnabled(encrypted);
+                userPasswordField.setEnabled(encrypted);
+                outputFolderField.setEnabled(true);
+                sourceTree.setEnabled(true);
                 refreshConvertButton();
             }
         });
@@ -780,8 +806,8 @@ public class JUIMediator implements UIMediator {
 
 
     @Override
-    public void updateTaskStatus(Task task, boolean success) {
-        taskStatusMap.put(task, success ? TaskStatus.SUCCESS : TaskStatus.FAILED);
+    public void updateTaskStatus(int index, boolean success) {
+        taskStatusMap.put(index, success ? TaskStatus.SUCCESS : TaskStatus.FAILED);
         SwingUtilities.invokeLater(() -> {
             DefaultTreeModel model = (DefaultTreeModel) sourceTree.getModel();
             model.nodeChanged((TreeNode) model.getRoot());
@@ -798,14 +824,14 @@ public class JUIMediator implements UIMediator {
      *
      * @param tasks the current list of tasks to display in the tree
      */
-    private void updateSourceTree(List<Task> tasks) {
+    private void updateSourceTree(List<TaskDisplay> tasks) {
         DefaultTreeModel model = (DefaultTreeModel) sourceTree.getModel();
         DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
         root.removeAllChildren();
 
-        for (Task task : tasks) {
-            DefaultMutableTreeNode node1 = new DefaultMutableTreeNode(task);
-            for (File file : task.files) {
+        for (TaskDisplay display : tasks) {
+            DefaultMutableTreeNode node1 = new DefaultMutableTreeNode(display);
+            for (File file : display.sourceFiles) {
                 DefaultMutableTreeNode node2 = new DefaultMutableTreeNode(file.getName());
                 node1.add(node2);
             }
@@ -813,17 +839,17 @@ public class JUIMediator implements UIMediator {
         }
         model.reload();
 
-        // 清除不再使用的快取（已移除的任務）
+        // Evict stale thumbnail cache entries for removed tasks
         Set<File> activeFiles = tasks.stream()
-                .filter(t -> t.files != null && t.files.length > 0)
-                .map(t -> t.files[0])
+                .filter(d -> d.sourceFiles != null && d.sourceFiles.length > 0)
+                .map(d -> d.sourceFiles[0])
                 .collect(Collectors.toSet());
         thumbnailCache.keySet().retainAll(activeFiles);
 
-        // 為尚未快取的第一張圖啟動非同步縮圖載入
-        for (Task task : tasks) {
-            if (task.files != null && task.files.length > 0) {
-                File firstFile = task.files[0];
+        // Trigger async thumbnail loading for any uncached first image
+        for (TaskDisplay display : tasks) {
+            if (display.sourceFiles != null && display.sourceFiles.length > 0) {
+                File firstFile = display.sourceFiles[0];
                 if (!thumbnailCache.containsKey(firstFile)) {
                     loadThumbnailAsync(firstFile);
                 }
@@ -929,8 +955,7 @@ public class JUIMediator implements UIMediator {
         JFileChooser sourceFilesChooser = createSourceFilesChooser();
         if (sourceFilesChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
             if (listener != null) {
-                state.setSourceFiles(sourceFilesChooser.getSelectedFiles());
-                listener.onSourcesUpdate(this, state);
+                listener.onAddSourcesRequested(Arrays.asList(sourceFilesChooser.getSelectedFiles()));
             }
         }
     }
@@ -993,9 +1018,9 @@ public class JUIMediator implements UIMediator {
                         for (int i = 0; i < root.getChildCount(); i++) {
                             DefaultMutableTreeNode child = (DefaultMutableTreeNode) root.getChildAt(i);
                             Object userObj = child.getUserObject();
-                            if (userObj instanceof Task) {
-                                Task t = (Task) userObj;
-                                if (t.files != null && t.files.length > 0 && imageFile.equals(t.files[0])) {
+                            if (userObj instanceof TaskDisplay) {
+                                TaskDisplay d = (TaskDisplay) userObj;
+                                if (d.sourceFiles != null && d.sourceFiles.length > 0 && imageFile.equals(d.sourceFiles[0])) {
                                     treeModel.nodeChanged(child);
                                     break;
                                 }

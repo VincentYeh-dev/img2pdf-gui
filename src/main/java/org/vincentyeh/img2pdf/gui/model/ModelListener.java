@@ -1,14 +1,34 @@
 package org.vincentyeh.img2pdf.gui.model;
 
+import java.io.IOException;
+import java.util.List;
+
 /**
- * Callback interface that receives progress and lifecycle events from {@link Model}
- * during a batch PDF conversion.
+ * Callback interface that receives progress and lifecycle events from {@link Model}.
  * <p>
- * All callbacks are invoked from the Model's background conversion thread; callers
- * must dispatch UI updates to the Event Dispatch Thread themselves if required.
+ * Task-list mutation callbacks ({@link #onTasksUpdate}) are invoked on the EDT.
+ * Conversion-progress callbacks are invoked from the Model's background thread;
+ * callers must dispatch UI updates to the EDT themselves if required.
  * </p>
  */
 public interface ModelListener{
+
+    /**
+     * Called once after any task-list change (import, sort, or remove).
+     * Always invoked on the calling thread (EDT for user-triggered operations).
+     *
+     * @param tasks an unmodifiable snapshot of the current task list
+     */
+    void onTasksUpdate(List<Task> tasks);
+
+    /**
+     * Called per-task when a disk-removal operation fails.
+     * Invoked before {@link #onTasksUpdate} at the end of a batch removal.
+     *
+     * @param task  the task whose source folder could not be deleted
+     * @param error the underlying IO failure
+     */
+    void onTaskDiskRemovalError(Task task, IOException error);
 
     /**
      * Called whenever the overall batch progress changes.
@@ -41,11 +61,13 @@ public interface ModelListener{
     /**
      * Called after each individual task finishes, regardless of success or failure.
      *
-     * @param task  the task that has just completed
-     * @param error {@code null} if the PDF was created successfully;
-     *              the exception that caused the failure otherwise
+     * @param task         the task that has just completed
+     * @param currentIndex the zero-based index of the task in the current sources list
+     *                     at the time of completion; {@code -1} if the task is no longer present
+     * @param error        {@code null} if the PDF was created successfully;
+     *                     the exception that caused the failure otherwise
      */
-    void onTaskComplete(Task task, Exception error);
+    void onTaskComplete(Task task, int currentIndex, Exception error);
 
     /**
      * Called when a pre-conversion validation step fails (e.g. the output folder

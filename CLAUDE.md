@@ -65,7 +65,7 @@
   - `JUIMediator.Builder` 的 `link*()` 呼叫
 - **`UIState.java`** — 單例，儲存所有目前的 GUI 狀態（來源檔案、頁面大小／對齊／方向、加密、色彩類型、目標資料夾）。
 - **`UIMediator` / `JUIMediator.java`** — Mediator 模式的核心，將所有 Swing 元件串接，並提供 `Builder` API，負責管理所有 UI 狀態切換與元件互動。
-- **`MediatorListener`** — Controller 實作的介面，用於接收 UI 事件（`onSourcesUpdate`、`onConvertButtonClick`、`onStopButtonClick`）。
+- **`MediatorListener`** — Controller 實作的介面，用於接收 UI 事件（`onSourcesUpdate`、`onConvertRequested`、`onStopButtonRequested`）。
 
 ### Controller（`controller/`）
 - **`Controller.java`** — 同時實作 `MediatorListener` 與 `ModelListener`，將 UI 事件轉換為 Model 呼叫，並將 Model 的進度與日誌事件回傳給 `JUIMediator` 更新畫面。
@@ -73,7 +73,7 @@
 ### 資料流
 1. 使用者設定來源資料夾與選項 → `UIState` 更新 → 觸發 `MediatorListener.onSourcesUpdate()`。
 2. Controller 呼叫 `Model.parseSourceFiles()` → 回傳 `Task[]` → Controller 更新 UI 的任務清單。
-3. 使用者點擊轉換 → 觸發 `MediatorListener.onConvertButtonClick()` → Controller 呼叫 `Model.convert()`。
+3. 使用者點擊轉換 → 觸發 `MediatorListener.onConvertRequested()` → Controller 呼叫 `Model.convert()`。
 4. Model 在背景執行緒進行轉換，透過 `ModelListener` 回呼發送進度與日誌 → Controller 轉交 `JUIMediator` 更新畫面。
 
 ---

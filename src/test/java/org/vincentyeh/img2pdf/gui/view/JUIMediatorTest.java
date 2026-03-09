@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.vincentyeh.img2pdf.gui.model.Task;
 import org.vincentyeh.img2pdf.gui.model.TaskSortOrder;
 
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -118,8 +117,7 @@ class JUIMediatorTest {
     // and disables the stop button.
     @Test
     void set_running_false_enables_convert_and_disables_stop() {
-        Task task = new Task(new File("a.pdf"), new File[0]);
-        GuiActionRunner.execute(() -> mediator.updateTasks(Collections.singletonList(task)));
+        GuiActionRunner.execute(() -> mediator.updateTasks(Collections.singletonList(new TaskDisplay("a.pdf", new File[0]))));
         GuiActionRunner.execute(() -> mediator.setRunningState(false));
         window.button("convertButton").requireEnabled();
         window.button("stopButton").requireDisabled();
@@ -237,8 +235,7 @@ class JUIMediatorTest {
     // Verifies that leaving running state restores all navigation buttons to their enabled state.
     @Test
     void set_running_false_restores_all_navigation_buttons() {
-        Task task = new Task(new File("a.pdf"), new File[0]);
-        GuiActionRunner.execute(() -> mediator.updateTasks(Collections.singletonList(task)));
+        GuiActionRunner.execute(() -> mediator.updateTasks(Collections.singletonList(new TaskDisplay("a.pdf", new File[0]))));
         GuiActionRunner.execute(() -> mediator.setRunningState(true));
         GuiActionRunner.execute(() -> mediator.setRunningState(false));
         window.button("convertButton").requireEnabled();
@@ -258,53 +255,53 @@ class JUIMediatorTest {
         window.textBox("userPasswordField").requireDisabled();
     }
 
-    // Verifies that entering running state does not disable password fields when encryption is enabled.
+    // Verifies that entering running state disables password fields even when encryption is enabled.
     @Test
-    void running_state_does_not_affect_password_fields_when_encryption_on() {
+    void running_state_true_disables_password_fields_even_when_encryption_on() {
         GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", true));
         GuiActionRunner.execute(() -> mediator.setRunningState(true));
-        window.textBox("ownerPasswordField").requireEnabled();
-        window.textBox("userPasswordField").requireEnabled();
+        window.textBox("ownerPasswordField").requireDisabled();
+        window.textBox("userPasswordField").requireDisabled();
     }
 
-    // Verifies that entering running state does not disable alignment combos when page size is not DEPEND_ON_IMG.
+    // Verifies that entering running state disables alignment combos even when page size is not DEPEND_ON_IMG.
     @Test
-    void running_state_does_not_affect_align_combos_when_page_is_a4() {
+    void running_state_true_disables_align_combos_regardless_of_page_size() {
         GuiActionRunner.execute(() -> mediator.setRunningState(true));
-        window.comboBox("horizontalAlignComboBox").requireEnabled();
-        window.comboBox("verticalAlignComboBox").requireEnabled();
+        window.comboBox("horizontalAlignComboBox").requireDisabled();
+        window.comboBox("verticalAlignComboBox").requireDisabled();
     }
 
-    // Verifies that leaving running state does not re-enable alignment combos that were disabled by DEPEND_ON_IMG.
+    // Verifies that leaving running state re-enables alignment combos (even if page size is DEPEND_ON_IMG,
+    // setRunningState(false) restores all combos to enabled unconditionally).
     @Test
-    void set_running_false_does_not_restore_align_combos_disabled_by_depend_on_img() {
+    void set_running_false_re_enables_align_combos_unconditionally() {
         GuiActionRunner.execute(() -> mediator.notifyUI("page_size_change", PageSize.DEPEND_ON_IMG));
         GuiActionRunner.execute(() -> mediator.setRunningState(true));
         window.comboBox("horizontalAlignComboBox").requireDisabled();
         window.comboBox("verticalAlignComboBox").requireDisabled();
-        // 停止後也不應恢復（page size 仍是 DEPEND_ON_IMG）
         GuiActionRunner.execute(() -> mediator.setRunningState(false));
-        window.comboBox("horizontalAlignComboBox").requireDisabled();
-        window.comboBox("verticalAlignComboBox").requireDisabled();
+        window.comboBox("horizontalAlignComboBox").requireEnabled();
+        window.comboBox("verticalAlignComboBox").requireEnabled();
     }
 
-    // Verifies that running state does not affect the direction combo box when auto-rotate is off.
+    // Verifies that entering running state disables the direction combo even when auto-rotate is off.
     @Test
-    void running_state_does_not_affect_direction_combo_when_auto_rotate_off() {
+    void running_state_true_disables_direction_combo_regardless_of_auto_rotate() {
         GuiActionRunner.execute(() -> mediator.setRunningState(true));
-        window.comboBox("directionComboBox").requireEnabled();
+        window.comboBox("directionComboBox").requireDisabled();
         GuiActionRunner.execute(() -> mediator.setRunningState(false));
         window.comboBox("directionComboBox").requireEnabled();
     }
 
-    // Verifies that leaving running state does not re-enable the direction combo that was disabled by auto-rotate.
+    // Verifies that leaving running state re-enables the direction combo unconditionally (even if auto-rotate was on).
     @Test
-    void set_running_false_does_not_restore_direction_combo_disabled_by_auto_rotate() {
+    void set_running_false_re_enables_direction_combo_unconditionally() {
         GuiActionRunner.execute(() -> mediator.notifyUI("auto_rotate_change", true));
         GuiActionRunner.execute(() -> mediator.setRunningState(true));
         window.comboBox("directionComboBox").requireDisabled();
         GuiActionRunner.execute(() -> mediator.setRunningState(false));
-        window.comboBox("directionComboBox").requireDisabled();
+        window.comboBox("directionComboBox").requireEnabled();
     }
 
     // ===== D. 加密邊界條件 =====
@@ -539,7 +536,7 @@ class JUIMediatorTest {
     @Test
     void convert_enabled_when_tasks_present_no_encrypt() {
         // 有 task、無加密，Convert 應 ENABLED
-        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyDisplay())));
         window.button("convertButton").requireEnabled();
     }
 
@@ -547,7 +544,7 @@ class JUIMediatorTest {
     @Test
     void convert_disabled_after_all_tasks_cleared() {
         // 加入 task 後清空，Convert 應 DISABLED
-        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyDisplay())));
         GuiActionRunner.execute(() -> mediator.updateTasks(Collections.emptyList()));
         window.button("convertButton").requireDisabled();
     }
@@ -556,7 +553,7 @@ class JUIMediatorTest {
     @Test
     void convert_disabled_when_encrypt_on_no_password() {
         // 有 task + 開啟加密 + 兩個密碼均未填，Convert 應 DISABLED
-        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyDisplay())));
         GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", true));
         window.button("convertButton").requireDisabled();
     }
@@ -565,7 +562,7 @@ class JUIMediatorTest {
     @Test
     void convert_disabled_when_encrypt_on_owner_only() {
         // 有 task + 開啟加密 + 只填 ownerPassword，Convert 應 DISABLED
-        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyDisplay())));
         GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", true));
         window.textBox("ownerPasswordField").enterText("owner123");
         window.button("convertButton").requireDisabled();
@@ -575,7 +572,7 @@ class JUIMediatorTest {
     @Test
     void convert_disabled_when_encrypt_on_user_only() {
         // 有 task + 開啟加密 + 只填 userPassword，Convert 應 DISABLED
-        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyDisplay())));
         GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", true));
         window.textBox("userPasswordField").enterText("user123");
         window.button("convertButton").requireDisabled();
@@ -585,7 +582,7 @@ class JUIMediatorTest {
     @Test
     void convert_enabled_when_encrypt_on_both_passwords() {
         // 有 task + 開啟加密 + 兩個密碼均填，Convert 應 ENABLED
-        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyDisplay())));
         GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", true));
         window.textBox("ownerPasswordField").enterText("owner123");
         window.textBox("userPasswordField").enterText("user123");
@@ -596,7 +593,7 @@ class JUIMediatorTest {
     @Test
     void convert_disabled_when_owner_password_cleared() {
         // 有 task + 開啟加密 + 填兩個密碼後清空 ownerPassword，Convert 應 DISABLED
-        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyDisplay())));
         GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", true));
         window.textBox("ownerPasswordField").enterText("owner123");
         window.textBox("userPasswordField").enterText("user123");
@@ -608,7 +605,7 @@ class JUIMediatorTest {
     @Test
     void convert_enabled_after_encrypt_disabled_with_tasks() {
         // 有 task + 開啟加密後再關閉，Convert 應回歸「有 task → ENABLED」
-        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyDisplay())));
         GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", true));
         GuiActionRunner.execute(() -> mediator.notifyUI("encryption_change", false));
         window.button("convertButton").requireEnabled();
@@ -620,7 +617,7 @@ class JUIMediatorTest {
     @Test
     void hasTask_beforeRunning_convertEnabled() {
         // 有 Task，尚未執行 → Convert ENABLED
-        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyDisplay())));
         window.button("convertButton").requireEnabled();
     }
 
@@ -628,7 +625,7 @@ class JUIMediatorTest {
     @Test
     void hasTask_beforeRunning_stopDisabled() {
         // 有 Task，尚未執行 → Stop DISABLED
-        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyDisplay())));
         window.button("stopButton").requireDisabled();
     }
 
@@ -636,7 +633,7 @@ class JUIMediatorTest {
     @Test
     void hasTask_setRunningTrue_convertDisabled_stopEnabled() {
         // 有 Task → setRunningState(true) → Convert DISABLED，Stop ENABLED
-        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyDisplay())));
         GuiActionRunner.execute(() -> mediator.setRunningState(true));
         window.button("convertButton").requireDisabled();
         window.button("stopButton").requireEnabled();
@@ -646,7 +643,7 @@ class JUIMediatorTest {
     @Test
     void hasTask_setRunningFalse_convertEnabled_stopDisabled() {
         // 有 Task → running → setRunningState(false) → Convert ENABLED，Stop DISABLED
-        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyTask())));
+        GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(createDummyDisplay())));
         GuiActionRunner.execute(() -> mediator.setRunningState(true));
         GuiActionRunner.execute(() -> mediator.setRunningState(false));
         window.button("convertButton").requireEnabled();
@@ -661,12 +658,12 @@ class JUIMediatorTest {
     // taskStatusMap is the sole data source for JTree icon rendering and cannot be observed externally.
     @Test
     void updateTaskStatus_success_marks_task_as_SUCCESS() {
-        Task task = createDummyTask();
+        TaskDisplay task = createDummyDisplay();
         GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(task)));
-        GuiActionRunner.execute(() -> mediator.updateTaskStatus(task, true));
+        GuiActionRunner.execute(() -> mediator.updateTaskStatus(0, true));
         robot.waitForIdle();
         JUIMediator jMediator = (JUIMediator) mediator;
-        assertThat(jMediator.taskStatusMap.get(task))
+        assertThat(jMediator.taskStatusMap.get(0))
                 .isEqualTo(JUIMediator.TaskStatus.SUCCESS);
     }
 
@@ -676,12 +673,12 @@ class JUIMediatorTest {
     // taskStatusMap is the sole data source for JTree icon rendering and cannot be observed externally.
     @Test
     void updateTaskStatus_failure_marks_task_as_FAILED() {
-        Task task = createDummyTask();
+        TaskDisplay task = createDummyDisplay();
         GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(task)));
-        GuiActionRunner.execute(() -> mediator.updateTaskStatus(task, false));
+        GuiActionRunner.execute(() -> mediator.updateTaskStatus(0, false));
         robot.waitForIdle();
         JUIMediator jMediator = (JUIMediator) mediator;
-        assertThat(jMediator.taskStatusMap.get(task))
+        assertThat(jMediator.taskStatusMap.get(0))
                 .isEqualTo(JUIMediator.TaskStatus.FAILED);
     }
 
@@ -692,9 +689,9 @@ class JUIMediatorTest {
     // cannot be observed through any public or FrameFixture API.
     @Test
     void updateTasks_clears_taskStatusMap() {
-        Task task = createDummyTask();
+        TaskDisplay task = createDummyDisplay();
         GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(task)));
-        GuiActionRunner.execute(() -> mediator.updateTaskStatus(task, true));
+        GuiActionRunner.execute(() -> mediator.updateTaskStatus(0, true));
         robot.waitForIdle();
         JUIMediator jMediator = (JUIMediator) mediator;
         assertThat(jMediator.taskStatusMap).isNotEmpty();
@@ -711,9 +708,9 @@ class JUIMediatorTest {
     // but this cannot be observed through any public or FrameFixture API.
     @Test
     void setRunningTrue_clears_taskStatusMap() {
-        Task task = createDummyTask();
+        TaskDisplay task = createDummyDisplay();
         GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(task)));
-        GuiActionRunner.execute(() -> mediator.updateTaskStatus(task, true));
+        GuiActionRunner.execute(() -> mediator.updateTaskStatus(0, true));
         robot.waitForIdle();
         JUIMediator jMediator = (JUIMediator) mediator;
         assertThat(jMediator.taskStatusMap).isNotEmpty();
@@ -732,9 +729,9 @@ class JUIMediatorTest {
     @Test
     void M1_default_sort_NAME_ASC_updateTasks_displays_in_given_order() {
         // Model 已按 NAME_ASC 排序後傳給 updateTasks，JTree 應照順序顯示
-        Task taskA = new Task(new File("a.pdf"), new File[0]);
-        Task taskB = new Task(new File("b.pdf"), new File[0]);
-        Task taskC = new Task(new File("c.pdf"), new File[0]);
+        TaskDisplay taskA = new TaskDisplay("a.pdf", new File[0]);
+        TaskDisplay taskB = new TaskDisplay("b.pdf", new File[0]);
+        TaskDisplay taskC = new TaskDisplay("c.pdf", new File[0]);
         GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(taskA, taskB, taskC)));
         robot.waitForIdle();
 
@@ -743,29 +740,29 @@ class JUIMediatorTest {
             DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
             List<String> result = new ArrayList<>();
             for (int i = 0; i < root.getChildCount(); i++) {
-                Task t = (Task) ((DefaultMutableTreeNode) root.getChildAt(i)).getUserObject();
-                result.add(t.destination.getName());
+                TaskDisplay d = (TaskDisplay) ((DefaultMutableTreeNode) root.getChildAt(i)).getUserObject();
+                result.add(d.destinationName);
             }
             return result;
         });
         assertThat(names).containsExactly("a.pdf", "b.pdf", "c.pdf");
     }
 
-    // Verifies that changing the sort combo box to NAME_DESC fires onSortOrderChange with the correct order.
+    // Verifies that changing the sort combo box to NAME_DESC fires onSortOrderChangeRequested with the correct order.
     // [White-box] Casts mediator to JUIMediator to call setListener() and inject a test listener.
     // Justification: UIMediator interface does not define setListener(); injecting a listener to capture
     // the fired event requires access to the concrete JUIMediator implementation.
     @Test
     void M2_sortComboBox_change_to_NAME_DESC_fires_onSortOrderChange() {
-        // 設置 mock listener，驗證 onSortOrderChange 被呼叫且傳入正確的 order
         TaskSortOrder[] captured = {null};
         MediatorListener mockListener = new MediatorListener() {
-            @Override public void onSourcesUpdate(UIMediator m, UIState s) {}
-            @Override public void onConvertButtonClick(UIMediator m, UIState s) {}
-            @Override public void onStopButtonClick(UIMediator m) {}
-            @Override public void onTaskRemove(UIMediator m, List<Task> t) {}
-            @Override public void onTaskRemoveFromDisk(UIMediator m, List<Task> t) {}
-            @Override public void onSortOrderChange(UIMediator m, TaskSortOrder order) { captured[0] = order; }
+            @Override public void onAddSourcesRequested(List<File> sources) {}
+            @Override public void onConvertRequested(UIMediator m, UIState s) {}
+            @Override public void onStopButtonRequested() {}
+            @Override public void onTaskRemoveRequested(List<Integer> t) {}
+            @Override public void onTaskRemoveFromDiskRequest(List<Integer> t) {}
+            @Override public void onSortOrderChangeRequested(TaskSortOrder order) { captured[0] = order; }
+            @Override public void onTaskClearRequested() {}
         };
         GuiActionRunner.execute(() -> ((JUIMediator) mediator).setListener(mockListener));
 
@@ -783,9 +780,9 @@ class JUIMediatorTest {
     @Test
     void M3_updateTasks_with_COUNT_DESC_sorted_data_shows_correct_order() {
         // 模擬 Model 按 COUNT_DESC 排序後傳給 updateTasks，JTree 應保留該順序
-        Task task3 = new Task(new File("c.pdf"), new File[]{new File("f1.jpg"), new File("f2.jpg"), new File("f3.jpg")});
-        Task task2 = new Task(new File("b.pdf"), new File[]{new File("f1.jpg"), new File("f2.jpg")});
-        Task task1 = new Task(new File("a.pdf"), new File[]{new File("f1.jpg")});
+        TaskDisplay task3 = new TaskDisplay("c.pdf", new File[]{new File("f1.jpg"), new File("f2.jpg"), new File("f3.jpg")});
+        TaskDisplay task2 = new TaskDisplay("b.pdf", new File[]{new File("f1.jpg"), new File("f2.jpg")});
+        TaskDisplay task1 = new TaskDisplay("a.pdf", new File[]{new File("f1.jpg")});
         // COUNT_DESC 順序：3 > 2 > 1
         GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(task3, task2, task1)));
         robot.waitForIdle();
@@ -795,8 +792,8 @@ class JUIMediatorTest {
             DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
             List<Integer> result = new ArrayList<>();
             for (int i = 0; i < root.getChildCount(); i++) {
-                Task t = (Task) ((DefaultMutableTreeNode) root.getChildAt(i)).getUserObject();
-                result.add(t.files.length);
+                TaskDisplay d = (TaskDisplay) ((DefaultMutableTreeNode) root.getChildAt(i)).getUserObject();
+                result.add(d.sourceFiles.length);
             }
             return result;
         });
@@ -810,14 +807,14 @@ class JUIMediatorTest {
     @Test
     void M4_re_updateTasks_preserves_new_given_order() {
         // 第一次 updateTasks
-        Task taskB = new Task(new File("b.pdf"), new File[0]);
-        Task taskA = new Task(new File("a.pdf"), new File[0]);
+        TaskDisplay taskB = new TaskDisplay("b.pdf", new File[0]);
+        TaskDisplay taskA = new TaskDisplay("a.pdf", new File[0]);
         GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(taskB, taskA)));
         robot.waitForIdle();
 
         // 再次 updateTasks（模擬 Model 按 NAME_DESC 重新排序後傳入）
-        Task taskZ = new Task(new File("z.pdf"), new File[0]);
-        Task taskM = new Task(new File("m.pdf"), new File[0]);
+        TaskDisplay taskZ = new TaskDisplay("z.pdf", new File[0]);
+        TaskDisplay taskM = new TaskDisplay("m.pdf", new File[0]);
         GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(taskZ, taskM)));
         robot.waitForIdle();
 
@@ -826,8 +823,8 @@ class JUIMediatorTest {
             DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
             List<String> result = new ArrayList<>();
             for (int i = 0; i < root.getChildCount(); i++) {
-                Task t = (Task) ((DefaultMutableTreeNode) root.getChildAt(i)).getUserObject();
-                result.add(t.destination.getName());
+                TaskDisplay d = (TaskDisplay) ((DefaultMutableTreeNode) root.getChildAt(i)).getUserObject();
+                result.add(d.destinationName);
             }
             return result;
         });
@@ -836,7 +833,7 @@ class JUIMediatorTest {
 
     // ===== N. StopButton 點擊通知 Listener =====
 
-    // Verifies that clicking the stop button while running fires onStopButtonClick on the listener exactly once.
+    // Verifies that clicking the stop button while running fires onStopButtonRequested on the listener exactly once.
     // [White-box] Casts mediator to JUIMediator to call setListener() and inject a test listener.
     // Justification: UIMediator interface does not define setListener(); injecting a listener to capture
     // the fired event requires access to the concrete JUIMediator implementation.
@@ -844,12 +841,13 @@ class JUIMediatorTest {
     void N1_click_stopButton_while_running_notifies_listener_onStopButtonClick() {
         int[] callCount = {0};
         MediatorListener mockListener = new MediatorListener() {
-            @Override public void onSourcesUpdate(UIMediator m, UIState s) {}
-            @Override public void onConvertButtonClick(UIMediator m, UIState s) {}
-            @Override public void onStopButtonClick(UIMediator m) { callCount[0]++; }
-            @Override public void onTaskRemove(UIMediator m, List<Task> t) {}
-            @Override public void onTaskRemoveFromDisk(UIMediator m, List<Task> t) {}
-            @Override public void onSortOrderChange(UIMediator m, TaskSortOrder order) {}
+            @Override public void onAddSourcesRequested(List<File> sources) {}
+            @Override public void onConvertRequested(UIMediator m, UIState s) {}
+            @Override public void onStopButtonRequested() { callCount[0]++; }
+            @Override public void onTaskRemoveRequested(List<Integer> t) {}
+            @Override public void onTaskRemoveFromDiskRequest(List<Integer> t) {}
+            @Override public void onSortOrderChangeRequested(TaskSortOrder order) {}
+            @Override public void onTaskClearRequested() {}
         };
         GuiActionRunner.execute(() -> ((JUIMediator) mediator).setListener(mockListener));
         GuiActionRunner.execute(() -> mediator.setRunningState(true));
@@ -869,27 +867,73 @@ class JUIMediatorTest {
     @Test
     void setRunningState_true_clears_task_status_to_PENDING() {
         // 1. 建立任務並設置 SUCCESS 狀態
-        Task task = createDummyTask();
+        TaskDisplay task = createDummyDisplay();
         GuiActionRunner.execute(() -> mediator.updateTasks(Arrays.asList(task)));
-        GuiActionRunner.execute(() -> mediator.updateTaskStatus(task, true));
+        GuiActionRunner.execute(() -> mediator.updateTaskStatus(0, true));
         robot.waitForIdle();
 
         JUIMediator jMediator = (JUIMediator) mediator;
         // 確認狀態已是 SUCCESS
-        assertThat(jMediator.taskStatusMap.getOrDefault(task, JUIMediator.TaskStatus.PENDING))
+        assertThat(jMediator.taskStatusMap.getOrDefault(0, JUIMediator.TaskStatus.PENDING))
                 .isEqualTo(JUIMediator.TaskStatus.SUCCESS);
 
         // 2. setRunningState(true) 後，renderer 應讀取到 PENDING
         GuiActionRunner.execute(() -> mediator.setRunningState(true));
         robot.waitForIdle();
 
-        assertThat(jMediator.taskStatusMap.getOrDefault(task, JUIMediator.TaskStatus.PENDING))
+        assertThat(jMediator.taskStatusMap.getOrDefault(0, JUIMediator.TaskStatus.PENDING))
                 .isEqualTo(JUIMediator.TaskStatus.PENDING);
+    }
+
+    // ===== P. setRunningState newly-disabled component coverage =====
+
+    // Verifies that setRunningState(true) disables all newly-added components:
+    // option comboboxes, checkboxes, password fields, output folder field, and source tree.
+    @Test
+    void P1_setRunningTrue_disables_all_newly_added_components() {
+        GuiActionRunner.execute(() -> mediator.setRunningState(true));
+        robot.waitForIdle();
+        window.comboBox("pageSizeComboBox").requireDisabled();
+        window.comboBox("horizontalAlignComboBox").requireDisabled();
+        window.comboBox("verticalAlignComboBox").requireDisabled();
+        window.comboBox("directionComboBox").requireDisabled();
+        window.comboBox("colorTypeComboBox").requireDisabled();
+        window.comboBox("sortComboBox").requireDisabled();
+        window.checkBox("autoRotateCheckBox").requireDisabled();
+        window.checkBox("encryptCheckBox").requireDisabled();
+        window.textBox("ownerPasswordField").requireDisabled();
+        window.textBox("userPasswordField").requireDisabled();
+        window.textBox("outputFolderField").requireDisabled();
+        assertThat(window.tree("sourceTree").target().isEnabled()).isFalse();
+    }
+
+    // Verifies that setRunningState(false) re-enables all non-encrypt-gated components
+    // and leaves password fields disabled when encryptCheckBox is unchecked by default.
+    @Test
+    void P2_setRunningFalse_re_enables_non_gated_components_and_keeps_password_disabled_when_encrypt_off() {
+        GuiActionRunner.execute(() -> mediator.setRunningState(true));
+        robot.waitForIdle();
+        GuiActionRunner.execute(() -> mediator.setRunningState(false));
+        robot.waitForIdle();
+        // Non-encrypt-gated components should be re-enabled
+        window.comboBox("pageSizeComboBox").requireEnabled();
+        window.comboBox("horizontalAlignComboBox").requireEnabled();
+        window.comboBox("verticalAlignComboBox").requireEnabled();
+        window.comboBox("directionComboBox").requireEnabled();
+        window.comboBox("colorTypeComboBox").requireEnabled();
+        window.comboBox("sortComboBox").requireEnabled();
+        window.checkBox("autoRotateCheckBox").requireEnabled();
+        window.checkBox("encryptCheckBox").requireEnabled();
+        window.textBox("outputFolderField").requireEnabled();
+        assertThat(window.tree("sourceTree").target().isEnabled()).isTrue();
+        // Password fields stay disabled because encryptCheckBox is unchecked by default
+        window.textBox("ownerPasswordField").requireDisabled();
+        window.textBox("userPasswordField").requireDisabled();
     }
 
     // ===== 輔助方法 =====
 
-    private Task createDummyTask() {
-        return new Task(new File("dummy.pdf"), new File[0]);
+    private TaskDisplay createDummyDisplay() {
+        return new TaskDisplay("dummy.pdf", new File[0]);
     }
 }

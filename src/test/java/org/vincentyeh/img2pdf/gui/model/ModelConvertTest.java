@@ -65,7 +65,7 @@ class ModelConvertTest {
         }
 
         @Override
-        public void onTaskComplete(Task task, Exception error) {
+        public void onTaskComplete(Task task, int currentIndex, Exception error) {
             calls.add("onTaskComplete");
         }
 
@@ -74,6 +74,12 @@ class ModelConvertTest {
             batchErrorTitle = title;
             calls.add("onBatchError");
         }
+
+        @Override
+        public void onTasksUpdate(List<Task> tasks) {}
+
+        @Override
+        public void onTaskDiskRemovalError(Task task, IOException error) {}
     }
 
     private static ConversionConfig defaultConfig(File outputFolder) {
@@ -149,63 +155,101 @@ class ModelConvertTest {
         assertTrue(listener.calls.contains("onBatchComplete"));
     }
 
-    // ===== Group C：removeTaskFromDisk() 例外傳播 =====
+    // ===== Group C：removeTasksFromDisk() 行為測試 =====
 
-    // files 為 null → 任務移除，不拋例外
+    // Empty source file list: task is removed from list without error callbacks.
     @Test
-    void removeTaskFromDisk_null_files_removes_task_without_exception() throws IOException {
-        Task task = new Task(new File("output.pdf"), null);
-        model.setTask(Collections.singletonList(task));
+    void removeTasksFromDisk_empty_files_removes_task_without_disk_error(@TempDir Path tempDir) throws Exception {
+        File dir = tempDir.resolve("album").toFile();
+        dir.mkdirs(); // empty directory → task.files = []
 
-        assertDoesNotThrow(() -> model.removeTaskFromDisk(task));
-        assertTrue(model.getTasks().isEmpty());
+        List<Task> captured = new ArrayList<>();
+        boolean[] diskErrorCalled = {false};
+        model.setModelListener(new ModelListener() {
+            @Override public void onBatchStart() {}
+            @Override public void onBatchComplete() {}
+            @Override public void onBatchProgressUpdate(int p, int t) {}
+            @Override public void onConversionProgressUpdate(int p, int t) {}
+            @Override public void onTaskComplete(Task task, int currentIndex, Exception e) {}
+            @Override public void onBatchError(String title, String msg) {}
+            @Override public void onTasksUpdate(List<Task> tasks) { captured.clear(); captured.addAll(tasks); }
+            @Override public void onTaskDiskRemovalError(Task task, IOException e) { diskErrorCalled[0] = true; }
+        });
+        model.addSources(new File[]{dir});
+        assertEquals(1, captured.size());
+
+        model.removeTasksFromDisk(Collections.singletonList(0));
+
+        assertFalse(diskErrorCalled[0], "onTaskDiskRemovalError should not be called for empty files");
+        assertTrue(captured.isEmpty(), "task should be removed");
     }
 
-    // files 為空陣列 → 任務移除，不拋例外
+    // Non-existent source folder: fires onTaskDiskRemovalError and keeps the task in the list.
     @Test
-    void removeTaskFromDisk_empty_files_removes_task_without_exception() throws IOException {
-        Task task = new Task(new File("output.pdf"), new File[0]);
-        model.setTask(Collections.singletonList(task));
+    void removeTasksFromDisk_nonexistent_folder_fires_onTaskDiskRemovalError_and_keeps_task(
+            @TempDir Path tempDir) throws Exception {
+        File dir = tempDir.resolve("album").toFile();
+        dir.mkdirs();
+        File img = new File(dir, "1.jpg");
+        img.createNewFile();
 
-        assertDoesNotThrow(() -> model.removeTaskFromDisk(task));
-        assertTrue(model.getTasks().isEmpty());
+        List<Task> captured = new ArrayList<>();
+        boolean[] diskErrorCalled = {false};
+        model.setModelListener(new ModelListener() {
+            @Override public void onBatchStart() {}
+            @Override public void onBatchComplete() {}
+            @Override public void onBatchProgressUpdate(int p, int t) {}
+            @Override public void onConversionProgressUpdate(int p, int t) {}
+            @Override public void onTaskComplete(Task task, int currentIndex, Exception e) {}
+            @Override public void onBatchError(String title, String msg) {}
+            @Override public void onTasksUpdate(List<Task> tasks) { captured.clear(); captured.addAll(tasks); }
+            @Override public void onTaskDiskRemovalError(Task task, IOException e) { diskErrorCalled[0] = true; }
+        });
+        model.addSources(new File[]{dir});
+        assertEquals(1, captured.size());
+
+        // Delete image and directory so that Files.walk() fails with NoSuchFileException
+        img.delete();
+        dir.delete();
+
+        model.removeTasksFromDisk(Collections.singletonList(0));
+
+        assertTrue(diskErrorCalled[0], "onTaskDiskRemovalError should be called");
+        assertEquals(1, captured.size(), "task should still be in list after IOException");
     }
 
-    // 資料夾不存在 → 拋出 IOException，且任務仍留在清單中
-    @Test
-    void removeTaskFromDisk_nonexistent_folder_throws_and_keeps_task() {
-        File nonexistentImage = new File("/nonexistent_path_xyz/img.jpg");
-        Task task = new Task(new File("output.pdf"), new File[]{nonexistentImage});
-        model.setTask(Collections.singletonList(task));
-
-        assertThrows(IOException.class, () -> model.removeTaskFromDisk(task));
-        assertFalse(model.getTasks().isEmpty(), "task should still be in list after IOException");
-    }
-
-    // 資料夾內有被鎖定的檔案（Windows 專用）→ 拋出 IOException，且任務仍留在清單中
-    // On Windows, Files.delete() cannot delete a file that has an exclusive FileLock held
-    // by another FileChannel in the same JVM process; this triggers UncheckedIOException
-    // which removeTaskFromDisk() must re-throw as IOException.
+    // Locked file on Windows: fires onTaskDiskRemovalError and keeps the task in the list.
     @Test
     @EnabledOnOs(OS.WINDOWS)
-    void removeTaskFromDisk_when_file_is_locked_throws_IOException_and_keeps_task(
+    void removeTasksFromDisk_when_file_is_locked_fires_onTaskDiskRemovalError_and_keeps_task(
             @TempDir Path tempDir) throws IOException {
         File dir = tempDir.resolve("locked_album").toFile();
         dir.mkdirs();
         File lockedFile = new File(dir, "locked.jpg");
         lockedFile.createNewFile();
 
-        Task task = new Task(new File("locked_album.pdf"), new File[]{lockedFile});
-        model.setTask(Collections.singletonList(task));
+        List<Task> captured = new ArrayList<>();
+        boolean[] diskErrorCalled = {false};
+        model.setModelListener(new ModelListener() {
+            @Override public void onBatchStart() {}
+            @Override public void onBatchComplete() {}
+            @Override public void onBatchProgressUpdate(int p, int t) {}
+            @Override public void onConversionProgressUpdate(int p, int t) {}
+            @Override public void onTaskComplete(Task task, int currentIndex, Exception e) {}
+            @Override public void onBatchError(String title, String msg) {}
+            @Override public void onTasksUpdate(List<Task> tasks) { captured.clear(); captured.addAll(tasks); }
+            @Override public void onTaskDiskRemovalError(Task task, IOException e) { diskErrorCalled[0] = true; }
+        });
+        model.addSources(new File[]{dir});
+        assertEquals(1, captured.size());
 
         // Hold an exclusive file lock so that Files.delete() on Windows will fail
         try (RandomAccessFile raf = new RandomAccessFile(lockedFile, "rw");
              FileChannel channel = raf.getChannel();
              FileLock lock = channel.lock()) {
-
-            assertThrows(IOException.class, () -> model.removeTaskFromDisk(task));
-            assertFalse(model.getTasks().isEmpty(),
-                    "task should still be in list after IOException caused by file lock");
+            model.removeTasksFromDisk(Collections.singletonList(0));
+            assertTrue(diskErrorCalled[0], "onTaskDiskRemovalError should be called when file is locked");
+            assertEquals(1, captured.size(), "task should still be in list after IOException");
         }
         // After lock is released, cleanup is handled by @TempDir
     }
@@ -232,8 +276,8 @@ class ModelConvertTest {
     @EnabledOnOs(OS.WINDOWS)
     void convert_after_successful_save_output_pdf_is_not_locked(@TempDir Path tempDir)
             throws Exception {
-        File srcDir = tempDir.resolve("images").toFile();
-        File jpeg = createMinimalJpeg(srcDir, "photo.jpg");
+        File srcDir = tempDir.resolve("photo").toFile();
+        createMinimalJpeg(srcDir, "photo.jpg");
 
         File outputFolder = tempDir.resolve("output").toFile();
 
@@ -242,8 +286,7 @@ class ModelConvertTest {
         listener.latch = latch;
         model.setModelListener(listener);
 
-        Task task = new Task(new File("photo.pdf"), new File[]{jpeg});
-        model.setTask(Collections.singletonList(task));
+        model.addSources(new File[]{srcDir});
 
         model.convert(defaultConfig(outputFolder));
         boolean completed = latch.await(30, TimeUnit.SECONDS);
@@ -271,8 +314,8 @@ class ModelConvertTest {
     void convert_when_output_file_is_read_only_task_reports_IOException_and_batch_completes(
             @TempDir Path tempDir) throws Exception {
         // Prepare a real JPEG so factory.start() can return a real IDocument
-        File srcDir = tempDir.resolve("images").toFile();
-        File jpeg = createMinimalJpeg(srcDir, "photo.jpg");
+        File srcDir = tempDir.resolve("photo").toFile();
+        createMinimalJpeg(srcDir, "photo.jpg");
 
         File outputFolder = tempDir.resolve("output").toFile();
         outputFolder.mkdirs();
@@ -292,15 +335,16 @@ class ModelConvertTest {
             @Override public void onBatchComplete() { latch.countDown(); }
             @Override public void onBatchProgressUpdate(int progress, int total) {}
             @Override public void onConversionProgressUpdate(int progress, int total) {}
-            @Override public void onTaskComplete(Task task, Exception error) {
+            @Override public void onTaskComplete(Task task, int currentIndex, Exception error) {
                 capturedError.set(error);
             }
             @Override public void onBatchError(String title, String message) {}
+            @Override public void onTasksUpdate(List<Task> tasks) {}
+            @Override public void onTaskDiskRemovalError(Task task, IOException e) {}
         };
         model.setModelListener(listener);
 
-        Task task = new Task(new File("photo.pdf"), new File[]{jpeg});
-        model.setTask(Collections.singletonList(task));
+        model.addSources(new File[]{srcDir});
 
         model.convert(defaultConfig(outputFolder));
         boolean completed = latch.await(30, TimeUnit.SECONDS);
@@ -327,10 +371,10 @@ class ModelConvertTest {
     void convert_second_task_still_runs_when_first_task_output_is_read_only(
             @TempDir Path tempDir) throws Exception {
         File srcDir1 = tempDir.resolve("album1").toFile();
-        File jpeg1 = createMinimalJpeg(srcDir1, "1.jpg");
+        createMinimalJpeg(srcDir1, "1.jpg");
 
         File srcDir2 = tempDir.resolve("album2").toFile();
-        File jpeg2 = createMinimalJpeg(srcDir2, "2.jpg");
+        createMinimalJpeg(srcDir2, "2.jpg");
 
         File outputFolder = tempDir.resolve("output").toFile();
         outputFolder.mkdirs();
@@ -347,18 +391,17 @@ class ModelConvertTest {
             @Override public void onBatchComplete() { latch.countDown(); }
             @Override public void onBatchProgressUpdate(int progress, int total) {}
             @Override public void onConversionProgressUpdate(int progress, int total) {}
-            @Override public void onTaskComplete(Task task, Exception error) {
+            @Override public void onTaskComplete(Task task, int currentIndex, Exception error) {
                 errors.add(error); // null means success, non-null means failure
             }
             @Override public void onBatchError(String title, String message) {}
+            @Override public void onTasksUpdate(List<Task> tasks) {}
+            @Override public void onTaskDiskRemovalError(Task task, IOException e) {}
         };
         model.setModelListener(listener);
 
-        // First task destination matches the read-only pre-created file (album1.pdf)
-        Task failingTask = new Task(new File("album1.pdf"), new File[]{jpeg1});
-        // Second task destination is writable (album2.pdf does not exist yet)
-        Task validTask = new Task(new File("album2.pdf"), new File[]{jpeg2});
-        model.setTask(new ArrayList<>(java.util.Arrays.asList(failingTask, validTask)));
+        // addSources creates tasks in NAME_ASC order: album1 first, album2 second
+        model.addSources(new File[]{srcDir1, srcDir2});
 
         model.convert(defaultConfig(outputFolder));
         boolean completed = latch.await(30, TimeUnit.SECONDS);
