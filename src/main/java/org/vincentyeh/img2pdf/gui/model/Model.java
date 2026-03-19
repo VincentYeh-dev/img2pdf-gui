@@ -1,10 +1,10 @@
 package org.vincentyeh.img2pdf.gui.model;
 
+import org.vincentyeh.img2pdf.gui.AppLogger;
 import org.vincentyeh.img2pdf.gui.model.util.file.FileNameFormatter;
 import org.vincentyeh.img2pdf.gui.model.util.file.FileSorter;
 import org.vincentyeh.img2pdf.gui.model.util.file.GlobbingFileFilter;
 import org.vincentyeh.img2pdf.gui.model.util.interfaces.NameFormatter;
-import org.vincentyeh.img2pdf.gui.view.UIState;
 import org.vincentyeh.img2pdf.lib.Img2Pdf;
 import org.vincentyeh.img2pdf.lib.image.ColorType;
 import org.vincentyeh.img2pdf.lib.pdf.framework.factory.IDocument;
@@ -15,21 +15,64 @@ import org.vincentyeh.img2pdf.lib.pdf.parameter.*;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
 
+/**
+ * Core business-logic layer of the MVC architecture.
+ * <p>
+ * Responsible for:
+ * <ul>
+ *   <li>Scanning source directories and building a list of {@link Task} objects
+ *       via {@link #parseSourceFiles(File[])}.</li>
+ *   <li>Maintaining the in-memory task list and its sort order.</li>
+ *   <li>Executing batch PDF conversion in a background thread via
+ *       {@link #convert(ConversionConfig)}.</li>
+ * </ul>
+ * Progress and lifecycle events are forwarded to the registered {@link ModelListener}.
+ * </p>
+ */
 public class Model {
     private List<Task> sources = new LinkedList<>();
     private ModelListener listener = null;
+    private TaskSortOrder sortOrder = TaskSortOrder.NAME_ASC;
+    private volatile boolean stopRequested = false;
 
-    public static List<Task> parseSourceFiles(File[] directories, String outputFormat, String fileFilterPattern) {
+    /**
+     * Signals the running conversion to stop after the current task completes.
+     * Subsequent tasks in the batch will be skipped.
+     */
+    public void requestStop() {
+        stopRequested = true;
+    }
+
+    /**
+     * Scans each supplied directory for supported image files and creates one
+     * {@link Task} per directory.
+     * <p>
+     * Images are filtered by extension (JPG, JPEG, PNG, BMP, WEBP, case-insensitive),
+     * sorted in numeric ascending order, and the output PDF name is derived from the
+     * directory name via {@link FileNameFormatter}.
+     * </p>
+     *
+     * @param directories the source directories to scan; must not be {@code null}
+     * @return an ordered list of {@link Task} objects, one per directory
+     * @throws IllegalArgumentException if {@code directories} is {@code null}
+     */
+    public static List<Task> parseSourceFiles(File[] directories) {
         List<Task> sources = new LinkedList<>();
-        NameFormatter<File> formatter = new FileNameFormatter(outputFormat);
-        FileFilter filter = new GlobbingFileFilter(fileFilterPattern);
+        NameFormatter<File> formatter = new FileNameFormatter("<NAME>.pdf");
+        FileFilter filter = new GlobbingFileFilter("*.{JPG,jpg,JPEG,jpeg,PNG,png,BMP,bmp,webp,WEBP}");
         Comparator<File> sorter = new FileSorter(FileSorter.Sortby.NUMERIC, FileSorter.Sequence.INCREASE);
 
         if (directories == null)
@@ -45,91 +88,220 @@ public class Model {
                         Arrays.sort(files, sorter);
                         sources.add(new Task(new File(formatter.format(directory)), files));
                     } catch (NameFormatter.FormatException e) {
-//                            JOptionPane.showMessageDialog(null, e.getCause().getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                        e.printStackTrace();
+                        AppLogger.get().log(Level.WARNING,
+                                "Skipping directory due to name formatting error: "
+                                        + directory.getAbsolutePath(), e);
                     }
                 });
         return sources;
     }
 
-    public void setTask(List<Task> tasks) {
-        this.sources = tasks;
+    /**
+     * Parses the given source directories into tasks, appends them to the current
+     * task list, re-sorts by the active sort order, and notifies the listener once.
+     *
+     * @param directories the source directories to scan; must not be {@code null}
+     */
+    public void addSources(File[] directories) {
+        List<Task> tasksToAdd = parseSourceFiles(directories);
+        this.sources.addAll(tasksToAdd);
+        this.sources.sort(sortOrder.getComparator());
+        notifyTasksUpdate();
     }
 
-    public void removeTask(int index) {
-        if (index < 0 || index >= sources.size())
-            throw new IllegalArgumentException("index out of range");
-        this.sources.remove(index);
+    /**
+     * Changes the active sort order, immediately re-sorts the task list, and
+     * notifies the listener once.
+     *
+     * @param order the new sort order to apply
+     */
+    public void setSortOrder(TaskSortOrder order) {
+        this.sortOrder = order;
+        sources.sort(order.getComparator());
+        notifyTasksUpdate();
     }
 
-    public void removeTask(Task task) {
-        this.sources.remove(task);
+    /**
+     * Removes tasks at the specified indices from the in-memory list, then notifies
+     * the listener once. Files on disk are not affected.
+     * Indices are processed in reverse order to preserve correctness during removal.
+     *
+     * @param indices the zero-based positions of tasks to remove
+     */
+    public void removeTasks(List<Integer> indices) {
+        indices.stream()
+                .filter(i -> i >= 0 && i < sources.size())
+                .sorted(Comparator.reverseOrder())
+                .forEach(i -> sources.remove((int) i));
+        notifyTasksUpdate();
     }
 
-    public void removeAllTasks() {
-        this.sources.clear();
+    /**
+     * Removes all tasks from the in-memory list and notifies the listener once.
+     */
+    public void clearTasks(){
+        sources.clear();
+        notifyTasksUpdate();
     }
 
-
-    public void convert(UIState state) {
-        try {
-            File tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
-            tempFolder.deleteOnExit();
-            listener.onBatchProgressUpdate(0, sources.size());
-            File output_folder = state.getDestinationFolder();
-            boolean encryption = state.isEncrypted();
-            String owner_password = state.getOwnerPassword();
-            String user_password = state.getUserPassword();
-            ColorType colorType = state.getColorType();
-
-            if (!output_folder.exists()) {
-                boolean success = output_folder.mkdirs();
-                if (!success)
-                    throw new IllegalStateException("Unable to create directories");
+    /**
+     * Deletes the source folder of each task at the specified indices from disk
+     * and removes it from the in-memory list. A single {@link #onTasksUpdate}
+     * notification is sent at the end. Per-task failures are reported via
+     * {@link ModelListener#onTaskDiskRemovalError} before the final notification.
+     * Indices are processed in reverse order to preserve correctness during removal.
+     *
+     * @param indices the zero-based positions of tasks whose source directories should be deleted
+     */
+    public void removeTasksFromDisk(List<Integer> indices) {
+        List<Integer> valid = indices.stream()
+                .filter(i -> i >= 0 && i < sources.size())
+                .sorted(Comparator.reverseOrder())
+                .collect(Collectors.toList());
+        for (int i : valid) {
+            Task task = sources.get(i);
+            try {
+                if (task.files != null && task.files.length > 0) {
+                    File folder = task.files[0].getParentFile();
+                    try {
+                        Files.walk(folder.toPath())
+                                .sorted(Comparator.reverseOrder())
+                                .forEach(p -> {
+                                    try {
+                                        Files.delete(p);
+                                    } catch (IOException e) {
+                                        throw new java.io.UncheckedIOException(e);
+                                    }
+                                });
+                    } catch (java.io.UncheckedIOException e) {
+                        throw e.getCause();
+                    }
+                }
+                sources.remove(i);
+            } catch (IOException e) {
+                if (listener != null) listener.onTaskDiskRemovalError(task, e);
             }
-            if (output_folder.isFile())
-                throw new IllegalArgumentException("Uestination should be folder");
+        }
+        notifyTasksUpdate();
+    }
 
 
-            Thread conversion_thread = new Thread(() -> {
-                listener.onBatchStart();
-                ImagePDFFactory factory = Img2Pdf.createPDFBoxMaxPerformanceFactory();
+    /**
+     * Starts batch PDF conversion on a dedicated background thread.
+     * <p>
+     * For each task in the current list, a PDF is created in the destination folder
+     * defined by {@code config}. The registered {@link ModelListener} receives progress
+     * and completion callbacks throughout the process. Call {@link #requestStop()} to
+     * cancel remaining tasks after the current one finishes.
+     * </p>
+     * <p>
+     * Pre-conversion validation failures (invalid output folder) are reported via
+     * {@link ModelListener#onBatchError(String, String)} instead of throwing, so the
+     * caller does not need to handle exceptions from this method.
+     * </p>
+     *
+     * @param config the conversion parameters (output folder, page layout, encryption, etc.)
+     */
+    public void convert(ConversionConfig config) {
+        File outputFolder = config.destinationFolder;
 
-                DocumentArgument documentArgument = createDocumentArgument(encryption, owner_password, user_password);
-                PageArgument pageArgument = createPageArgument(
-                        state.getVerticalAlign(),
-                        state.getHorizontalAlign(),
-                        state.getPageSize(),
-                        state.getPageDirection(),
-                        state.isAutoRotate()
-                );
+        if (outputFolder.isFile()) {
+            if (listener != null)
+                listener.onBatchError("Invalid Output Folder",
+                        "The destination path is an existing file, not a folder:\n"
+                                + outputFolder.getAbsolutePath());
+            return;
+        }
+        if (!outputFolder.exists()) {
+            boolean success = outputFolder.mkdirs();
+            if (!success) {
+                if (listener != null)
+                    listener.onBatchError("Cannot Create Output Folder",
+                            "Unable to create output directory:\n"
+                                    + outputFolder.getAbsolutePath());
+                return;
+            }
+        }
 
+        final File tempFolder;
+        try {
+            tempFolder = Files.createTempDirectory("org.vincentyeh.img2pdf.gui").toFile();
+            tempFolder.deleteOnExit();
+        } catch (IOException e) {
+            AppLogger.get().log(Level.SEVERE, "Cannot create temp directory", e);
+            if (listener != null)
+                listener.onBatchError("Internal Error",
+                        "Cannot create temporary directory: " + e.getMessage());
+            return;
+        }
 
-                for (int i = 0; i < sources.size(); i++) {
+        if (listener != null) listener.onBatchProgressUpdate(0, sources.size());
+
+        boolean encryption = config.encrypted;
+        String ownerPassword = config.ownerPassword;
+        String userPassword = config.userPassword;
+        ColorType colorType = config.colorType;
+
+        // Take a snapshot of the task list on the EDT before starting the background thread.
+        // The background thread reads only this snapshot, avoiding concurrent modification
+        // of sources by setTask(), removeTask(), or setSortOrder() on the EDT.
+        final List<Task> snapshot = new ArrayList<>(sources);
+
+        Thread conversionThread = new Thread(() -> {
+            stopRequested = false;
+            if (listener != null) listener.onBatchStart();
+            ImagePDFFactory factory = Img2Pdf.createPDFBoxMaxPerformanceFactory();
+
+            DocumentArgument documentArgument = createDocumentArgument(encryption, ownerPassword, userPassword);
+            PageArgument pageArgument = createPageArgument(
+                    config.verticalAlign,
+                    config.horizontalAlign,
+                    config.pageSize,
+                    config.pageDirection,
+                    config.autoRotate
+            );
+
+            try {
+                for (int i = 0; i < snapshot.size(); i++) {
+                    Task currentTask = snapshot.get(i);
+                    if (stopRequested) break;
                     try {
                         IDocument document = factory.start(
-                                sources.get(i).files,
+                                currentTask.files,
                                 colorType,
                                 documentArgument,
                                 pageArgument,
                                 factoryListener);
-                        document.save(new File(output_folder, sources.get(i).destination.getName()));
-                        document.close();
-                        listener.onLogAppend(String.format("[OK] %s", sources.get(i).destination.getName()));
+                        try {
+                            File destination = new File(outputFolder, currentTask.destination.getName());
+                            try (OutputStream out = new FileOutputStream(destination)) {
+                                document.save(out);
+                            }
+                        } finally {
+                            try {
+                                document.close();
+                            } catch (RuntimeException e) {
+                                // PDFBox may throw RuntimeException (e.g. NPE in COSDocument.close)
+                                // during resource cleanup; swallow it so remaining tasks can continue
+                                AppLogger.get().log(Level.WARNING,
+                                        "document.close() threw unexpectedly during cleanup", e);
+                            }
+                        }
+                        int currentIndex = snapshot.indexOf(currentTask);
+                        if (listener != null) listener.onTaskComplete(currentTask, currentIndex, null);
                     } catch (PDFFactoryException | IOException e) {
-                        listener.onLogAppend(String.format("[ERROR] %s -> %s", sources.get(i).destination.getName(), e.getCause().getMessage()));
+                        int currentIndex = snapshot.indexOf(currentTask);
+                        if (listener != null) listener.onTaskComplete(currentTask, currentIndex, e);
                     } finally {
-                        listener.onBatchProgressUpdate(i + 1, sources.size());
+                        if (listener != null) listener.onBatchProgressUpdate(i + 1, snapshot.size());
                     }
                 }
+            } finally {
                 factory.shutdown();
-                listener.onBatchComplete();
-            });
-            conversion_thread.start();
-
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+                if (listener != null) listener.onBatchComplete();
+            }
+        });
+        conversionThread.start();
     }
 
 
@@ -139,7 +311,7 @@ public class Model {
         @Override
         public void initializing(int total) {
             this.total = total;
-            listener.onConversionProgressUpdate(0, this.total);
+            if (listener != null) listener.onConversionProgressUpdate(0, this.total);
         }
 
         @Override
@@ -149,16 +321,40 @@ public class Model {
 
         @Override
         public void onAppend(File file, int appended, int total) {
-            listener.onConversionProgressUpdate(appended, this.total);
+            if (listener != null) listener.onConversionProgressUpdate(appended, this.total);
         }
     };
 
 
+    /**
+     * Pushes an unmodifiable snapshot of the current task list to the listener.
+     * No-op when no listener is registered.
+     */
+    private void notifyTasksUpdate() {
+        if (listener != null) listener.onTasksUpdate(Collections.unmodifiableList(sources));
+    }
+
+    /**
+     * Registers the listener that will receive progress and lifecycle events from
+     * this model during conversion.
+     *
+     * @param listener the listener to notify; may be {@code null} to clear the listener
+     */
     public void setModelListener(ModelListener listener) {
         this.listener = listener;
     }
 
 
+    /**
+     * Builds a {@code PageArgument} from individual layout parameters.
+     *
+     * @param verticalAlign   the vertical image alignment within the page
+     * @param horizontalAlign the horizontal image alignment within the page
+     * @param pageSize        the target page size
+     * @param pageDirection   the page orientation
+     * @param autoRotate      whether to auto-rotate images to best fit the page
+     * @return the constructed {@code PageArgument}
+     */
     private PageArgument createPageArgument(PageAlign.VerticalAlign verticalAlign,
                                             PageAlign.HorizontalAlign horizontalAlign,
                                             PageSize pageSize,
@@ -167,10 +363,18 @@ public class Model {
         return new PageArgument(new PageAlign(verticalAlign, horizontalAlign), pageSize, pageDirection, autoRotate);
     }
 
-    private DocumentArgument createDocumentArgument(boolean encryption, String owner_password, String user_password) {
+    /**
+     * Builds a {@code DocumentArgument}, optionally including encryption settings.
+     *
+     * @param encryption     whether the PDF should be encrypted
+     * @param ownerPassword the owner (permissions) password; used only when {@code encryption} is {@code true}
+     * @param userPassword  the user (open) password; used only when {@code encryption} is {@code true}
+     * @return the constructed {@code DocumentArgument}
+     */
+    private DocumentArgument createDocumentArgument(boolean encryption, String ownerPassword, String userPassword) {
         DocumentArgument documentArgument = new DocumentArgument();
         if (encryption) {
-            documentArgument.setEncryption(owner_password, user_password, new Permission());
+            documentArgument.setEncryption(ownerPassword, userPassword, new Permission());
         }
         return documentArgument;
     }
